@@ -1,34 +1,34 @@
-# CodeQuest (ByteArena) — High-Level Design (HLD)
+# CodeQuest — High-Level Design (HLD)
 
 ---
 
 ## 1. Document Overview
 
 ### 1.1 Purpose
-The purpose of this High-Level Design (HLD) document is to establish the macro-system architecture, component boundaries, inter-service communication protocols, data storage topology, and security postures for **CodeQuest** (codenamed **ByteArena** / **CodeVerse**). 
+The purpose of this High-Level Design (HLD) document is to define the macro-system architecture, subsystem boundaries, inter-tier communication protocols, polyglot persistence strategy, and security postures for **CodeQuest**. 
 
-This document serves as the architectural bridge connecting the business and pedagogical requirements defined in the Product Requirements Document ([`docs/PRD.md`](file:///c:/Users/tanus/OneDrive/Desktop/CodeVerse/docs/PRD.md)) to the microscopic implementation specifications detailed in the Low-Level Design ([`docs/LLD.md`](file:///c:/Users/tanus/OneDrive/Desktop/CodeVerse/docs/LLD.md)). It provides technical viva evaluators, software architects, and engineering teams with a clear, defensible blueprint of how the complete platform operates as a cohesive, reliable, and scalable system.
+This document serves as the architectural foundation bridging the pedagogical requirements defined in the Product Requirements Document ([`docs/PRD.md`](file:///c:/Users/tanus/OneDrive/Desktop/CodeVerse/docs/PRD.md)) to the granular component specifications reserved for the Low-Level Design (`docs/LLD.md`). It provides engineering examiners, technical viva evaluators, software architects, and full-stack developers with a clear, defensible blueprint demonstrating how the platform operates as a robust, safe, and scalable learning environment.
 
 ### 1.2 Scope
 This document covers:
 - System context, runtime boundaries, and multi-tier decoupled client-server architecture.
-- Frontend architecture (React 19 SPA, visual block canvas, Web Worker sandbox runner, cyber HUD).
-- Backend application gateway (Node.js + Express 5 modular monolith, middleware pipelines, error handling).
-- Polyglot persistence strategy (MongoDB document store for curriculum/AI questions + PostgreSQL relational schema for social systems and SQL JOINs).
+- Frontend architecture (React 19 Single Page Application, visual block assembly canvas, client-side Web Worker execution sandbox, cyber HUD).
+- Backend application gateway (Node.js + Express 5 modular monolith, middleware pipeline, centralized error handling).
+- Polyglot persistence strategy (MongoDB document store for curriculum/AI questions + PostgreSQL relational schema for multi-user social graphs and SQL JOINs).
 - AI subsystem integration (isolated backend LLM pipeline, prompt engineering guardrails, structured JSON output validation, fallback handling).
 - Deterministic Adaptive Difficulty Engine (Bloom's cognitive staircase owned strictly by the application).
-- Defense-in-depth security model (zero server RCE, stateless JWT auth, bcrypt hashing, anti-cheat query projections, rate limiting).
+- Defense-in-depth security model (zero server Remote Code Execution, stateless JWT authentication, bcrypt password hashing, anti-cheat query projections, rate limiting).
 - Academic and engineering viva defense mapping across all 25 mandatory Project Score competencies.
 
 ### 1.3 Target Audience
-- **Technical Viva Evaluators & Assessors:** Examining architectural reasoning, design trade-offs, technology selection, and runtime fundamentals.
-- **Full-Stack Software Engineers:** Implementing features, services, and schemas directly from architectural blueprints.
-- **System Architects & Reviewers:** Auditing scalability, failure resilience, cost controls, and security postures.
+- **Technical Viva Evaluators & Assessors:** Auditing architectural reasoning, design trade-offs, technology selection, and runtime execution fundamentals.
+- **Full-Stack Software Engineers:** Implementing features, services, and schemas directly from architectural specifications.
+- **System Architects & Reviewers:** Verifying scalability, failure resilience, cost controls, and security boundaries.
 
 ### 1.4 Architectural Hierarchy: PRD vs. HLD vs. LLD
-CodeQuest enforces a disciplined engineering trail:
+CodeQuest enforces a disciplined, hierarchical engineering workflow:
 
-$$\mathbf{PRD} \text{ (What \& Why)} \longrightarrow \mathbf{HLD} \text{ (System Architecture \& Components)} \longrightarrow \mathbf{LLD} \text{ (Microscopic Code Blueprints)}$$
+$$\mathbf{PRD} \text{ (What \& Why)} \longrightarrow \mathbf{HLD} \text{ (System Architecture \& Boundaries)} \longrightarrow \mathbf{LLD} \text{ (Component Blueprints \& Contracts)}$$
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -59,20 +59,23 @@ $$\mathbf{PRD} \text{ (What \& Why)} \longrightarrow \mathbf{HLD} \text{ (System
 ```
 
 ### 1.5 Current Project Implementation Status
-To maintain complete integrity during engineering audits, features are classified across four auditable states:
+To maintain complete integrity during engineering audits and viva assessments, platform capabilities are classified across four auditable states:
 - **Implemented:** Code or documentation artifact exists directly in the repository and has been verified.
 - **Partially Implemented:** Scaffolding, configuration, or documentation stubs exist, but complete operational integration is pending.
-- **Planned (MVP):** Formally designed and scheduled for immediate implementation in the upcoming MVP sprint.
-- **Future Scope:** Post-MVP architectural enhancements scheduled for subsequent roadmap phases.
+- **Planned (MVP):** Formally architected and scheduled for immediate implementation in the upcoming MVP sprint.
+- **Future:** Post-MVP architectural enhancements scheduled for subsequent roadmap phases.
+
+> [!NOTE]
+> The repository currently contains the foundational documentation artifacts (`README.md`, `docs/PRD.md`, and this `docs/HLD.md`). In accordance with strict software engineering discipline, all software components scheduled for code creation are labeled `Planned (MVP)` or `Planned (Phase 2/Phase 4)`. Only verified repository items are marked `Implemented`.
 
 | System Subsystem | Architectural Status | Repository Evidence | Technical Notes |
 |:---|:---:|:---|:---|
 | **Git Workflow & Branching** | `Implemented` | `.git`, branches `main`, `develop`, `docs/*` | Git flow enforcing Conventional Commits and branch isolation. |
 | **Product Requirements (PRD)** | `Implemented` | `docs/PRD.md` (v1.0.0) | Complete problem analysis, Bloom's tiers, and non-goals. |
 | **High-Level Design (HLD)** | `Implemented` | `docs/HLD.md` (This document) | System architecture, polyglot storage, and AI safety. |
-| **Low-Level Design (LLD)** | `Implemented` | `docs/LLD.md` (v1.0.0) | Implementation contracts, schemas, interfaces, and algorithms. |
+| **Low-Level Design (LLD)** | Branch-Isolated | `docs/lld` branch (`docs/LLD.md`) | Low-level contracts maintained on dedicated branch; untouched in this HLD task. |
 | **Frontend UI Shell (React 19)**| `Planned (MVP)` | `frontend/src/App.jsx`, `main.jsx` | SPA architecture with Vite HMR and modern React 19 root mounting. |
-| **Cyber HUD & Roadmap View** | `Planned (MVP)` | `frontend/src/components/layout/` | Tactical command bar (Level, XP, Streak) and interactive map. |
+| **Cyber HUD & Roadmap View** | `Planned (MVP)` | `frontend/src/components/layout/` | Tactical command bar (Level, XP, Streak) and interactive roadmap. |
 | **Visual Block Workspace** | `Planned (MVP)` | `frontend/src/components/workspace/` | Snap-together geometry generating Abstract Syntax Trees (AST). |
 | **Sandboxed Code Execution** | `Planned (MVP)` | `frontend/src/workers/codeRunner.worker.js`| Isolated client Web Worker with 1,000ms watchdog timeout guard. |
 | **Express REST API Gateway** | `Planned (MVP)` | `backend/src/app.js`, `server.js` | Express 5 application with modular routes, CORS, and JSON parser. |
@@ -80,13 +83,13 @@ To maintain complete integrity during engineering audits, features are classifie
 | **MongoDB Document Store** | `Planned (MVP)` | `backend/src/models/` | Mongoose schemas for Users, Topics, Questions, and QuizAttempts. |
 | **Deterministic Quiz Grader** | `Planned (MVP)` | `backend/src/controllers/quiz.controller.js`| Server-side grading; `.select("-correctAnswer")` anti-cheat projection. |
 | **Deterministic XP Economy** | `Planned (MVP)` | `backend/src/services/gamificationService.js`| Formula $100 \times N^{1.5}$; streak tracking based on UTC calendar. |
-| **Adaptive Difficulty Engine** | `Planned (Phase 2)`| `backend/src/services/adaptiveEngine.js` | Deterministic Bloom's taxonomy staircase calibrated on 3-attempt accuracy. |
+| **Adaptive Difficulty Engine** | `Planned (Phase 2)`| `backend/src/services/adaptiveEngine.js` | Deterministic Bloom's cognitive staircase calibrated on 3-attempt accuracy. |
 | **AI LLM Question Generator** | `Planned (Phase 2)`| `backend/src/services/aiQuestionService.js` | Low-temp (0.2) LLM prompt synthesis with Zod structured output checks. |
 | **PostgreSQL Relational Layer** | `Planned (Phase 4)`| `database/migrations/001_relational_schema.sql`| Normalized SQL tables for Guilds and social graphs using SQL JOINs. |
-| **Distributed Redis Cache** | `Future Scope` | `backend/src/config/redis.js` | In-memory caching for curriculum hierarchies and rate limits. |
+| **Distributed Redis Cache** | `Future` | `backend/src/config/redis.js` | In-memory caching for curriculum hierarchies and rate limits. |
 
 ### 1.6 Architectural Assumptions
-1. **Source Code Baseline:** The repository currently establishes the architectural baseline through `README.md`, `docs/PRD.md`, `docs/HLD.md`, and `docs/LLD.md`. Source code files described in `README.md` represent the planned architecture for the implementation sprint and are accurately classified as `Planned (MVP)`.
+1. **Source Code Baseline:** The repository currently establishes the architectural baseline through `README.md`, `docs/PRD.md`, and `docs/HLD.md`. Source code files represent the planned architecture for the implementation sprint and are accurately classified as `Planned (MVP)`.
 2. **Persistence Allocation:** MongoDB serves as the primary document persistence engine for the MVP (handling users, curriculum topics, question banks, and quiz attempts). PostgreSQL relational tables and SQL JOIN queries are formally architected for Phase 4 social systems (Guilds, Guild Quests, relational leaderboards) to demonstrate dual-database competence without introducing premature operational overhead.
 3. **Execution Safety Invariant:** Untrusted learner code is executed strictly on the client inside isolated browser Web Workers backed by a 1,000ms watchdog timer. Untrusted code is never executed directly inside the Node.js API process.
 4. **Application Authority over AI:** The Large Language Model (LLM) is strictly a pedagogical content generator. It has zero authority over user levels, XP awards, database writes, or curriculum unlocks. The application-level Adaptive Difficulty Engine deterministically calculates constraints before the LLM is invoked.
@@ -111,7 +114,7 @@ Novices attempting to learn programming using traditional command-line environme
 1. **Algorithmic Logic:** Understanding step order, condition evaluation, loop termination, and variable mutation.
 2. **Syntactical Rules:** Memorizing commas, colons, semicolons, parentheses, brackets, and whitespace indentation.
 
-A single missing quotation mark produces intimidating, opaque error messages (`SyntaxError: unexpected EOF while parsing`). Beginners spend up to $85\%$ of their initial learning time debugging punctuation rather than building computational reasoning. Existing solutions either infantilize the subject with childish cartoon mascots (alienating university students and adult career changers) or assume pre-existing syntax fluency (like LeetCode).
+A single missing quotation mark produces intimidating, opaque error messages (`SyntaxError: unexpected EOF while parsing`). Beginners spend up to $85\%$ of their initial learning time debugging punctuation rather than building computational reasoning. Existing educational platforms polarize between childish games with cartoon mascots (alienating university students and adult career changers) and competitive coding platforms that assume pre-existing syntax fluency (like LeetCode).
 
 ### 2.2 Target Learners
 - **Absolute Beginners:** Individuals with zero prior coding background needing an approachable, visual gateway into computational logic.
@@ -139,10 +142,11 @@ Level 7: Real Code Dual-View (Block-to-text equivalence, syntax editing)
 
 ### 2.4 Cyber Developer Aesthetic
 CodeQuest replaces cartoonish gamification with a sleek **Cyber-Developer SaaS Aesthetic**:
-- Near-black deep space canvas base (`#0F172A`) and dark navy panels (`#111827`).
-- Restrained neon accents: Cyan (`#06B6D4`), Electric Blue (`#3B82F6`), Controlled Violet (`#7C3AED`), and Matrix Emerald (`#22C55E`).
+- Near-black deep space canvas base (`#0B0F19`) and dark navy panels (`#111827`).
+- Restrained neon accents: Cyan (`#06B6D4`), Electric Blue (`#3B82F6`), Controlled Violet (`#8B5CF6`), and Matrix Emerald (`#10B981`).
 - Code-editor-inspired split-views and terminal-inspired diagnostic docks.
-- Zero childish mascots, zero bouncing emojis, zero pastel rainbow palettes.
+- Subtle circuit/grid textures and restrained neon micro-glows.
+- Zero cartoon mascots, zero bouncing emojis, zero pastel rainbow palettes, zero hacker/security-tool aesthetic.
 
 ---
 
@@ -151,7 +155,7 @@ CodeQuest replaces cartoonish gamification with a sleek **Cyber-Developer SaaS A
 The architecture of CodeQuest is designed around ten non-negotiable engineering goals:
 
 1. **Maintainability & Modularity:** Clean separation of concerns between views, gateway controllers, pure domain services, and data repositories.
-2. **Absolute Code Execution Safety:** Zero server-side Remote Code Execution (RCE) vulnerability; arbitrary student code is strictly isolated.
+2. **Absolute Code Execution Safety:** Zero server-side Remote Code Execution (RCE) vulnerability; arbitrary student code is strictly isolated on the client.
 3. **Deterministic Progression & Economy:** Game rules, XP calculation, streaks, and milestone unlocks are calculated deterministically on the backend; the LLM never controls progression.
 4. **Defensive AI Architecture:** The external LLM is never exposed to the client, never given raw execution access, and raw completions are validated against strict JSON schemas.
 5. **High Interactive Performance:** Initial application shell renders in $<1.5\text{s}$; block dragging and live syntax synchronization maintain 60 FPS ($<16\text{ms}$ frame time); REST endpoints respond in $<200\text{ms}$.
@@ -189,8 +193,8 @@ flowchart TB
     Learner["🧑‍💻 Learner / Student Browser"]
 
     subgraph ClientTier["Frontend Presentation Tier (React 19 + Vite)"]
-        UI["Cyber HUD & Layout Shell\n(GameHeader.jsx)"]
-        Roadmap["Curriculum Roadmap View\n(KingdomMap.jsx)"]
+        UI["Cyber HUD & Layout Shell\n(DashboardHUD.jsx)"]
+        Roadmap["Curriculum Roadmap View\n(RoadmapCanvas.jsx)"]
         Workspace["Visual Block Workspace\n(AST Serialization Engine)"]
         Preview["Real-Time Dual Code Preview\n(JavaScript Syntax Emitter)"]
         WorkerSandbox["Sandboxed Web Worker\n(Client-Side JS Runtime)"]
@@ -297,7 +301,7 @@ flowchart TB
 - **Responsibility:** Central HTTP ingress point managing CORS, security headers, rate limiting, authentication, payload validation, and request routing.
 - **Inputs:** HTTPS REST requests with JSON payloads and Bearer tokens.
 - **Outputs:** Standardized JSON response envelopes (`{ success, data, error, timestamp }`).
-- **Dependencies:** Node.js 18+, Express 5.2.1, Helmet, Cors, Express-Rate-Limit.
+- **Dependencies:** Node.js 18+, Express 5, Helmet, Cors, Express-Rate-Limit.
 - **Data Owned:** HTTP request context, routing tables.
 - **Failure Behavior:** Unhandled exceptions intercepted by centralized error middleware; returns sanitized 500 error envelopes.
 - **Status:** `Planned (MVP)`
@@ -428,6 +432,59 @@ flowchart TB
 - **Failure Behavior:** Logging failures operate asynchronously without blocking HTTP request execution.
 - **Status:** `Planned (MVP)`
 
+### Component Relationships Diagram
+
+```mermaid
+graph LR
+    subgraph Client
+        SPA[Frontend SPA]
+        Worker[Web Worker Sandbox]
+        SPA -->|Dispatch Code| Worker
+    end
+
+    subgraph API Gateway
+        Express[Express 5 Server]
+    end
+
+    subgraph Domain Services
+        AuthSvc[Auth Service]
+        LearnSvc[Learning Service]
+        GradeSvc[Grading Service]
+        GamifySvc[Gamification Service]
+        AdaptEngine[Adaptive Difficulty Engine]
+        AISvc[AI Question Service]
+    end
+
+    subgraph Storage
+        Mongo[(MongoDB Atlas)]
+        Postgres[(PostgreSQL)]
+        SeedBank[(Seed Bank)]
+    end
+
+    subgraph External
+        Gemini[Google Gemini API]
+    end
+
+    SPA -->|HTTPS / REST| Express
+    Express --> AuthSvc
+    Express --> LearnSvc
+    Express --> GradeSvc
+    Express --> GamifySvc
+    Express --> AISvc
+
+    GradeSvc --> AdaptEngine
+    AdaptEngine --> AISvc
+    AISvc --> Gemini
+    AISvc -.-> SeedBank
+
+    AuthSvc --> Mongo
+    LearnSvc --> Mongo
+    GradeSvc --> Mongo
+    GamifySvc --> Mongo
+    AISvc --> Mongo
+    DomainServices -.-> Postgres
+```
+
 ---
 
 ## 7. Frontend Architecture
@@ -442,7 +499,7 @@ flowchart TD
 
     subgraph Layout["Persistent Layout Shell"]
         MainLayout["MainLayout.jsx"]
-        HUD["GameHeader.jsx (Level, XP Bar, Streak, Avatar)"]
+        HUD["DashboardHUD.jsx (Level, XP Bar, Streak, Avatar)"]
         Outlet["Route <Outlet />"]
     end
 
@@ -483,6 +540,21 @@ The frontend decomposes complex interactive screens into focused, reusable compo
 - **Presentation Components (`components/common/`):** Pure UI primitives (`CyberButton`, `MetricCard`, `XPMeter`, `LoadingSkeleton`, `Badge`). Receive state via props; hold zero API logic.
 - **Feature Modules (`components/workspace/`):** Coordinate domain logic (block snapping, AST serialization, code generation, terminal logging).
 - **Container Pages (`pages/`):** Manage route parameter extraction, data fetching lifecycles, and high-level layout assembly.
+
+### 7.2 State Management Architecture
+- **Local Interactive State (`useState`):** Workspace tool palette collapses, active tab indices, selected quiz choices, terminal buffer strings.
+- **Global Identity & Session State (React Context):** Current authenticated user (`id`, `username`, `totalXp`, `level`, `currentStreak`), JWT bearer token, login/logout callbacks.
+- **Asynchronous Remote State:** Decoupled HTTP API client fetching curriculum topics and challenge requirements with loading, success, and error states.
+
+### 7.3 Side Effects Management (`useEffect`)
+- **Canvas Lifecycle:** Mounting visual block canvas nodes and cleaning up SVG event listeners on unmount.
+- **Synchronous AST Code Generation:** Re-serializing block AST into formatted JavaScript when block connection state changes.
+- **Web Worker Sandbox Lifecycle:** Spawning dedicated worker instances, configuring message listeners, and invoking cleanup functions terminating workers on component unmount.
+
+### 7.4 Client-Side Routing Architecture
+- Declarative client routing using React Router v7.
+- Dedicated `ProtectedRoute` navigation guards redirecting unauthenticated learners to `/login` while preserving destination URLs.
+- Dedicated public guest routes preventing authenticated users from revisiting `/login` or `/register`.
 
 ---
 
@@ -534,19 +606,36 @@ The backend is engineered as a **modular monolith** enforcing strict layered sep
 └────────────────────────────────────────────────────────┘
 ```
 
+### 8.1 Asynchronous Event Loop & I/O Model
+- Node.js utilizes a single-threaded event loop backed by the C++ `libuv` worker pool.
+- Time-intensive operations (MongoDB queries, PostgreSQL TCP traffic, bcrypt password hashing, and external Gemini HTTPS calls) are delegated to worker threads and asynchronous OS primitives.
+- The main event loop remains free to process incoming HTTP requests with sub-millisecond dispatch times.
+
+### 8.2 Promises vs. Callbacks & Control Flow
+- Clean Promise chains and `async/await` syntax replace legacy callback hell.
+- Error propagation is handled predictably using `try/catch` blocks feeding into `next(err)` to trigger the centralized error middleware.
+
+### 8.3 Closures & Lexical Scoping
+- Array iterator methods (`map`, `filter`, `reduce`) maintain lexical closures over query datasets and calculation counters.
+- Middleware factories leverage closures to capture route configuration parameters (e.g. required user roles).
+
+### 8.4 Hoisting & Scoping Safeguards
+- All variables are strictly declared using block-scoped `const` and `let` residing in the Temporal Dead Zone (TDZ) before declaration, preventing unintended `undefined` hoisting bugs.
+- Named function declarations are used for modular services to allow clean hoisting within module boundaries.
+
 ---
 
 ## 9. REST API Architecture
 
 The API adheres to RESTful architectural principles:
-- **Statelessness:** Every request carries its authentication token (`Authorization: Bearer <token>`); no session affinity is stored in server memory.
+- **Statelessness:** Every request carries its authentication token (`Authorization: Bearer <token>`); zero session state is stored in server memory.
 - **Resource-Oriented URIs:** Nouns identify resources (`/api/topics`, `/api/quizzes`); HTTP verbs define operations (`GET`, `POST`).
 - **Standardized Response Envelope:** Every response conforms to a predictable JSON envelope:
 
 ```json
 {
   "success": true,
-  "data": { ... },
+  "data": {},
   "error": null,
   "timestamp": "2026-10-06T12:00:00.000Z"
 }
@@ -596,9 +685,9 @@ CodeQuest employs a **polyglot persistence strategy** assigning explicit storage
 
 ## 11. Learning Architecture
 
-The educational progression of CodeQuest is structured into an extensible 7-tier domain hierarchy:
+The educational progression of CodeQuest is structured into an extensible domain hierarchy and a 7-stage cognitive staircase:
 
-$$\text{Learning Path} \longrightarrow \text{Level} \longrightarrow \text{Concept} \longrightarrow \text{Challenge} \longrightarrow \text{Attempt} \longrightarrow \text{Progress Record}$$
+$$\text{Learning Path} \longrightarrow \text{Level} \longrightarrow \text{Concept} \longrightarrow \text{Challenge} \longrightarrow \text{Attempt} \longrightarrow \text{Result} \longrightarrow \text{Progress}$$
 
 ```mermaid
 flowchart TD
@@ -616,16 +705,19 @@ flowchart TD
     Challenge --> Attempt
     Attempt --> Result
     Result --> Progress
-    Progress -.->|Unlocks When Mastery >= 85%| Concept
+    Progress -.->|Unlocks Next Node When Mastery >= 85%| Concept
 ```
 
-### Cognitive Bloom's Staircase
-Learners do not jump directly into typing raw syntax. Instead, they climb a multi-stage cognitive staircase:
-1. **Stage 1: Recognition:** Predict outputs or identify syntax functions without writing code.
-2. **Stage 2: Construction:** Assemble logic using unconstrained snap-together visual blocks.
-3. **Stage 3: Application & Optimization:** Solve puzzles respecting resource constraints (e.g., max 4 blocks).
-4. **Stage 4: Debugging (Bug Hunt):** Trace execution through flawed programs and correct logical defects.
-5. **Stage 5: Real Code Synthesis:** Translate verified visual block logic into typed syntax.
+### 11.1 The Seven Stages of Learner Progression
+CodeQuest guides learners through seven pedagogical stages:
+
+1. **Stage 1: Recognition:** Identify programming constructs, predict program outputs, and trace step execution without syntax friction.
+2. **Stage 2: Construction:** Assemble logic, control flow, and sequencing using unconstrained visual snap blocks.
+3. **Stage 3: Application:** Apply foundational constructs to solve concrete computational tasks with defined goals.
+4. **Stage 4: Debugging:** Spot flaws, trace infinite loops, and resolve off-by-one errors in pre-existing broken code.
+5. **Stage 5: Problem Solving:** Formulate multi-step algorithmic strategies and state transformations from high-level specifications.
+6. **Stage 6: Real Code:** Translate visual block programs into typed syntax in target languages (JavaScript / Python).
+7. **Stage 7: Advanced Reasoning / Optimization / Projects:** Optimize algorithmic time/space efficiency, respect block count constraints, and engineer multi-component mini-projects.
 
 ---
 
@@ -649,6 +741,7 @@ stateDiagram-v2
 ### Challenge Typology
 - **Multiple Choice / Recognition:** Predict the final state or return value of a code snippet.
 - **Visual Block Assembly:** Snap together blocks to navigate an avatar or solve an algorithmic spec.
+- **Constrained Optimization:** Solve problems respecting block count limits (e.g., max 4 blocks).
 - **Bug Hunt:** Trace a pre-built flawed sequence (e.g. infinite loop, off-by-one) and apply the fix.
 - **Syntax Translation:** Bridge visual block logic to equivalent written code in JavaScript or Python.
 
@@ -722,58 +815,54 @@ flowchart TB
 
 ## 15. AI / LLM Architecture
 
-```text
-┌────────────────────────────────────────────────────────────────────────┐
-│                        CODEQUEST CLIENT TIER                           │
-│  React 19 SPA | Learner requests adaptive challenge / extra practice   │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │ HTTPS (Bearer Token)
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                    BACKEND APPLICATION GATEWAY                         │
-│  Rate Limiting (5 req/min) | Auth Verification | Zod Input Validation  │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                   ADAPTIVE DIFFICULTY ENGINE                           │
-│  Computes Bloom's cognitive stage (1-5) & syntax whitelists            │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                    PROMPT ENGINEERING BUILDER                          │
-│  Injects system role, curriculum boundaries, few-shots, JSON schema    │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                     EXTERNAL LLM INFERENCE                             │
-│  Google Gemini 1.5 Flash API (T = 0.2, Structured Output Mode)         │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │ Raw JSON String
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                   STRUCTURED OUTPUT VALIDATOR                          │
-│  Zod Schema Validation | Distractor & Correct Answer Checks            │
-└─────────────────┬──────────────────────────────────┬───────────────────┘
-                  │ Valid Schema                     │ Invalid / Timeout
-                  ▼                                  ▼
-┌──────────────────────────────────┐   ┌─────────────────────────────────┐
-│     MONGODB QUESTION STORE       │   │    FALLBACK SEED QUESTION BANK  │
-│  Cache question for reuse        │   │  Retrieve pre-seeded question   │
-└─────────────────┬────────────────┘   └─────────────┬───────────────────┘
-                  │                                  │
-                  └─────────────────┬────────────────┘
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                     SANITIZED CLIENT DELIVERY                          │
-│  correctAnswer stripped via projection -> Delivered to learner browser │
-└────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Progress["Learner Progress\n(Mastery %, Recent Attempts, Mistakes)"] --> DiffEngine["Difficulty Engine\n(Calculates Stage & Boundaries)"]
+    DiffEngine --> Obj["Learning Objective\n(Target Bloom's Tier & Concept)"]
+    Obj --> PromptBuilder["Prompt Builder\n(System Guardrails & JSON Schema)"]
+    PromptBuilder --> LLM["LLM Inference\n(Gemini 1.5 Flash @ T=0.2)"]
+    LLM --> RawOutput["Structured Output\n(Raw JSON String)"]
+    RawOutput --> Validation{"Schema Validation\n(Zod Validator)"}
+    
+    Validation -->|Pass| Question["Validated Question"]
+    Validation -->|Fail / Timeout| Fallback["Fallback Seed Bank\n(Pre-Seeded Question)"]
+    Fallback --> Question
+    
+    Question --> Client["Sanitized Question to Learner\n(Answers Stripped)"]
+    Client --> LearnerAnswer["Learner Answer Submission"]
+    LearnerAnswer --> Evaluation["Server-Side Evaluation\n(Deterministic Grader)"]
+    Evaluation --> ProgressUpdate["Progress Update\n(XP, Mastery %, Streak)"]
+    ProgressUpdate --> NextDiff["Next Difficulty Calibration"]
+    NextDiff -.-> Progress
 ```
 
-### 15.1 Why the Frontend MUST NOT Call the LLM Directly
+### 15.1 AI Input Factors
+The AI adaptive learning subsystem synthesizes practice challenges using ten contextual inputs:
+1. **Learner Level:** Overall progression rank and unlocked tier.
+2. **Concept:** Specific target topic (e.g. `loops_while`, `conditionals`).
+3. **Difficulty Stage:** Current Bloom's cognitive level (Recognition, Assembly, Debugging).
+4. **Learning Objective:** The specific pedagogical outcome for the challenge.
+5. **Accuracy:** Rolling percentage of correct submissions.
+6. **Recent Mistakes:** Categorized error patterns (e.g. off-by-one, infinite loop, syntax inversion).
+7. **Attempts Count:** Total attempts made on the current topic.
+8. **Hint Usage:** Number of progressive hints requested.
+9. **Previous Performance:** Historical velocity and time spent per challenge.
+10. **Concept Mastery:** Verified mastery percentage score for the concept.
+
+### 15.2 Application Authority over AI
+$$\mathbf{CRITICAL\ RULE:}\ \text{The Large Language Model MUST NOT control the curriculum or game rules.}$$
+
+The backend application deterministically controls:
+- **Learning Path:** Top-level progression domains.
+- **Levels:** Sequential order and unlocking gates.
+- **Concepts:** Allowed programming primitives.
+- **Difficulty Boundaries:** Min/max complexity parameters.
+- **Learning Objectives:** Explicit pedagogical targets.
+- **Progression Rules:** Rolling accuracy thresholds required to advance.
+- **Question Types:** Allowed question formats (multiple choice, bug hunt).
+- **Evaluation Rules:** Pass/fail test assertions and XP formulas.
+
+### 15.3 Why the Frontend MUST NOT Call the LLM Directly
 1. **API Key Protection:** Direct browser calls expose private API credentials in client network bundles, allowing malicious users to steal keys.
 2. **Cost & Quota Protection:** Bypassing the backend prevents rate limiting and semantic caching, enabling bad actors to exhaust API quotas and incur massive bills.
 3. **Prompt Injection Defense:** Centralized server prompts prevent users from manipulating system instructions or bypassing curriculum boundaries.
@@ -806,7 +895,12 @@ CodeQuest implements a **deterministic Bloom's Cognitive Staircase** owned stric
   Directly writing syntax in target language (JavaScript/Python)
 ```
 
-### 16.1 Why the Application Owns Progression (Not the LLM)
+### 16.1 Progression Rules
+- **Low Performance (<60% accuracy on last 3 attempts):** Maintain concept; drop to Stage 1 (Recognition) or Stage 2 (Construction); provide progressive hints; reduce problem complexity.
+- **Consistent Performance (60%–84% accuracy):** Maintain concept; introduce Stage 3 (Constrained optimization) or targeted remediation for observed error patterns.
+- **Mastery Performance ($\ge$85% accuracy over $\ge$3 attempts):** Advance to Stage 4 (Debugging) and Stage 5 (Code synthesis). Once concept mastery reaches $\ge$90%, unlock the subsequent curriculum node.
+
+### 16.2 Why the Application Owns Progression (Not the LLM)
 1. **Determinism:** Progression rules are mathematical and predictable, avoiding random difficulty spikes.
 2. **Auditability & Testing:** Progression algorithms can be verified with 100% test coverage using unit tests.
 3. **Anti-Cheating:** Prevents learners from jailbreaking the LLM to award unearned unlocks or infinite XP.
@@ -818,26 +912,18 @@ CodeQuest implements a **deterministic Bloom's Cognitive Staircase** owned stric
 
 Structured output guarantees machine readability and eliminates frontend UI crashes:
 
-### 17.1 Schema Contract
-```json
-{
-  "level": 3,
-  "concept": "loops_while",
-  "difficulty": "medium",
-  "questionType": "multiple_choice",
-  "question": "Which statement must be added inside the while loop so it terminates after 5 runs?",
-  "options": [
-    "count = count + 1;",
-    "count = count - 1;",
-    "let count = 0;",
-    "count == 5;"
-  ],
-  "correctAnswer": "count = count + 1;",
-  "hint": "What needs to change on every iteration so count < 5 eventually becomes false?",
-  "explanation": "Incrementing count ensures count reaches 5, causing the while condition to evaluate to false.",
-  "xp": 40
-}
-```
+### 17.1 Schema Contract Summary
+AI question generation requests return a strictly defined JSON structure containing:
+- `level` (integer: current unlocked level)
+- `concept` (string: active concept identifier)
+- `difficulty` (enum: `easy`, `medium`, `hard`)
+- `questionType` (enum: `multiple_choice`, `bug_hunt`, `output_prediction`)
+- `question` (string: pedagogical prompt)
+- `options` (array of 4 strings: distractors and correct answer)
+- `correctAnswer` (string: exact match with one array option)
+- `hint` (string: progressive Socratic clue)
+- `explanation` (string: concept explanation)
+- `xp` (integer: earned XP value)
 
 ### 17.2 Validation & Fallback Handling
 - **Parsing:** `JSON.parse()` extracts the completion string.
@@ -1145,7 +1231,7 @@ CodeQuest is architectured as a **Modular Monolith** rather than microservices:
 | **Vanilla CSS3** | Cyber Design System | Precise control over CSS variables, GPU animations, zero CSS bloat | TailwindCSS / Bootstrap | `Planned (MVP)` |
 | **Web Worker API** | Code Execution Sandbox | Native browser threading; zero server security risk; hard watchdog guards | Docker / Judge0 / WASM | `Planned (MVP)` |
 | **Node.js 18+** | Backend Runtime | Non-blocking asynchronous event loop; handles concurrent I/O efficiently | Python / Go / Java | `Planned (MVP)` |
-| **Express 5.2.1** | REST API Framework | Lightweight, un-opinionated routing, robust middleware pipeline | NestJS / Fastify | `Planned (MVP)` |
+| **Express 5** | REST API Framework | Lightweight, un-opinionated routing, robust middleware pipeline | NestJS / Fastify | `Planned (MVP)` |
 | **MongoDB 7 / Mongoose 9**| Primary Document Store | Schema-enforced document storage ideal for polymorphic questions & attempts | CouchDB / DynamoDB | `Planned (MVP)` |
 | **PostgreSQL 16** | Relational Social Store | Strict ACID guarantees, foreign keys, and multi-table SQL JOIN queries | MySQL / MariaDB | `Planned (Phase 4)` |
 | **Zod 3.23** | Schema Validation | TypeScript-first static & runtime validation for API bodies and LLM outputs | Joi / Yup | `Planned (MVP)` |
@@ -1157,9 +1243,11 @@ CodeQuest is architectured as a **Modular Monolith** rather than microservices:
 
 ## 33. Project Score Mapping
 
+### 33.1 Mandatory Computer Science & Full-Stack Competencies
+
 | Concept # | Mandatory Viva Concept | Architectural Area | Status | Architectural Role & Technical Explanation |
 |:---:|:---|:---|:---:|:---|
-| **1** | **React Component Composition** | Frontend Architecture | `Planned (MVP)` | Modular UI hierarchy (`MainLayout`, `GameHeader`, `KingdomMap`, `BlockWorkspace`, `TerminalDock`). Demonstrates pure presentation primitives and unidirectional data flow. |
+| **1** | **React Component Composition** | Frontend Architecture | `Planned (MVP)` | Modular UI hierarchy (`MainLayout`, `DashboardHUD`, `RoadmapCanvas`, `BlockWorkspace`, `TerminalDock`). Demonstrates pure presentation primitives and unidirectional data flow. |
 | **2** | **State Management (useState)** | Frontend State | `Planned (MVP)` | Local interactive state: block palette collapse, selected quiz choices, terminal log buffer, and modal dialogs. |
 | **3** | **Side Effects (useEffect)** | Frontend Lifecycle | `Planned (MVP)` | Synchronizing block AST changes with code generator; managing Web Worker lifecycle; cleanup functions terminating workers and aborting HTTP requests. |
 | **4** | **Async Data Fetching** | Frontend API Client | `Planned (MVP)` | Decoupled Axios/Fetch client (`apiClient.js`) with request/response interceptors, automatic JWT injection, and standardized error normalization. |
@@ -1184,6 +1272,23 @@ CodeQuest is architectured as a **Modular Monolith** rather than microservices:
 | **23** | **async / await** | JS Control Flow | `Planned (MVP)` | Linear, readable asynchronous control flow across controllers, service methods, and seed scripts. |
 | **24** | **Closures** | JS Scope & Memory | `Planned (MVP)` | Lexical closures in `answers.map((answer) => { ... })` retaining scope access to the outer `questions` array and mutating the lexical `score` counter. |
 | **25** | **Hoisting & Temporal Dead Zone** | JS Compilation | `Planned (MVP)` | Function declarations hoisted to module scope; variables declared strictly with `const` and `let` residing in the TDZ, preventing state bugs. |
+
+### 33.2 Optional Architectural Concepts Justification
+
+| Optional Concept | Architectural Role in CodeQuest | Justification & Reason for Inclusion |
+|:---|:---|:---|
+| **Validation (Zod)** | API boundary & LLM output sanitization | Prevents malformed client requests from entering controllers; protects database from corrupted documents. |
+| **Loading / Error UI** | 3-state async lifecycle presentation | Guarantees clear visual feedback during network operations; cyber skeleton loaders improve perceived performance. |
+| **Responsive Design** | Split-pane workspace adaptability | Allows students to practice on laptops, desktop monitors, and tablets without broken visual canvas geometry. |
+| **Deployment Architecture** | Decoupled Edge CDN + Cloud PaaS | Enables independent frontend static asset caching while backend scales horizontally behind a reverse proxy. |
+| **Authentication (JWT)** | Stateless user session verification | Eliminates memory session lookup bottlenecks on horizontal scaling; passes auditable identity claims. |
+| **Authorization (RBAC)** | Route and resource protection | Enforces that only administrators can seed curriculum, and users can only inspect their own attempt histories. |
+| **Rate Limiting** | DDoS, brute-force & AI cost defense | Restricts auth brute-forcing to 10 req/15min and LLM generation to 5 req/min, preventing denial-of-wallet exploits. |
+| **Prompt Injection Defense** | Server-side prompt boundary containment | Ensures untrusted user context cannot override pedagogical system instructions or alter Bloom's taxonomy. |
+| **Cost Monitoring & Caching** | Question reuse in MongoDB | Caches validated AI practice questions by topic and difficulty, reducing recurring API expenses by up to $70\%$. |
+| **Docker Containerization** | Reproducible execution environments | Standardizes runtime dependencies across development, staging, and production hosting environments. |
+| **Redis Caching (Planned)** | Curriculum read caching & rate limits | Eliminates repetitive database hits for high-frequency public curriculum reads as user traffic scales. |
+| **Third-Party AI Integration** | Google Gemini 1.5 Flash API | Powers dynamic mistake remediation and personalized practice synthesis bounded by curriculum guardrails. |
 
 ---
 
