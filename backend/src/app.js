@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { config } from './config/env.js';
-import { getDBStatus } from './config/database.js';
+import { getDatabaseStatus } from './config/database.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 const app = express();
@@ -19,10 +19,10 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 /**
  * Health probe endpoint
  * GET /api/health
- * Returns immediate liveliness status, process uptime, and database connectivity.
+ * Returns immediate process liveliness, uptime, and database connectivity state.
  */
 app.get('/api/health', (_req, res) => {
-  const dbStatus = getDBStatus();
+  const dbStatus = getDatabaseStatus();
   res.status(200).json({
     status: 'ok',
     service: 'CodeVerse API Gateway',

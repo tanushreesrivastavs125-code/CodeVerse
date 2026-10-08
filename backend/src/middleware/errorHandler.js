@@ -1,3 +1,5 @@
+import { config } from '../config/env.js';
+
 /**
  * Custom application operational error class.
  */
@@ -13,17 +15,22 @@ export class AppError extends Error {
 /**
  * Global centralized error-handling middleware.
  * Standardizes API error responses into the JSON envelope specified in LLD Section 16.
+ * Stack traces are never exposed in API client responses for security.
  */
 export function errorHandler(err, req, res, _next) {
   const statusCode = err.statusCode || 500;
   const errorCode = err.errorCode || 'INTERNAL_SERVER_ERROR';
+
+  if (!err.isOperational && config.nodeEnv !== 'test') {
+    console.error(`[Error] Unhandled server exception: ${err.message}`, err.stack);
+  }
 
   res.status(statusCode).json({
     success: false,
     error: {
       code: errorCode,
       message: err.isOperational ? err.message : 'An unexpected internal error occurred.',
-      details: process.env.NODE_ENV === 'development' ? err.stack : null
+      details: null
     },
     timestamp: new Date().toISOString()
   });

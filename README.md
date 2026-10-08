@@ -632,7 +632,12 @@ CodeVerse/
     ├── eslint.config.js                    # ESLint flat configuration for Node.js
     ├── .env.example                        # Template for backend environment variables
     ├── test/
-    │   └── health.smoke.test.js            # Automated health probe & 404 smoke tests
+    │   ├── config/                         # Configuration and database unit tests
+    │   │   ├── env.test.js
+    │   │   └── database.test.js
+    │   ├── health.smoke.test.js            # Automated health probe & 404 smoke tests
+    │   ├── health.test.js                  # Health contract and DB observability tests
+    │   └── lifecycle.test.js               # Startup lifecycle & graceful shutdown tests
     └── src/
         ├── app.js                          # Express 5 application setup, CORS, JSON parser
         ├── server.js                       # Server listener & graceful shutdown
@@ -734,11 +739,11 @@ The application enforces strict separation of code and configuration via `.env`:
 
 ## 🧪 Testing Strategy
 
-### Current Status: 📋 Planned Architecture
-The backend `package.json` contains a placeholder test script:
+### Current Status: ✅ Automated Infrastructure Test Suite (node --test)
+The backend `package.json` executes native unit and smoke tests:
 ```json
 "scripts": {
-  "test": "echo \"Error: no test specified\" && exit 1"
+  "test": "node --test test/**/*.test.js"
 }
 ```
 

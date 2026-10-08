@@ -40,6 +40,9 @@ describe('Backend Foundation Smoke Tests', () => {
 
   after(() => {
     if (server) {
+      if (typeof server.closeAllConnections === 'function') {
+        server.closeAllConnections();
+      }
       server.close();
     }
   });
