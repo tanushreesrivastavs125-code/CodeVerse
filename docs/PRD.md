@@ -1,10 +1,10 @@
-# CodeQuest — Product Requirements Document (PRD)
+# CodeVerse — Product Requirements Document (PRD)
 
 ---
 
 ## 1. Document Information
 
-- **Project Name:** CodeQuest
+- **Project Name:** CodeVerse
 - **Document Version:** 1.0.0
 - **Status:** Draft / Ready for Review
 - **Date:** October 2, 2026
@@ -16,11 +16,11 @@
 
 ## 2. Product Overview
 
-**CodeQuest** is a professional gamified coding-learning web platform engineered to guide beginners from foundational programming concepts to real-world code fluency through interactive visual challenges, deterministic feedback, and adaptive difficulty.
+**CodeVerse** is a professional gamified coding-learning web platform engineered to guide beginners from foundational programming concepts to real-world code fluency through interactive visual challenges, deterministic feedback, and adaptive difficulty.
 
 Traditional programming education suffers from a steep initial cognitive barrier: beginners are forced to memorize cryptic syntax and punctuation rules before grasping fundamental algorithmic logic. Existing educational platforms tend to polarize between dry, text-heavy documentation or childish, toy-like games with cartoon mascots.
 
-CodeQuest solves this dilemma by presenting a **serious developer-grade cyber tool aesthetic** integrated with structured gamification mechanics. Learners manipulate visual programming blocks, observe immediate graphical execution feedback, inspect live-synchronized syntax in real programming languages (such as JavaScript and Python), and conquer progressively challenging problem sets. The platform features an adaptive AI-assisted question engine bounded by strict curriculum guardrails, ensuring learners remain in an optimal state of cognitive flow.
+CodeVerse solves this dilemma by presenting a **serious developer-grade cyber tool aesthetic** integrated with structured gamification mechanics. Learners manipulate visual programming blocks, observe immediate graphical execution feedback, inspect live-synchronized syntax in real programming languages (such as JavaScript and Python), and conquer progressively challenging problem sets. The platform features an adaptive AI-assisted question engine bounded by strict curriculum guardrails, ensuring learners remain in an optimal state of cognitive flow.
 
 ---
 
@@ -123,7 +123,7 @@ A single missing quotation mark or misplaced bracket produces intimidating, opaq
 The following areas are explicitly **out of scope** for the MVP:
 - **No Arbitrary Remote Code Execution (RCE) on Server:** Untrusted user code will never be executed directly on backend servers; code execution will run in sandboxed client-side environments (Web Workers / WebAssembly) to eliminate server vulnerabilities.
 - **No Unrestricted LLM Curriculum Generation:** The AI engine will not freely decide what concepts exist or arbitrarily award XP; the backend controls all curriculum structures, unlock criteria, and rewards.
-- **No Full Production Cloud IDE:** CodeQuest is a structured learning environment, not a generic cloud IDE (like VS Code in browser) with terminal emulators and package managers.
+- **No Full Production Cloud IDE:** CodeVerse is a structured learning environment, not a generic cloud IDE (like VS Code in browser) with terminal emulators and package managers.
 - **No Real-Time Synchronous Multiplayer:** Synchronous multiplayer competitions, real-time WebSockets, and audio/video chat are deferred to post-MVP roadmap phases.
 - **No Cartoonish Gamification:** No cartoon mascots, playful voiceovers, or toy-like gamification elements.
 
@@ -228,7 +228,7 @@ Level 7: Real Code Dual-View (Block-to-text equivalence, syntax editing)
 
 ## 12. Challenge System
 
-Every challenge in CodeQuest is designed around clear pedagogical objectives:
+Every challenge in CodeVerse is designed around clear pedagogical objectives:
 
 ### Challenge Categories
 1. **Predictive / Recognition Challenges:** The learner inspects a block program or code snippet and predicts its final state or return value.
@@ -283,7 +283,7 @@ Learner Profile (Level, Concept, Mastery Rate, Error History)
 
 ## 15. Difficulty Progression
 
-CodeQuest avoids crude binary difficulty adjustments. Instead, it utilizes a multi-stage cognitive staircase:
+CodeVerse avoids crude binary difficulty adjustments. Instead, it utilizes a multi-stage cognitive staircase:
 
 ```text
 [STAGE 1] Recognition ──► [STAGE 2] Construction ──► [STAGE 3] Constrained ──► [STAGE 4] Debugging ──► [STAGE 5] Code Synthesis
@@ -316,7 +316,7 @@ The visual workspace provides an interactive spatial canvas where blocks snap to
 
 ## 17. Real Code Transition
 
-CodeQuest actively prevents learners from becoming trapped in block-only visual abstractions:
+CodeVerse actively prevents learners from becoming trapped in block-only visual abstractions:
 
 1. **Dual-View Code Preview:** An adjacent editor panel displays the exact generated code corresponding to assembled blocks.
 2. **Interactive Block-to-Syntax Highlighting:** Hovering over a visual block highlights its exact syntax representation in the code panel.
@@ -341,7 +341,7 @@ Phase 3 (Future): Java & C++ (Strict static typing, object-oriented design, memo
 
 ## 19. Gamification
 
-Gamification in CodeQuest is an intrinsic motivational engine designed to make learning tangible and satisfying, without trivializing the educational material into a childish toy.
+Gamification in CodeVerse is an intrinsic motivational engine designed to make learning tangible and satisfying, without trivializing the educational material into a childish toy.
 
 ### Gamification Elements
 - **Experience Points (XP):** Earned strictly by completing challenges, quizzes, and debugging tasks.
@@ -372,9 +372,9 @@ $$\text{XP Required for Level } N = 100 \times N^{1.5}$$
 
 ## 21. Dashboard Requirements
 
-The Dashboard is the command center of CodeQuest. It must exhibit a sleek, dark cyber-tool aesthetic:
+The Dashboard is the command center of CodeVerse. It must exhibit a sleek, dark cyber-tool aesthetic:
 1. **Global Header (HUD):**
-   - Brand identity: CodeQuest logo with cyan/blue accents.
+   - Brand identity: CodeVerse logo with cyan/blue accents.
    - User Profile Badge: Avatar, Username, Rank Title.
    - XP Meter: Visual horizontal progress bar showing current XP vs XP required for next level.
    - Streak Indicator: Active streak count with subtle amber glow.
@@ -520,12 +520,16 @@ The Minimum Viable Product focuses on delivering a complete, robust, and verifia
 
 ---
 
-## 32. Future Roadmap
+## 32. Phased Roadmap
 
-- **Phase 2 (Adaptive AI Engine):** Integration of LLM prompt builder, dynamic Bloom's taxonomy difficulty calibrator, and mistake remediation engine.
-- **Phase 3 (Multi-Language Execution):** Python sandboxed execution via WebAssembly (Pyodide), followed by Java and C++ compilation sandboxes.
-- **Phase 4 (Social & Relational Systems):** PostgreSQL relational database layer for developer Guilds, collaborative quests, and weekly competitive leaderboards.
-- **Phase 5 (Advanced Coding Arena):** Full-screen text editor mode with syntax auto-complete, multi-file project scaffolding, and Git integration challenges.
+CodeVerse advances through four distinct implementation phases:
+
+- **Phase 1 (MVP Core):** React 19 + Vite 6 frontend, Node.js + Express 5 backend, MongoDB persistence, JWT authentication, curriculum roadmap, static quiz engine with server-side evaluation, XP leveling system, Blockly visual workspace, and client-side browser Web Worker execution sandbox (1,000ms watchdog).
+- **Phase 2 (Adaptive AI Engine):** Google Gemini 1.5 Flash integration, adaptive difficulty engine calibrated to Bloom's taxonomy staircase, dynamic prompt synthesis, structured Zod output validation, and fallback question bank.
+- **Phase 3 (Production Hardening):** Comprehensive automated testing suites, GitHub Actions CI/CD pipelines, tiered rate limiting, structured logging, performance optimizations, and security auditing.
+- **Phase 4 (Social & Relational Systems):** PostgreSQL 16 relational database layer for developer Guilds, collaborative quests, and weekly competitive leaderboards utilizing multi-table SQL JOINs.
+
+*Post-Phase 4 Capabilities (Future):* Multi-language WebAssembly execution (Python via Pyodide) and full-screen text editor mode.
 
 ---
 
@@ -541,9 +545,9 @@ The Minimum Viable Product focuses on delivering a complete, robust, and verifia
 
 ## 34. Project Score / Engineering Alignment
 
-CodeQuest is specifically engineered to demonstrate mandatory computer science and full-stack engineering competencies required for remote-proctored technical vivas:
+CodeVerse is specifically engineered to demonstrate mandatory computer science and full-stack engineering competencies required for remote-proctored technical vivas:
 
-| Concept # | Mandatory Viva Concept | Architectural Role in CodeQuest | Status |
+| Concept # | Mandatory Viva Concept | Architectural Role in CodeVerse | Status |
 |:---:|:---|:---|:---:|
 | **1** | **React Component Composition** | Modular frontend hierarchy: HUD, Roadmap, BlockWorkspace, OutputDock | 🚧 Planned (Milestone 1) |
 | **2** | **State Management (useState)** | Local workspace state: active blocks, current challenge index, terminal logs | 🚧 Planned (Milestone 1) |
@@ -552,7 +556,7 @@ CodeQuest is specifically engineered to demonstrate mandatory computer science a
 | **5** | **Client-Side Routing** | Declarative routing between Dashboard, Challenge, and Profile arenas | 🚧 Planned (Milestone 1) |
 | **6** | **Problem Modeling** | Discrete domain models: Users, Levels, Concepts, Challenges, Attempts | 🚧 Planned (Milestone 5) |
 | **7** | **System Design** | Decoupled multi-tier client-server architecture with REST and AI integration | 🚧 Planned (Milestone 5) |
-| **8** | **RESTful Endpoint Design** | Semantic URIs and HTTP verbs (`GET /api/topics`, `POST /api/attempts`) | 🚧 Planned (Milestone 5) |
+| **8** | **RESTful Endpoint Design** | Semantic URIs and HTTP verbs (`GET /api/topics`, `POST /api/quizzes/:id/submit`) | 🚧 Planned (Milestone 5) |
 | **9** | **HTTP Status Codes** | Precise status codes: `200 OK`, `201 Created`, `400 Bad Request`, `401 Unauthorized`, `404 Not Found` | 🚧 Planned (Milestone 5) |
 | **10** | **Server Error Handling** | Structured `try/catch` handlers, centralized error middleware | 🚧 Planned (Milestone 5) |
 | **11** | **Express Middleware** | Custom `authMiddleware` (JWT verification) and `validationMiddleware` | 🚧 Planned (Milestone 5) |
@@ -719,7 +723,7 @@ main (Production releases only)
 
 ## 41. Definition of Done (DoD)
 
-A feature or milestone in CodeQuest is considered **Done** only when:
+A feature or milestone in CodeVerse is considered **Done** only when:
 1. **Requirements Satisfied:** All functional requirements and acceptance criteria defined in this PRD are fulfilled.
 2. **Git Workflow Complied:** Work was developed on a dedicated branch from `develop`, uses Conventional Commits, and passed PR review.
 3. **No Unexplainable Black Boxes:** Every line of code can be explained and defended by the author in a technical engineering assessment.
@@ -731,4 +735,4 @@ A feature or milestone in CodeQuest is considered **Done** only when:
 
 ## 42. Future Vision
 
-CodeQuest envisions a future where learning software engineering is as immersive and engaging as modern developer tooling. By combining structured visual programming, immediate execution feedback, and adaptive artificial intelligence within a sleek cyber aesthetic, CodeQuest bridges the gap between zero programming experience and production-grade software engineering mastery.
+CodeVerse envisions a future where learning software engineering is as immersive and engaging as modern developer tooling. By combining structured visual programming, immediate execution feedback, and adaptive artificial intelligence within a sleek cyber aesthetic, CodeVerse bridges the gap between zero programming experience and production-grade software engineering mastery.

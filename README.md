@@ -1,4 +1,4 @@
-# 🚀 ByteArena (CodeVerse)
+# 🚀 CodeVerse
 
 > **"Learn coding by playing, building, solving, and gradually writing real code."**  
 > An adaptive, gamified programming-learning platform designed to take young learners and beginners from foundational computational thinking to real-world code through interactive game mechanics.
@@ -8,7 +8,7 @@
 [![Node.js Version](https://img.shields.io/badge/Node.js-v18%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Express Version](https://img.shields.io/badge/Express-v5.2.1-000000?logo=express&logoColor=white)](https://expressjs.com/)
 [![React Version](https://img.shields.io/badge/React-v19.2.8-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![Vite Version](https://img.shields.io/badge/Vite-v8.2.0-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Vite Version](https://img.shields.io/badge/Vite-v6.2.0-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![MongoDB / Mongoose](https://img.shields.io/badge/MongoDB-Mongoose%20v9.9.1-47A248?logo=mongodb&logoColor=white)](https://mongoosejs.com/)
 [![JWT Authentication](https://img.shields.io/badge/Auth-JWT%20%2B%20bcryptjs-FF5722?logo=jsonwebtokens&logoColor=white)](https://jwt.io/)
 [![Architecture](https://img.shields.io/badge/Architecture-Decoupled%20REST%20Client--Server-blueviolet)](#-system-architecture)
@@ -55,7 +55,7 @@
 
 ## 🎮 What Is This?
 
-**ByteArena** (also titled **CodeVerse**) is an adaptive, gamified programming education platform that transforms coding from an abstract, syntax-heavy academic subject into an adventure-driven video game.
+**CodeVerse** (also titled **CodeVerse**) is an adaptive, gamified programming education platform that transforms coding from an abstract, syntax-heavy academic subject into an adventure-driven video game.
 
 Instead of staring at a blank terminal or memorizing cryptic syntax errors, learners embark on missions across progressive "Kingdoms" (such as the *Structure Realm* of HTML, the *Style Realm* of CSS, and the *Logic Realm* of JavaScript). Players complete micro-quests, solve logic puzzles, earn Experience Points (XP), conquer milestone "Boss Battles," and advance from visual block-based algorithmic manipulation to writing real-world code in multiple programming languages.
 
@@ -84,7 +84,7 @@ Any misplaced character results in an intimidating, cryptic error message (`Synt
 
 ### The Educational Paradigm Shift
 
-| Traditional Learning Loop | ByteArena Gamified Learning Loop |
+| Traditional Learning Loop | CodeVerse Gamified Learning Loop |
 |:---|:---|
 | 📖 **Read** textbook or watch lecture | 🎮 **Play** interactive level with tangible mission goals |
 | 🧠 **Memorize** grammar and keywords | 🧪 **Experiment** with visual actions and spatial mechanics |
@@ -97,7 +97,7 @@ Any misplaced character results in an intimidating, cryptic error message (`Synt
 
 ## 💡 Vision & Core Philosophy
 
-The foundational philosophy of ByteArena is:
+The foundational philosophy of CodeVerse is:
 
 $$\Large \mathbf{PLAY} \longrightarrow \mathbf{BUILD} \longrightarrow \mathbf{UNDERSTAND} \longrightarrow \mathbf{CODE} \longrightarrow \mathbf{MASTER}$$
 
@@ -132,7 +132,7 @@ Once the conceptual mental model is established, the platform systematically bri
 
 ## 🗺️ Core Learning Journey
 
-ByteArena structures learner advancement across 7 progressive tiers:
+CodeVerse structures learner advancement across 7 progressive tiers:
 
 ```mermaid
 flowchart TD
@@ -159,7 +159,7 @@ flowchart TD
 
 ## 🤖 AI-Powered Adaptive Learning
 
-One of the foundational architectural pillars of ByteArena is its **Dynamic AI Question Generation Engine**. Rather than relying solely on static question banks, ByteArena leverages an adaptive Large Language Model (LLM) pipeline that synthesizes custom, level-calibrated programming challenges based on individual learner history.
+One of the foundational architectural pillars of CodeVerse is its **Dynamic AI Question Generation Engine**. Rather than relying solely on static question banks, CodeVerse leverages an adaptive Large Language Model (LLM) pipeline that synthesizes custom, level-calibrated programming challenges based on individual learner history.
 
 ### The Question Generation Pipeline
 
@@ -195,7 +195,7 @@ flowchart TD
 
 ## 📈 Gradual Difficulty Progression
 
-ByteArena rejects naive binary difficulty scaling (where every correct answer immediately escalates difficulty). Instead, the system uses **in-domain scaffolding** and granular sub-levels.
+CodeVerse rejects naive binary difficulty scaling (where every correct answer immediately escalates difficulty). Instead, the system uses **in-domain scaffolding** and granular sub-levels.
 
 ```text
 [BEGINNER] ──► Recognition ──► Simple Construction ──► Application ──► Debugging ──► Optimization [ADVANCED]
@@ -216,7 +216,7 @@ ByteArena rejects naive binary difficulty scaling (where every correct answer im
 
 ## 🎮 Gamification Engine
 
-Gamification in ByteArena is not a superficial layer of random rewards—it is an intrinsic motivational engine designed to reinforce learning milestones, celebrate persistence, and make abstract progress visually concrete.
+Gamification in CodeVerse is not a superficial layer of random rewards—it is an intrinsic motivational engine designed to reinforce learning milestones, celebrate persistence, and make abstract progress visually concrete.
 
 ```mermaid
 flowchart LR
@@ -257,65 +257,80 @@ To eliminate syntactic cognitive overhead, the platform is architected around an
 
 ## ✨ Implemented & Planned Features
 
-### Current Feature Matrix
+### Current Feature Matrix & Implementation Status
 
-| Feature Area | Status | Component / Location | Description |
+| Feature / Subsystem | Status | Component / Location | Description |
 |:---|:---:|:---|:---|
-| **Vite + React UI Engine** | ✅ Implemented | `frontend/src/App.jsx`, `main.jsx` | Fast, reactive SPA using React 19 and modern Vite tooling |
-| **Dark Futuristic Cyber HUD** | ✅ Implemented | `frontend/src/components/layout/GameHeader.jsx` | Neon navigation bar, brand icon, level badge, XP progress meter, avatar |
-| **Interactive Kingdom Map** | ✅ Implemented | `frontend/src/components/kingdom/KingdomMap.jsx` | Realm progression path with active/locked states and Boss Guardian node |
-| **Express REST API Server** | ✅ Implemented | `backend/src/server.js`, `app.js` | Express 5 application with CORS, JSON body parser, and modular routing |
-| **MongoDB / Mongoose Database** | ✅ Implemented | `backend/src/config/db.js`, `models/` | Mongoose 9 schemas for Users, Topics, Questions, and QuizAttempts |
-| **User Authentication (JWT + bcrypt)** | ✅ Implemented | `backend/src/routes/auth.routes.js` | User registration with bcrypt hashing (salt=10), login with signed JWTs (1d expiry) |
-| **Protected Route Middleware** | ✅ Implemented | `backend/src/middleware/authMiddleware.js` | Authorization header `Bearer <token>` verification for secure routes |
-| **Curriculum Topics API** | ✅ Implemented | `backend/src/routes/topic.routes.js` | Endpoints to fetch all topics, filter by category (`frontend`, `dsa`), or get by ID |
-| **Question Bank & Seeding API** | ✅ Implemented | `backend/src/routes/question.routes.js`, `seed/` | Endpoints to create/fetch questions; database seeders for 8 topics and 8 questions |
-| **Quiz Execution & Submission Engine** | ✅ Implemented | `backend/src/routes/quiz.routes.js`, `controllers/` | Hides correct answers on quiz start (`.select("-correctAnswer")`); grades answers on server |
-| **Request Validation Middleware** | ✅ Implemented | `backend/src/middleware/validationMiddleware.js` | Validates ObjectIds, enum values, options array bounds, and quiz submission structures |
-| **Client-Side Routing** | 🚧 Partially Implemented | Navigation stubs in `GameHeader.jsx` | Route folder structure initialized (`pages/Dashboard`, `Practice`, `Boss`, etc.); `react-router-dom` planned |
-| **Frontend-Backend API Integration** | 🚧 Partially Implemented | Backend endpoints ready; frontend hooks | Frontend currently renders mock kingdom data; React state hooks for API fetching planned |
-| **AI Question Generation Service** | 📋 Planned Architecture | Designed in `docs/HLD.md` & `LLD.md` | LLM prompt pipeline with structured JSON schema output |
-| **PostgreSQL Relational Layer** | 📋 Planned Architecture | Designed in `docs/HLD.md` | Relational tables for Guilds and complex user social graphs using SQL JOINs |
-| **Blockly Visual Programming Engine** | 📋 Planned Architecture | Visual workspace specifications | Canvas-based drag-and-drop workspace generating JavaScript & Python code |
-| **Sandboxed Code Runner (Pyodide / Worker)** | 📋 Planned Architecture | Execution layer | In-browser Web Worker sandbox for executing code safely without server risk |
+| **Project Workspace & Tooling** | ✅ Implemented | Root `package.json`, `.gitignore` | Monorepo npm workspaces managing `backend` and `frontend` |
+| **Vite + React 19 Frontend Shell** | ✅ Implemented | `frontend/src/App.jsx`, `main.jsx` | Fast SPA shell with cyber telemetry HUD, health probing, and clean CSS tokens |
+| **Express 5 API Gateway** | ✅ Implemented | `backend/src/server.js`, `app.js` | Express 5 application with CORS, JSON body parser, and graceful shutdown |
+| **Infrastructure Health Probe** | ✅ Implemented | `GET /api/health` | Live endpoint returning uptime, liveliness, and DB connectivity status |
+| **Centralized Error Handling** | ✅ Implemented | `backend/src/middleware/errorHandler.js` | `AppError` class and standard JSON error envelope formatting |
+| **Database Abstraction Layer** | ✅ Implemented | `backend/src/config/database.js` | Resilient, non-blocking Mongoose abstraction permitting offline server boot |
+| **Automated Smoke Test Suite** | ✅ Implemented | `backend/test/health.smoke.test.js` | Native Node.js test runner verifying startup, health probe, and 404 responses |
+| **User Authentication (JWT + bcrypt)** | 📋 Planned (MVP) | `backend/src/routes/auth.routes.js` | Registration with salted bcrypt hashing, login issuing stateless 24h JWTs |
+| **Curriculum Topics API** | 📋 Planned (MVP) | `backend/src/routes/topic.routes.js` | Topic hierarchy and realm concepts queried via `GET /api/topics` |
+| **Question Bank & Quiz Grader** | 📋 Planned (MVP) | `backend/src/routes/quiz.routes.js` | Quiz delivery with `.select("-correctAnswer")`; server-side attempt evaluation |
+| **Deterministic XP & Gamification** | 📋 Planned (MVP) | `backend/src/services/gamificationService.js` | Mathematical XP curve ($100 \times N^{1.5}$) and UTC streak counters |
+| **Visual Block Workspace (Blockly)** | 📋 Planned (MVP) | `frontend/src/components/workspace/BlockWorkspace.jsx` | Magnetic block assembly canvas with type-socket validation & AST code generator |
+| **Client-Side Code Sandbox (Web Worker)** | 📋 Planned (MVP) | `frontend/src/workers/codeRunner.worker.js` | Sandboxed browser Web Worker execution with 1,000ms watchdog timeout guard |
+| **Adaptive Difficulty Engine** | 📋 Planned (Phase 2) | `backend/src/services/adaptiveEngine.js` | Bloom-style cognitive staircase calibrated on 3-attempt rolling accuracy |
+| **Gemini AI Question Generation** | 📋 Planned (Phase 2) | `backend/src/services/aiQuestionService.js` | Server-side Google Gemini 1.5 Flash client with Zod JSON schema validation |
+| **Pre-Seeded Question Fallback Bank** | 📋 Planned (Phase 2) | `backend/src/services/fallbackQuestionBank.js` | Static challenge repository failover if LLM inference times out or fails |
+| **Production Hardening & CI/CD** | 📋 Planned (Phase 3) | `.github/workflows/`, rate limiting | Automated CI/CD, Express rate limiting, and structured logging |
+| **PostgreSQL Relational Layer** | 📋 Planned (Phase 4) | `database/migrations/001_relational_schema.sql` | Relational schema for Guilds, social graphs, and SQL JOIN leaderboards |
 
 ---
 
 ## 🏗️ System Architecture
 
-ByteArena is structured as a decoupled, multi-tier client-server architecture:
+CodeVerse is structured as a decoupled, multi-tier client-server architecture:
 
 ```mermaid
 flowchart TD
-    subgraph ClientLayer ["Frontend Client Layer (React 19 + Vite)"]
-        UI["Game HUD & Header\n(GameHeader.jsx)"]
-        Map["Kingdom Realm Map\n(KingdomMap.jsx)"]
-        Pages["Page Views\n(Dashboard, Learning, Practice)"]
-        BlocklyEngine["[Planned] Visual Block\nCoding Workspace"]
+    subgraph ClientLayer ["Frontend Client Tier (React 19 + Vite 6 SPA)"]
+        UI["Tactical HUD & Dashboard Shell
+(App.jsx / MainLayout.jsx)"]
+        Map["[Planned] Curriculum Roadmap
+(RoadmapCanvas.jsx)"]
+        BlocklyEngine["[Planned] Visual Block Workspace
+(BlockWorkspace.jsx)"]
+        Worker["[Planned] Browser Web Worker
+(codeRunner.worker.js • 1,000ms Watchdog)"]
     end
 
-    subgraph APILayer ["Backend Application Layer (Node.js + Express 5)"]
-        Router["Express Router\n(/api/auth, /api/topics, /api/questions, /api/quizzes)"]
-        AuthMid["Auth Middleware\n(JWT Verification)"]
-        ValMid["Validation Middleware\n(Payload & ObjectId Checks)"]
-        Controllers["Controllers\n(quiz, question, topic, auth)"]
+    subgraph APILayer ["Backend Application Gateway (Node.js + Express 5)"]
+        Health["[Active] Health Probe
+(GET /api/health)"]
+        Router["[Planned] Modular Routers
+(/api/auth, /api/topics, /api/quizzes)"]
+        AuthMid["[Planned] Auth Middleware
+(JWT Verification)"]
+        ValMid["[Planned] Validation Middleware
+(Zod Payload Guards)"]
+        Controllers["[Planned] Domain Controllers
+(auth, topic, quiz, gamification)"]
     end
 
     subgraph DataLayer ["Data & External Service Layer"]
-        subgraph ImplementedDB ["Implemented Document Store"]
-            Mongo[("MongoDB (Mongoose v9)\nUsers • Topics • Questions • QuizAttempts")]
+        subgraph PrimaryDB ["Primary Document Store (Phase 1 MVP)"]
+            Mongo[("MongoDB 7 (Mongoose 9)
+Users • Topics • Questions
+QuizAttempts • AI Cache")]
         end
-        subgraph PlannedServices ["Planned Subsystems"]
-            Postgres[("PostgreSQL\nGuilds • GuildMembers • Social Graphs")]
-            AI["LLM Service (OpenAI / Gemini)\nAdaptive Question Generator"]
-            Worker["Browser Web Worker\nIsolated Code Sandbox"]
+        subgraph FuturePersistence ["Planned Expansion Layers"]
+            Postgres[("PostgreSQL 16 (Phase 4)
+Guilds • GuildMembers • Social Graphs")]
+            AI["Google Gemini 1.5 Flash (Phase 2)
+Adaptive Question Generator"]
         end
     end
 
+    UI --> Health
     UI --> Router
     Map --> Router
-    Pages --> Router
-    BlocklyEngine -.-> Worker
+    BlocklyEngine -->|Generate JavaScript| Worker
+    Worker -->|Execution Results| UI
 
     Router --> AuthMid --> ValMid --> Controllers
     Controllers --> Mongo
@@ -327,7 +342,7 @@ flowchart TD
 
 ## 🔄 Data Flow
 
-### 1. Implemented Quiz Lifecycle (Deterministic Server-Side Evaluation)
+### 1. Planned MVP Quiz Lifecycle (Deterministic Server-Side Evaluation)
 
 ```mermaid
 sequenceDiagram
@@ -388,7 +403,7 @@ sequenceDiagram
 
 ### Planned Structured Output JSON Schema
 
-When communicating with the LLM provider, ByteArena enforces strict schema conformance using function calling / response schema modes:
+When communicating with the LLM provider, CodeVerse enforces strict schema conformance using function calling / response schema modes:
 
 ```json
 {
@@ -541,131 +556,96 @@ ORDER BY u.total_xp DESC;
 
 ## 🔌 API Design & Endpoints
 
-### 1. Authentication Service (`/api/auth`)
+CodeVerse exposes a streamlined, resource-oriented RESTful API adhering strictly to the canonical Low-Level Design contract:
 
+### 1. Active Infrastructure Endpoints
+| Method | Endpoint | Protection | Description | Status Code |
+|:---|:---|:---:|:---|:---:|
+| `GET` | `/api/health` | Public | Live process health, uptime, and database connectivity probe | `200 OK` |
+
+### 2. Authentication Service (`/api/auth`) — Planned MVP
 | Method | Endpoint | Protection | Description | Status Code | Error Codes |
 |:---|:---|:---:|:---|:---:|:---|
-| `POST` | `/api/auth/register` | Public | Registers a new user with bcrypt-hashed password | `201 Created` | `400 Bad Request` (Missing fields / User exists) |
+| `POST` | `/api/auth/register` | Public | Registers a new user with bcrypt-hashed password | `201 Created` | `400 Bad Request`, `409 Conflict` |
 | `POST` | `/api/auth/login` | Public | Authenticates credentials and issues signed JWT | `200 OK` | `400 Bad Request`, `401 Unauthorized` |
-| `GET` | `/api/auth/profile` | `authMiddleware` | Retrieves authenticated user claims (`req.user`) | `200 OK` | `401 Unauthorized` (Missing/invalid token) |
+| `GET` | `/api/auth/profile` | `authMiddleware` | Retrieves authenticated user claims (`req.user`) | `200 OK` | `401 Unauthorized` |
 
-### 2. Topics & Realm Service (`/api/topics`)
-
+### 3. Curriculum & Roadmap Service (`/api/topics`) — Planned MVP
 | Method | Endpoint | Protection | Description | Status Code | Error Codes |
 |:---|:---|:---:|:---|:---:|:---|
-| `GET` | `/api/topics` | Public | Returns all learning topics sorted by `order: 1` | `200 OK` | `500 Server Error` |
-| `GET` | `/api/topics/category/:category` | Public | Filters topics by category (`frontend` or `dsa`) | `200 OK` | `500 Server Error` |
-| `GET` | `/api/topics/:id` | Public | Retrieves specific topic details by ObjectId | `200 OK` | `404 Not Found`, `500 Server Error` |
+| `GET` | `/api/topics` | Public | Returns curriculum topics and concept progression hierarchy | `200 OK` | `500 Server Error` |
 
-### 3. Question Bank Service (`/api/questions`)
-
+### 4. Quiz & Assessment Service (`/api/quizzes`) — Planned MVP
 | Method | Endpoint | Protection | Description | Status Code | Error Codes |
 |:---|:---|:---:|:---|:---:|:---|
-| `POST` | `/api/questions` | `validateQuestion` | Creates a new curriculum question | `201 Created` | `400 Bad Request` (Invalid fields/ObjectId) |
-| `GET` | `/api/questions` | Public | Fetches all questions with populated topic title | `200 OK` | `500 Server Error` |
-| `GET` | `/api/questions/topic/:topicId` | Public | Fetches all questions belonging to a topic | `200 OK` | `500 Server Error` |
-| `GET` | `/api/questions/:id` | Public | Retrieves single question by its ObjectId | `200 OK` | `404 Not Found`, `500 Server Error` |
+| `GET` | `/api/quizzes/:topicId` | Public | Starts quiz; returns questions **excluding** `correctAnswer` | `200 OK` | `404 Not Found`, `500 Server Error` |
+| `POST` | `/api/quizzes/:id/submit` | `authMiddleware` | Server-side evaluation of submitted answers; awards XP | `201 Created` | `400 Bad Request`, `401 Unauthorized` |
 
-### 4. Quiz & Assessment Service (`/api/quizzes`)
-
+### 5. Adaptive AI Question Service (`/api/ai-questions`) — Planned Phase 2
 | Method | Endpoint | Protection | Description | Status Code | Error Codes |
 |:---|:---|:---:|:---|:---:|:---|
-| `GET` | `/api/quizzes/:topicId` | Public | Starts quiz; returns questions **excluding** `correctAnswer` | `200 OK` | `500 Server Error` |
-| `POST` | `/api/quizzes/:topicId/submit` | `authMiddleware` + `validateQuizSubmission` | Evaluates submitted answers on server, records attempt, returns score | `201 Created` | `400 Bad Request`, `401 Unauthorized`, `500 Server Error` |
+| `POST` | `/api/ai-questions/generate` | `authMiddleware` | Generates difficulty-calibrated practice challenge via Gemini | `200 OK` | `401 Unauthorized`, `429 Rate Limit`, `503 Fallback` |
 
 ---
 
 ## 📁 File & Folder Architecture
 
+The repository enforces a clean, modular structure aligned with the Low-Level Design specification:
+
 ```text
-ByteArena/ (CodeVerse)
-├── frontend/                               # React 19 + Vite Frontend SPA
-│   ├── public/                             # Public static assets & favicon
-│   ├── src/
-│   │   ├── assets/                         # Graphic assets (icons, realms, avatars)
-│   │   │   ├── characters/                 # Hero & mascot sprites
-│   │   │   ├── game/                       # In-game collectible icons
-│   │   │   ├── icons/                      # Action and HUD icons
-│   │   │   └── world/                      # Realm backgrounds
-│   │   ├── components/                     # Reusable UI component modules
-│   │   │   ├── ai/                         # [Stub] AI Mentor chat components
-│   │   │   ├── boss/                       # [Stub] Boss battle canvas & health bars
-│   │   │   ├── common/                     # [Stub] Buttons, modals, tooltips
-│   │   │   ├── guild/                      # [Stub] Collaborative guild cards
-│   │   │   ├── kingdom/                    # Kingdom realm progression map
-│   │   │   │   ├── KingdomMap.css          # Cyber styling for progression path
-│   │   │   │   └── KingdomMap.jsx          # Interactive realm nodes & boss card
-│   │   │   ├── layout/                     # Application shell
-│   │   │   │   ├── GameHeader.css          # Futuristic top HUD styles
-│   │   │   │   └── GameHeader.jsx          # Brand, navigation, Level, XP bar, Avatar
-│   │   │   ├── leaderboard/                # [Stub] Weekly ranking tables
-│   │   │   ├── learning/                   # [Stub] Visual lesson reader
-│   │   │   └── quests/                     # [Stub] Daily quest cards
-│   │   ├── context/                        # [Stub] Global authentication & sound state
-│   │   ├── hooks/                          # [Stub] Custom hooks (useQuiz, useAudio)
-│   │   ├── pages/                          # Primary view routes
-│   │   │   ├── AIMentor/                   # AI interactive mentor screen
-│   │   │   ├── Boss/                       # Boss battle challenge screen
-│   │   │   ├── Dashboard/                  # Main user realm dashboard
-│   │   │   │   ├── Dashboard.css           # Dashboard layout styling
-│   │   │   │   └── Dashboard.jsx           # Mounts KingdomMap component
-│   │   │   ├── Guild/                      # Team collaboration view
-│   │   │   ├── Kingdom/                    # Expanded kingdom territory
-│   │   │   ├── Leaderboard/                # Global rankings
-│   │   │   ├── Learning/                   # Step-by-step interactive lessons
-│   │   │   ├── Login/                      # User authentication login
-│   │   │   ├── Practice/                   # Sandboxed challenge runner
-│   │   │   └── Signup/                     # New user onboarding
-│   │   ├── services/                       # Frontend API client (Axios/fetch wrappers)
-│   │   ├── utils/                          # Frontend formatting & math utilities
-│   │   ├── App.css                         # App-wide layout styles
-│   │   ├── App.jsx                         # Main component tree mounting Header & Dashboard
-│   │   ├── index.css                       # Global CSS variables, reset, and typography
-│   │   └── main.jsx                        # React 19 createRoot DOM entry point
-│   ├── eslint.config.js                    # ESLint 10 configuration
-│   ├── index.html                          # HTML5 shell with root div
-│   ├── package.json                        # Frontend dependencies (React 19, Vite 8)
-│   └── vite.config.js                      # Vite plugin configuration
-│
-├── backend/                                # Node.js + Express 5 Backend REST API
-│   ├── src/
-│   │   ├── config/
-│   │   │   └── db.js                       # Mongoose MongoDB connection handler
-│   │   ├── controllers/                    # HTTP request orchestration
-│   │   │   ├── question.controller.js      # Question CRUD & topic query operations
-│   │   │   ├── quiz.controller.js          # Sanitized quiz initiation & server evaluation
-│   │   │   └── topic.controller.js         # Topic curriculum querying & sorting
-│   │   ├── middleware/                     # Cross-cutting HTTP middleware
-│   │   │   ├── authMiddleware.js           # JWT Bearer token decoder & verification
-│   │   │   └── validationMiddleware.js     # Payload & ObjectId validation guards
-│   │   ├── models/                         # Mongoose ODM schemas
-│   │   │   ├── Question.js                 # Question schema with options & answer
-│   │   │   ├── QuizAttempt.js              # User attempt log with scores & timestamps
-│   │   │   ├── Topic.js                    # Curriculum category & ordering schema
-│   │   │   └── User.js                     # User authentication & role credentials
-│   │   ├── routes/                         # Modular Express router endpoints
-│   │   │   ├── auth.routes.js              # /api/auth (register, login, profile)
-│   │   │   ├── question.routes.js          # /api/questions (CRUD & topic filtering)
-│   │   │   ├── quiz.routes.js              # /api/quizzes (start & submit)
-│   │   │   └── topic.routes.js             # /api/topics (curriculum queries)
-│   │   ├── seed/                           # Database population scripts
-│   │   │   ├── question.seed.js            # Initial 8 question seeds
-│   │   │   └── topic.seed.js               # Initial 8 frontend & DSA topic seeds
-│   │   ├── services/                       # [Stub] Business logic & AI orchestration
-│   │   ├── utils/                          # [Stub] Response helpers & status constants
-│   │   ├── validators/                     # [Stub] Supplementary schema validators
-│   │   ├── app.js                          # Express app configuration, CORS, route mounts
-│   │   └── server.js                       # HTTP server entry point listening on PORT
-│   ├── .env.example                        # Template for required environment variables
-│   ├── package.json                        # Backend dependencies (Express 5, Mongoose 9, JWT)
-│   └── package-lock.json
-│
-├── docs/                                   # System Architecture Documentation
-│   ├── HLD.md                              # High-Level Design specification
-│   ├── LLD.md                              # Low-Level Design specification
-│   └── PRD.md                              # Product Requirements Document
-├── .gitignore                              # Git exclusion rules (node_modules, .env)
-└── README.md                               # Comprehensive project documentation
+CodeVerse/
+├── .gitignore                              # Git exclusion rules (node_modules, dist, .env)
+├── package.json                            # Root npm workspaces configuration
+├── package-lock.json                       # Workspace dependency lockfile
+├── README.md                               # System overview & developer guide
+├── docs/                                   # Authoritative architectural specifications
+│   ├── PRD.md                              # Product Requirements Document
+│   ├── HLD.md                              # High-Level Design
+│   └── LLD.md                              # Low-Level Design
+├── database/                               # Relational migration scripts
+│   └── migrations/
+│       └── .gitkeep                        # Phase 4 PostgreSQL DDL placeholder
+├── frontend/                               # Client Tier (React 19 + Vite 6 SPA)
+│   ├── index.html                          # HTML5 shell with Inter & JetBrains Mono fonts
+│   ├── package.json                        # Frontend dependencies & scripts
+│   ├── vite.config.js                      # Vite development & HMR configuration
+│   ├── eslint.config.js                    # ESLint flat configuration for React 19
+│   ├── .env.example                        # Template for frontend environment variables
+│   └── src/
+│       ├── main.jsx                        # React 19 root mounting
+│       ├── App.jsx                         # Foundation telemetry shell
+│       ├── index.css                       # Cyber design system tokens & reset
+│       ├── config/
+│       │   └── env.js                      # Client environment configuration
+│       ├── api/                            # [Planned MVP] Decoupled HTTP client & endpoints
+│       ├── components/                     # [Planned MVP] Modular UI components
+│       │   ├── common/                     # Reusable CyberButton, MetricCard, etc.
+│       │   ├── layout/                     # MainLayout, DashboardHUD
+│       │   ├── roadmap/                    # RoadmapCanvas, ConceptNode
+│       │   └── workspace/                  # BlockWorkspace, CodePreview, TerminalDock
+│       ├── hooks/                          # [Planned MVP] Custom React hooks (useCodeRunner)
+│       ├── pages/                          # [Planned MVP] DashboardPage, ChallengePage, etc.
+│       ├── routes/                         # [Planned MVP] AppRoutes, ProtectedRoute
+│       └── workers/                        # [Planned MVP] Isolated client Web Worker sandbox
+└── backend/                                # Application Gateway (Node.js + Express 5)
+    ├── package.json                        # Backend dependencies (Express 5, Mongoose 9)
+    ├── eslint.config.js                    # ESLint flat configuration for Node.js
+    ├── .env.example                        # Template for backend environment variables
+    ├── test/
+    │   └── health.smoke.test.js            # Automated health probe & 404 smoke tests
+    └── src/
+        ├── app.js                          # Express 5 application setup, CORS, JSON parser
+        ├── server.js                       # Server listener & graceful shutdown
+        ├── config/
+        │   ├── env.js                      # Centralized environment loader
+        │   └── database.js                 # Resilient non-blocking MongoDB abstraction
+        ├── middleware/
+        │   └── errorHandler.js             # Centralized AppError and JSON error envelope
+        ├── controllers/                    # [Planned MVP] Express controllers (auth, topic, quiz)
+        ├── models/                         # [Planned MVP] Mongoose schemas (User, Topic, Question)
+        ├── routes/                         # [Planned MVP] Express route modules
+        ├── services/                       # [Planned MVP] Business logic & gamification
+        └── validators/                     # [Planned MVP] Zod request validation schemas
 ```
 
 ---
@@ -693,68 +673,47 @@ ByteArena/ (CodeVerse)
 ## ⚙️ Getting Started & Setup
 
 ### Prerequisites
-- **Node.js:** v18.0.0 or higher installed (`node -v`)
-- **npm:** v9.0.0 or higher installed (`npm -v`)
-- **MongoDB:** Active MongoDB instance running locally on port `27017` or a cloud [MongoDB Atlas](https://www.mongodb.com/atlas) URI
+- **Node.js:** `v18.0.0` or higher (tested on Node.js `v24`)
+- **npm:** `v9.0.0` or higher
+- **MongoDB:** (Optional for foundation health check; required for upcoming MVP features)
 
-### 1. Repository Setup
+### 1. Clone & Install Workspace Dependencies
 ```bash
-# Clone the repository
-git clone https://github.com/tanushreesrivastavs125-code/bytearena.git
+# Clone the CodeVerse repository
+git clone https://github.com/tanushreesrivastavs125-code/CodeVerse.git
+cd CodeVerse
 
-# Navigate into the project root
-cd bytearena
-```
-
-### 2. Backend Installation & Configuration
-```bash
-# Enter the backend directory
-cd backend
-
-# Install production and development dependencies
+# Install dependencies across all workspaces
 npm install
-
-# Create environment configuration from template
-cp .env.example .env
 ```
 
-Open `.env` and configure your settings:
-```env
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/bytearena
-JWT_SECRET=super_secret_cyber_jwt_key_change_in_production
-```
-
-Seed initial topics and curriculum questions:
+### 2. Configure Environment Files
 ```bash
-# Seed topics (HTML, CSS, JavaScript, React, Arrays, Strings, etc.)
-node src/seed/topic.seed.js
-
-# Seed introductory questions
-node src/seed/question.seed.js
-
-# Start the Express backend server
-node src/server.js
-```
-*Expected console output:*
-```text
-MongoDB connected successfully
-ByteArena server running on port 5000
+# Copy example environment templates
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 ```
 
-### 3. Frontend Installation & Launch
-In a separate terminal window:
+### 3. Launch Development Servers
 ```bash
-# Navigate to frontend from project root
-cd frontend
+# Start backend Express server (port 5000)
+npm run dev:backend
 
-# Install dependencies
-npm install
-
-# Start the Vite development server
-npm run dev
+# In a separate terminal, start frontend Vite dev server (port 5173)
+npm run dev:frontend
 ```
-*The React application will be accessible at: `http://localhost:5173`.*
+
+### 4. Run Verification Suites
+```bash
+# Execute backend smoke tests
+npm run test:backend
+
+# Verify frontend production build
+npm run build:frontend
+
+# Run ESLint across entire workspace
+npm run lint
+```
 
 ---
 
@@ -765,7 +724,7 @@ The application enforces strict separation of code and configuration via `.env`:
 | Variable Name | Environment | Required | Description | Example / Default |
 |:---|:---|:---:|:---|:---|
 | `PORT` | Backend | Optional | Port for Express HTTP server | `5000` |
-| `MONGODB_URI` | Backend | **Yes** | Connection string for MongoDB database | `mongodb://localhost:27017/bytearena` |
+| `MONGODB_URI` | Backend | **Yes** | Connection string for MongoDB database | `mongodb://localhost:27017/codeverse` |
 | `JWT_SECRET` | Backend | **Yes** | Cryptographic secret used to sign and verify JWTs | `dev_secret_replace_in_prod` |
 | `VITE_API_BASE_URL` | Frontend | Optional | Base URL for backend API calls | `http://localhost:5000/api` |
 
@@ -800,7 +759,7 @@ The backend `package.json` contains a placeholder test script:
 
 ## ⚠️ Error Handling
 
-ByteArena enforces a multi-layered defensive error-handling strategy across frontend and backend:
+CodeVerse enforces a multi-layered defensive error-handling strategy across frontend and backend:
 
 ### 1. Implemented Server-Side Error Handling
 - **Structured HTTP Status Codes:** Controllers wrap asynchronous operations in `try / catch` blocks, returning standardized error payloads:
@@ -823,7 +782,7 @@ ByteArena enforces a multi-layered defensive error-handling strategy across fron
 
 ## 🔒 Security Practices
 
-| Security Domain | Implemented Practice in ByteArena | Codebase Evidence |
+| Security Domain | Implemented Practice in CodeVerse | Codebase Evidence |
 |:---|:---|:---|
 | **Password Storage** | Irreversible hashing using `bcryptjs` with 10 salt rounds before storing in MongoDB | `backend/src/routes/auth.routes.js` |
 | **Session Security** | Stateless JSON Web Tokens signed with secret and set to expire after 24 hours (`1d`) | `backend/src/routes/auth.routes.js` |
@@ -842,37 +801,37 @@ This table maps the repository directly to mandatory engineering evaluation crit
 
 | Concept | Status | File Location / Evidence | Technical Explanation & Architectural Rationale |
 |:---|:---:|:---|:---|
-| **1. React Component Composition** | ✅ | `frontend/src/App.jsx`, `Dashboard.jsx`, `KingdomMap.jsx` | UI is decomposed into small, self-contained functional components assembled into a unified dashboard. |
-| **2. State Management with useState** | 🚧 | Planned for Quiz / Active Realm | Designed to hold user answers, current question index, and modal visibility in upcoming interactive quiz pages. |
-| **3. Side Effects with useEffect** | 🚧 | Planned for API Fetching | Will synchronize backend curriculum data with the DOM upon component mounting. |
-| **4. Async Data Fetching from API** | 🚧 | Planned in `frontend/src/services/` | Decoupled HTTP client to fetch `/api/topics` and submit `/api/quizzes` asynchronously. |
-| **5. Client-Side Routing** | 🚧 | Navigation stubs in `GameHeader.jsx` | Planned `react-router-dom` tree to transition between Dashboard, Practice, and Boss arenas without page refreshes. |
-| **6. Problem Modeling** | ✅ | `backend/src/models/` | Domain mapped into discrete entities: Users (learners), Topics (realms), Questions (puzzles), and QuizAttempts (scores). |
-| **7. System Design Basics** | ✅ | Full Repository Structure | Decoupled client-server design: Vite React SPA communicates solely over REST to Express API, backed by MongoDB. |
-| **8. RESTful Endpoint Design** | ✅ | `backend/src/routes/*.routes.js` | Resource-oriented URI design using proper HTTP verbs (`GET /api/topics`, `POST /api/quizzes/:topicId/submit`). |
-| **9. HTTP Status Codes** | ✅ | `backend/src/controllers/` | Semantic status codes utilized: `200 OK`, `201 Created`, `400 Bad Request`, `401 Unauthorized`, `404 Not Found`, `500 Server Error`. |
-| **10. Server-Side Error Handling** | ✅ | `controllers/*.js`, `config/db.js` | Robust `try / catch` blocks catching asynchronous rejections; graceful database connection failure handling. |
-| **11. Middleware** | ✅ | `backend/src/middleware/` | Custom middleware (`authMiddleware`, `validationMiddleware`) intercepting and verifying requests before route execution. |
-| **12. Mongo Schema Modeling** | ✅ | `backend/src/models/` | Strict Mongoose schemas with data types, enums, trimming, required constraints, timestamps, and relational `ref` links. |
-| **13. Mongo CRUD Operations** | ✅ | `controllers/*.js`, `seed/*.js` | Demonstrates `find()`, `findById()`, `findOne()`, `create()`, `insertMany()`, `deleteMany()`, and `.populate("topic")`. |
-| **14. Relational Schema Design (PK/FK)** | 🚧 | Documented in `docs/HLD.md` | Planned PostgreSQL schema for Guilds and GuildMembers utilizing Primary Keys and Foreign Key relational constraints. |
-| **15. SQL JOINs** | 🚧 | Documented in `docs/HLD.md` | Planned `INNER JOIN` queries linking Users, Guilds, and contributions for social leaderboards. |
-| **16. LLM API Integration** | 🚧 | Documented in `docs/HLD.md` | Architectural specification for calling external LLM providers to generate live question streams. |
-| **17. Prompt Engineering** | 🚧 | Documented in `docs/HLD.md` | Role-framed prompts with age constraints, difficulty tiers, and in-domain algorithmic boundaries. |
-| **18. Structured Outputs** | 🚧 | Documented in `docs/HLD.md` | JSON Schema contract enforced to guarantee machine-readable AI responses without parsing errors. |
-| **19. Git Workflow** | ✅ | `.git/`, `.gitignore` | Structured commit history, branch management, clean staging, and remote GitHub synchronization. |
-| **20. Secrets Management** | ✅ | `backend/.env.example`, `server.js` | Zero credentials hardcoded; all configuration injected through environment variables via `dotenv`. |
-| **21. Event Loop** | ✅ | `backend/src/server.js`, `controllers/` | Non-blocking asynchronous I/O offloading database queries and cryptographic operations to worker threads via libuv. |
-| **22. Promises vs Callbacks** | ✅ | `backend/src/controllers/quiz.controller.js` | Modern Promise-based API handling via Mongoose queries, avoiding historical "callback hell". |
-| **23. async / await** | ✅ | `routes/auth.routes.js`, `controllers/` | Asynchronous operations handled cleanly using `async/await` syntax for linear readability of asynchronous control flow. |
-| **24. Closures** | ✅ | `backend/src/controllers/quiz.controller.js` | Array iterator callbacks (`answers.map`) retain lexical scope access to outer `questions` array and `score` counter. |
-| **25. Hoisting** | ✅ | `frontend/src/pages/Dashboard/Dashboard.jsx` | Function declarations hoisted to top of component scope; `const`/`let` declarations enforcing Temporal Dead Zone (TDZ). |
+| **1. React Component Composition** | ✅ Implemented | `frontend/src/App.jsx` | Modular UI hierarchy with telemetry dashboard shell and status cards. |
+| **2. State Management with useState** | ✅ Implemented | `frontend/src/App.jsx` | Manages client-side health probe state (`probing`, `connected`, `unreachable`). |
+| **3. Side Effects with useEffect** | ✅ Implemented | `frontend/src/App.jsx` | Asynchronous API polling effect with component unmount cleanup guard. |
+| **4. Async Data Fetching from API** | ✅ Implemented | `frontend/src/App.jsx` | Modern `fetch` consuming `/api/health` with HTTP response error checking. |
+| **5. Client-Side Routing** | 📋 Planned (MVP) | `frontend/src/routes/AppRoutes.jsx` | Declarative React Router v7 routes between Dashboard, Challenge, and Auth pages. |
+| **6. Problem Modeling** | 📋 Planned (MVP) | `backend/src/models/` | Discrete domain models for Users, Topics, Questions, and QuizAttempts in MongoDB. |
+| **7. System Design Basics** | ✅ Implemented | Full Repository Structure | Decoupled client-server design: Vite React SPA communicates over REST to Express 5 API. |
+| **8. RESTful Endpoint Design** | ✅ Implemented | `backend/src/app.js` | Semantic URIs, standardized HTTP methods, and normalized JSON envelopes. |
+| **9. HTTP Status Codes** | ✅ Implemented | `backend/src/app.js`, `errorHandler.js` | Semantic status codes utilized: `200 OK`, `404 Not Found`, `500 Server Error`. |
+| **10. Server-Side Error Handling** | ✅ Implemented | `backend/src/middleware/errorHandler.js` | Centralized `AppError` class and global Express error middleware formatting JSON envelopes. |
+| **11. Middleware** | ✅ Implemented | `backend/src/app.js` | Middleware pipeline: CORS configuration, JSON body parsing, and error interceptors. |
+| **12. Mongo Schema Modeling** | 📋 Planned (MVP) | `backend/src/models/` | Strict Mongoose schemas with enums, required validation, and ref relationships. |
+| **13. Mongo CRUD Operations** | 📋 Planned (MVP) | `backend/src/controllers/` | Mongoose queries with `.select("-correctAnswer")` and atomic progression updates. |
+| **14. Relational Schema Design (PK/FK)** | 📋 Planned (Phase 4) | `database/migrations/001_relational_schema.sql` | Normalized PostgreSQL schema for Guilds and social graphs using PK/FK constraints. |
+| **15. SQL JOINs** | 📋 Planned (Phase 4) | `database/migrations/` | Multi-table SQL `JOIN` queries linking Users and Guilds for weekly leaderboards. |
+| **16. LLM API Integration** | 📋 Planned (Phase 2) | `backend/src/services/aiQuestionService.js` | Server-side integration calling Google Gemini 1.5 Flash via official client. |
+| **17. Prompt Engineering** | 📋 Planned (Phase 2) | `backend/src/services/aiQuestionService.js` | System prompts enforcing role framing, Bloom's tiers, and curriculum guardrails. |
+| **18. Structured Outputs** | 📋 Planned (Phase 2) | `backend/src/validators/aiQuestion.validator.js` | Strict Zod JSON schema validation guaranteeing parseable question response objects. |
+| **19. Git Workflow** | ✅ Implemented | `.git/`, `.gitignore` | Branch isolation (`feature/project-foundation`), Conventional Commits, clean staging. |
+| **20. Secrets Management** | ✅ Implemented | `.env.example`, `backend/src/config/env.js` | Zero hardcoded credentials; environment injection via `dotenv` with safe fallbacks. |
+| **21. Event Loop** | ✅ Implemented | `backend/src/server.js` | Non-blocking asynchronous I/O offloading database connection attempts. |
+| **22. Promises vs Callbacks** | ✅ Implemented | `backend/src/config/database.js` | Clean Promise chains and async handlers replacing legacy callback patterns. |
+| **23. async / await** | ✅ Implemented | `server.js`, `database.js`, `App.jsx` | Linear asynchronous control flow across server listeners and frontend probe. |
+| **24. Closures** | 📋 Planned (MVP) | `backend/src/controllers/quiz.controller.js` | Array callbacks retaining lexical scope over query result sets during grading. |
+| **25. Hoisting & Scoping** | ✅ Implemented | Entire Codebase | Strict Temporal Dead Zone (TDZ) enforcement with `const`/`let` and ES Modules. |
 
 ---
 
 ## ⚡ Deep JavaScript Concepts
 
-### 1. The Event Loop in ByteArena's Backend
+### 1. The Event Loop in CodeVerse's Backend
 Node.js relies on a single execution thread powered by the **V8 Engine** and **libuv**. When a client hits `POST /api/quizzes/:topicId/submit`:
 1. The incoming request is placed on the **Call Stack**.
 2. Calling `Question.find()` initiates an asynchronous database I/O request, which is handed off to libuv's thread pool.
@@ -889,9 +848,9 @@ Question.find({ topic: topicId }, function(err, questions) {
     QuizAttempt.create(payload, function(err, attempt) { ... });
 });
 ```
-ByteArena utilizes ES6+ **Promises** consumed via clean `async/await`:
+CodeVerse utilizes ES6+ **Promises** consumed via clean `async/await`:
 ```javascript
-// Modern Promise consumption in ByteArena (quiz.controller.js)
+// Modern Promise consumption in CodeVerse (quiz.controller.js)
 const questions = await Question.find({ topic: topicId });
 const attempt = await QuizAttempt.create({ ... });
 ```
@@ -921,7 +880,7 @@ The inner callback retains access to the outer function's `questions` collection
 
 ## 🎨 Design System
 
-ByteArena rejects generic, childish color schemes in favor of a **Dark, Futuristic Cyber-Game Aesthetic** that makes the learner feel like an elite terminal operative exploring an alien digital universe:
+CodeVerse rejects generic, childish color schemes in favor of a **Dark, Futuristic Cyber-Game Aesthetic** that makes the learner feel like an elite terminal operative exploring an alien digital universe:
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -972,7 +931,7 @@ To keep a 4th-grade student engaged and confident, the interface eliminates cogn
 
 ```text
 [STEP 1: The Mission Begins]
-A 4th-grade learner opens ByteArena and sees their command deck.
+A 4th-grade learner opens CodeVerse and sees their command deck.
 Header displays: "LV 01 | 0 / 100 XP".
 A friendly robot avatar announces: "Mission 01: Help the Rover Reach the Energy Crystal!"
 
@@ -1011,7 +970,7 @@ This comprehensive Q&A guide prepares the developer for technical examination ac
 <details>
 <summary><strong>Q: What core problem does this project solve?</strong></summary>
 
-**A:** Traditional coding education introduces complex syntax (semicolons, parentheses, keywords) before beginners understand programming logic. ByteArena solves this by abstracting logic into visual, interactive game mechanics first. Learners master sequencing, loops, and conditions before transitioning to real code syntax.
+**A:** Traditional coding education introduces complex syntax (semicolons, parentheses, keywords) before beginners understand programming logic. CodeVerse solves this by abstracting logic into visual, interactive game mechanics first. Learners master sequencing, loops, and conditions before transitioning to real code syntax.
 </details>
 
 <details>
@@ -1047,7 +1006,7 @@ This comprehensive Q&A guide prepares the developer for technical examination ac
 <details>
 <summary><strong>Q: Why are both MongoDB and PostgreSQL featured in the architecture?</strong></summary>
 
-**A:** ByteArena leverages a polyglot persistence strategy. MongoDB's document model is ideal for flexible, semi-structured curriculum content, nested lesson blocks, and dynamic quiz formats. PostgreSQL is architected for strict relational integrity, ACID transactions, and complex queries involving social graphs, guilds, and competitive leaderboards where SQL `JOIN`s are essential.
+**A:** CodeVerse leverages a polyglot persistence strategy. MongoDB's document model is ideal for flexible, semi-structured curriculum content, nested lesson blocks, and dynamic quiz formats. PostgreSQL is architected for strict relational integrity, ACID transactions, and complex queries involving social graphs, guilds, and competitive leaderboards where SQL `JOIN`s are essential.
 </details>
 
 ---
@@ -1104,23 +1063,26 @@ This comprehensive Q&A guide prepares the developer for technical examination ac
 
 ```mermaid
 gantt
-    title ByteArena Development Phases
+    title CodeVerse Authoritative Development Roadmap
     dateFormat  YYYY-MM
-    section Phase 1: Prototype (Current)
-    React Cyber HUD & Kingdom Map       :done,    p1_1, 2026-07, 2026-08
-    Express REST API & MongoDB Schemas  :done,    p1_2, 2026-08, 2026-08
-    JWT Auth & Server Quiz Grading      :done,    p1_3, 2026-08, 2026-09
-    section Phase 2: Visual Coding & AI
-    Blockly Visual Coding Integration   :active,  p2_1, 2026-09, 2026-10
-    Adaptive LLM Question Pipeline      :         p2_2, 2026-10, 2026-11
-    In-Browser Web Worker Code Sandbox  :         p2_3, 2026-11, 2026-12
-    section Phase 3: Social & Persistence
-    PostgreSQL Guilds & Social Graph    :         p3_1, 2026-12, 2027-01
-    Weekly Competitive Leaderboards     :         p3_2, 2027-01, 2027-02
-    Milestone Boss Battle Engine        :         p3_3, 2027-02, 2027-03
-    section Phase 4: Multi-Language
-    Python (Pyodide Wasm) Execution     :         p4_1, 2027-03, 2027-04
-    Java & C++ Compilation Sandbox      :         p4_2, 2027-04, 2027-05
+    section Phase 1: MVP Core
+    Step 0 Foundation Setup (Workspaces, Health Probe)   :done,    p1_0, 2026-09, 2026-10
+    Authentication Subsystem (JWT, bcrypt)              :active,  p1_1, 2026-10, 2026-11
+    Curriculum & Topics Domain                          :         p1_2, 2026-11, 2026-11
+    Visual Block Workspace (Blockly)                    :         p1_3, 2026-11, 2026-12
+    Browser Web Worker Execution Sandbox                :         p1_4, 2026-12, 2026-12
+    Deterministic Quiz Engine & Grading                 :         p1_5, 2026-12, 2027-01
+    XP Formulas & Level Progression                     :         p1_6, 2027-01, 2027-01
+    section Phase 2: Adaptive Learning
+    Adaptive Difficulty Engine (Bloom's Staircase)      :         p2_1, 2027-01, 2027-02
+    Gemini 1.5 Flash Question Generation                :         p2_2, 2027-02, 2027-03
+    Structured Zod Validation & Fallback Bank           :         p2_3, 2027-03, 2027-03
+    section Phase 3: Production Hardening
+    Comprehensive Test Automation & CI/CD               :         p3_1, 2027-03, 2027-04
+    Rate Limiting, Observability & Cloud Deployment     :         p3_2, 2027-04, 2027-05
+    section Phase 4: Social Systems
+    PostgreSQL 16 Schema & Guild Migration              :         p4_1, 2027-05, 2027-06
+    Relational Leaderboards & Multi-table SQL JOINs     :         p4_2, 2027-06, 2027-07
 ```
 
 ---
@@ -1145,4 +1107,4 @@ Distributed under the **ISC License**. See `LICENSE` for more information.
 > *"Don't just learn to code.*  
 > *Learn to think, build, experiment, and create."*
 
-**ByteArena** envisions a world where no student is alienated by confusing syntax or boring lectures. By blending game mechanics, computational thinking, visual blocks, and AI adaptation, we empower the next generation of engineers to build the future—one realm at a time.
+**CodeVerse** envisions a world where no student is alienated by confusing syntax or boring lectures. By blending game mechanics, computational thinking, visual blocks, and AI adaptation, we empower the next generation of engineers to build the future—one realm at a time.
