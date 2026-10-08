@@ -1,11 +1,11 @@
-# Low-Level Design — CodeQuest
+# Low-Level Design — CodeVerse
 
 ---
 
 ## 1. Document Overview
 
 ### 1.1 Purpose
-The purpose of this Low-Level Design (LLD) document is to provide a complete, technically rigorous, and directly implementable engineering specification for the **CodeQuest** platform. While the Product Requirements Document ([`docs/PRD.md`](file:///c:/Users/tanus/OneDrive/Desktop/CodeVerse/docs/PRD.md)) defines educational objectives and user stories, and the High-Level Design ([`docs/HLD.md`](file:///c:/Users/tanus/OneDrive/Desktop/CodeVerse/docs/HLD.md)) establishes subsystem topology and security boundaries, this LLD provides the concrete implementation blueprints: component trees, state atoms, props interfaces, Express controller/service logic, Mongoose and PostgreSQL relational schemas, Zod validation schemas, exact prompt engineering templates, sequence diagrams, and failure recovery protocols.
+The purpose of this Low-Level Design (LLD) document is to provide a complete, technically rigorous, and directly implementable engineering specification for the **CodeVerse** platform. While the Product Requirements Document ([`docs/PRD.md`](file:///c:/Users/tanus/OneDrive/Desktop/CodeVerse/docs/PRD.md)) defines educational objectives and user stories, and the High-Level Design ([`docs/HLD.md`](file:///c:/Users/tanus/OneDrive/Desktop/CodeVerse/docs/HLD.md)) establishes subsystem topology and security boundaries, this LLD provides the concrete implementation blueprints: component trees, state atoms, props interfaces, Express controller/service logic, Mongoose and PostgreSQL relational schemas, Zod validation schemas, exact prompt engineering templates, sequence diagrams, and failure recovery protocols.
 
 ### 1.2 Scope
 This document covers the microscopic implementation details of:
@@ -24,7 +24,7 @@ This document covers the microscopic implementation details of:
 - **Code Reviewers & Auditors:** Reviewers verifying compliance with PRD specifications, security standards, and Git development workflows.
 
 ### 1.4 Relationship to PRD and HLD
-The engineering trail of CodeQuest adheres to a strict hierarchical dependency:
+The engineering trail of CodeVerse adheres to a strict hierarchical dependency:
 
 $$\mathbf{PRD} \text{ (What \& Why)} \longrightarrow \mathbf{HLD} \text{ (High-Level System Architecture)} \longrightarrow \mathbf{LLD} \text{ (Detailed Implementation Design)}$$
 
@@ -84,7 +84,7 @@ $$\mathbf{PRD} \text{ (What \& Why)} \longrightarrow \mathbf{HLD} \text{ (High-L
 | Technology | Purpose | Location | Status | Reason |
 |:---|:---|:---|:---:|:---|
 | **React 19** | Component-Driven Single Page Interface | `frontend/src/` | `Planned (MVP)` | Declarative UI updates, Virtual DOM reconciliation, stateful canvas composition. |
-| **Vite 8** | Frontend Tooling & Development Server | `frontend/vite.config.js` | `Planned (MVP)` | Native ES module HMR, lightning-fast dev builds, Rollup production optimization. |
+| **Vite 6** | Frontend Tooling & Development Server | `frontend/vite.config.js` | `Implemented (Step 0)` | Native ES module HMR, lightning-fast dev builds, Rollup production optimization. |
 | **Vanilla CSS3** | Cyber Design System & Tokens | `frontend/src/index.css` | `Planned (MVP)` | Full control over custom properties, GPU micro-animations, zero library bloat. |
 | **React Router v7** | Client-Side Declarative Routing | `frontend/src/routes/` | `Planned (MVP)` | Client routing with nested layouts, route guards, dynamic parameters. |
 | **Web Worker API** | Untrusted Client Code Execution | `frontend/src/workers/` | `Planned (MVP)` | Native browser multi-threading providing complete execution isolation from DOM. |
@@ -103,7 +103,7 @@ $$\mathbf{PRD} \text{ (What \& Why)} \longrightarrow \mathbf{HLD} \text{ (High-L
 ## 4. Repository Structure
 
 ```text
-CodeQuest/
+CodeVerse/
 ├── README.md                              # System architecture overview & viva documentation
 ├── docs/                                  # Architectural specifications
 │   ├── PRD.md                             # Product Requirements Document
@@ -249,7 +249,7 @@ CodeQuest/
 
 ## 6. React Component Composition
 
-CodeQuest enforces a strict **unidirectional data flow** architecture separating presentation components from stateful feature modules:
+CodeVerse enforces a strict **unidirectional data flow** architecture separating presentation components from stateful feature modules:
 
 ```text
 MainLayout (Owns Layout Shell)
@@ -415,7 +415,7 @@ HTTP Request
 
 ## 15. Validation
 
-CodeQuest enforces **fail-fast validation at the API boundary** using Zod:
+CodeVerse enforces **fail-fast validation at the API boundary** using Zod:
 ```javascript
 // Registration Schema
 export const registerSchema = z.object({
@@ -782,7 +782,7 @@ The backend AI service brokers all generative requests:
 ## 28. Prompt Engineering
 
 Prompts are assembled dynamically using five structured layers:
-1. **System Role:** `"You are an expert, encouraging Computer Science Pedagogical Engine for CodeQuest..."`
+1. **System Role:** `"You are an expert, encouraging Computer Science Pedagogical Engine for CodeVerse..."`
 2. **Pedagogical Constraints:** Topic ID, Bloom's cognitive tier, syntax whitelist (e.g. `['let', 'while', '<', '++']`).
 3. **Learner Context:** Recent error category (e.g. infinite loop), rolling accuracy ($65\%$).
 4. **Few-Shot Examples:** Golden JSON input/output demonstrations.
@@ -873,8 +873,8 @@ NODE_ENV=development
 CORS_ORIGIN=http://localhost:5173
 JWT_SECRET=super_secret_cryptographic_key_minimum_32_chars
 JWT_EXPIRES_IN=24h
-MONGODB_URI=mongodb://localhost:27017/codequest
-DATABASE_URL=postgresql://user:password@localhost:5432/codequest
+MONGODB_URI=mongodb://localhost:27017/codeverse
+DATABASE_URL=postgresql://user:password@localhost:5432/codeverse
 AI_API_KEY=server_side_private_api_key_placeholder
 ```
 
@@ -1129,30 +1129,48 @@ flowchart TB
 
 ---
 
-## 54. Implementation Order
+## 54. Implementation Order & Macro Phases
+
+The implementation trail is structured into four authoritative macro phases:
 
 ```text
-Phase 1: Foundation Setup (Vite React + Express App + MongoDB Mongoose Connection)
+══════════════════════════════════════════════════════════════════════════
+PHASE 1: MVP CORE
+══════════════════════════════════════════════════════════════════════════
+Step 0: Project Foundation (React 19 + Express 5 + Workspaces) [IMPLEMENTED]
     ↓
-Phase 2: Authentication Subsystem (Bcrypt hashing, JWT generation & authMiddleware)
+Step 1: Authentication Subsystem (Bcrypt hashing, JWT issuance & authMiddleware)
     ↓
-Phase 3: Curriculum & Topic Domain (Topic Model, Seeders, GET /api/topics endpoints)
+Step 2: Curriculum & Topic Domain (Topic Model, Seeders, GET /api/topics)
     ↓
-Phase 4: Visual Block Workspace (Blockly integration, Type Sockets, Real-time Code Preview)
+Step 3: Visual Block Workspace (Blockly integration, Type Sockets, Code Preview)
     ↓
-Phase 5: Browser Web Worker Sandbox (codeRunner.worker.js, Watchdog Timeout Guard)
+Step 4: Browser Web Worker Sandbox (codeRunner.worker.js, 1,000ms Watchdog)
     ↓
-Phase 6: Deterministic Quiz Grader (Question Model, Anti-cheat projection, Server Evaluation)
+Step 5: Deterministic Quiz Grader (Question Model, Anti-cheat, Server Evaluation)
     ↓
-Phase 7: XP & Gamification Engine (XP formulas, Level Up checks, Daily UTC Streaks)
+Step 6: XP & Gamification Engine (XP formulas, Level Up checks, Daily UTC Streaks)
+
+══════════════════════════════════════════════════════════════════════════
+PHASE 2: ADAPTIVE LEARNING
+══════════════════════════════════════════════════════════════════════════
+Step 7: Adaptive Difficulty Engine (Bloom's Staircase, 3-attempt accuracy calibrator)
     ↓
-Phase 8: AI Question Service (Prompt synthesis, Gemini API client, Zod schema validation)
+Step 8: AI Question Service (Prompt builder, Gemini API client, Zod output schema)
     ↓
-Phase 9: Adaptive Difficulty Engine (Bloom's Cognitive Staircase, Accuracy calibrator)
+Step 9: Fallback Question Bank & Caching (Static failover repository & Mongo cache)
+
+══════════════════════════════════════════════════════════════════════════
+PHASE 3: PRODUCTION HARDENING
+══════════════════════════════════════════════════════════════════════════
+Step 10: Testing Suite & CI/CD (Integration tests, RTL tests, GitHub Actions)
     ↓
-Phase 10: Testing Suite (Unit tests, Supertest integration tests, RTL component tests)
-    ↓
-Phase 11: Production Deployment (Vercel CDN, Render PaaS, MongoDB Atlas Cluster)
+Step 11: Production Deployment & Observability (Container/PaaS setup, Rate Limiting)
+
+══════════════════════════════════════════════════════════════════════════
+PHASE 4: SOCIAL & RELATIONAL SYSTEMS
+══════════════════════════════════════════════════════════════════════════
+Step 12: PostgreSQL Relational Schema (Guilds, GuildMembers, Social Graph, SQL JOINs)
 ```
 
 ---
@@ -1162,7 +1180,7 @@ Phase 11: Production Deployment (Vercel CDN, Render PaaS, MongoDB Atlas Cluster)
 ### Key LLD Decisions to Defend in Viva
 
 #### Q1: Why React for the frontend instead of Next.js SSR?
-> *"CodeQuest is an interactive, stateful web application dominated by visual canvas manipulation, drag-and-drop block docking, and client-side Web Workers. Server-Side Rendering (SSR) offers negligible performance advantages for an authenticated private dashboard, while introducing unnecessary server compute overhead. React 19 Single Page Application (SPA) with Vite provides near-instant client-side state reconciliation, zero-reload routing, and unconstrained access to browser threading APIs."*
+> *"CodeVerse is an interactive, stateful web application dominated by visual canvas manipulation, drag-and-drop block docking, and client-side Web Workers. Server-Side Rendering (SSR) offers negligible performance advantages for an authenticated private dashboard, while introducing unnecessary server compute overhead. React 19 Single Page Application (SPA) with Vite provides near-instant client-side state reconciliation, zero-reload routing, and unconstrained access to browser threading APIs."*
 
 #### Q2: Why REST instead of GraphQL?
 > *"REST provides standardized HTTP status codes, predictable caching boundaries at the CDN and HTTP gateway level, and clear error handling. For our educational domain, the data access patterns are well-defined (fetching topics, starting quizzes, submitting attempts). GraphQL would introduce client-driven query complexity, require complex authorization layers to prevent nested query denial-of-service, and obscure HTTP caching."*
@@ -1174,7 +1192,7 @@ Phase 11: Production Deployment (Vercel CDN, Render PaaS, MongoDB Atlas Cluster)
 > *"Calling AI APIs from the frontend would expose private API keys in client network bundles, allowing users to steal credentials. Furthermore, frontend AI calls prevent application-level rate limiting, bypass prompt injection sanitization, eliminate semantic caching in MongoDB, and prevent server-side validation against our deterministic curriculum constraints."*
 
 #### Q5: Why should the LLM NOT control difficulty or award XP directly?
-> *"LLMs are probabilistic, non-deterministic pattern matchers prone to hallucinations, prompt injections, and inconsistent evaluations. Letting an LLM decide learner progression would allow users to trick the model into awarding infinite XP. In CodeQuest, the application-level Adaptive Difficulty Engine deterministically calculates the learner's Bloom's taxonomy stage, and the backend deterministically grades attempts and awards XP. The LLM merely generates natural language question text within strict boundaries."*
+> *"LLMs are probabilistic, non-deterministic pattern matchers prone to hallucinations, prompt injections, and inconsistent evaluations. Letting an LLM decide learner progression would allow users to trick the model into awarding infinite XP. In CodeVerse, the application-level Adaptive Difficulty Engine deterministically calculates the learner's Bloom's taxonomy stage, and the backend deterministically grades attempts and awards XP. The LLM merely generates natural language question text within strict boundaries."*
 
 #### Q6: How does the application prevent students from inspecting DevTools to find quiz answers?
 > *"In `backend/src/controllers/quiz.controller.js`, when a learner fetches questions to start a quiz, Mongoose's `.select("-correctAnswer")` projection explicitly removes the correct answer field from the database query before serialization. The HTTP response sent to the browser does not contain the answer. Answers are evaluated exclusively on the server when the learner submits their selections."*

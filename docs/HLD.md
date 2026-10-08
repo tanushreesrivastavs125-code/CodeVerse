@@ -1,4 +1,4 @@
-# High-Level Design — CodeQuest
+# High-Level Design — CodeVerse
 
 ---
 
@@ -6,7 +6,7 @@
 
 ### 1.1 Purpose
 
-The purpose of this High-Level Design (HLD) document is to establish the macro-system architecture, subsystem boundaries, inter-tier communication protocols, data persistence topology, and security posture for **CodeQuest**.
+The purpose of this High-Level Design (HLD) document is to establish the macro-system architecture, subsystem boundaries, inter-tier communication protocols, data persistence topology, and security posture for **CodeVerse**.
 
 This document serves as the architectural foundation bridging the requirements defined in the Product Requirements Document (`docs/PRD.md`) to the detailed implementation specifications defined in the Low-Level Design (`docs/LLD.md`).
 
@@ -49,11 +49,11 @@ This document covers:
 - Full-Stack Developers
 - Software Architects
 - Technical Reviewers
-- Future contributors to CodeQuest
+- Future contributors to CodeVerse
 
 ### 1.4 Architectural Hierarchy
 
-CodeQuest follows this engineering documentation hierarchy:
+CodeVerse follows this engineering documentation hierarchy:
 
 $$
 \mathbf{PRD}
@@ -95,33 +95,39 @@ Deployment
 
 To maintain technical accuracy, features are classified as:
 
-- **Implemented** — Verified implementation exists in the repository.
-- **Partially Implemented** — Some implementation exists but is incomplete.
-- **Planned (MVP)** — Architecturally defined and intended for MVP implementation.
-- **Planned (Phase 2/3/4)** — Intended for later development phases.
-- **Future** — Possible post-MVP enhancement.
-- **Not Applicable** — Not justified for the current product.
+- **Implemented** — Verified implementation exists in the repository (Step 0 Foundation).
+- **Planned (MVP)** — Architecturally defined and targeted for MVP / Phase 1 delivery.
+- **Planned (Phase 2)** — Adaptive AI engine, difficulty engine, and question generation.
+- **Planned (Phase 3)** — Production hardening, testing, CI/CD, and rate limiting.
+- **Planned (Phase 4)** — Relational persistence (PostgreSQL), guilds, and social features.
+- **Future** — Post-Phase 4 enhancements (e.g., Redis caching, WASM multi-language compilers).
 
 | System Subsystem | Status | Architectural Role |
 |---|---|---|
-| Git workflow | Implemented | Branching and documentation workflow |
-| PRD | Implemented | Product requirements source |
-| HLD | Implemented | High-level architecture |
-| LLD | Branch-Isolated / Planned | Detailed implementation design |
-| React Frontend | Planned / Based on repository | User-facing application |
-| Express Backend | Planned / Based on repository | REST API and business logic |
-| MongoDB | Planned | Flexible document persistence |
-| PostgreSQL | Planned / Phase 4 | Relational social/system data |
-| AI/LLM Integration | Planned / Phase 2 | Dynamic question generation |
-| Adaptive Difficulty | Planned / Phase 2 | Deterministic learning progression |
-| Code Execution | Planned | Safe learner-code execution |
-| Redis | Future | Caching and rate limiting |
+| Git workflow & Monorepo Root | Implemented | Multi-branch workflow, Conventional Commits, npm workspaces |
+| PRD / HLD / LLD Specifications | Implemented | Architectural blueprint & requirements traceability |
+| Frontend Shell & Build Tooling | Implemented | React 19 + Vite 6 client shell with ESLint flat config |
+| Backend Gateway & Health Probe | Implemented | Express 5 server mounting CORS, JSON parsers, GET `/api/health` |
+| Database Abstraction Layer | Implemented | Resilient non-blocking Mongoose connection abstraction |
+| Authentication (JWT + Bcrypt) | Planned (MVP) | User registration, login, and stateless JWT verification |
+| Curriculum & Topic Hierarchy | Planned (MVP) | Realm maps, concept progression, GET `/api/topics` |
+| Question Bank & Quiz Engine | Planned (MVP) | Server-side quiz delivery and anti-cheat answer evaluation |
+| Visual Block Workspace (Blockly) | Planned (MVP) | Drag-and-drop AST canvas with live JavaScript emission |
+| Client Code Sandbox (Web Worker) | Planned (MVP) | In-browser Web Worker execution with 1,000ms watchdog guard |
+| XP & Gamification Engine | Planned (MVP) | Mathematical leveling progression and UTC streak tracking |
+| MongoDB Document Persistence | Planned (MVP) | Primary persistence layer (Users, Topics, Questions, Attempts) |
+| Adaptive Difficulty Engine | Planned (Phase 2) | Deterministic Bloom-taxonomy staircase calibration |
+| AI Question Generation (Gemini) | Planned (Phase 2) | Low-temperature structured JSON challenge synthesis |
+| Fallback Question Bank & Cache | Planned (Phase 2) | Pre-seeded question failover and AI response caching |
+| Production Hardening & CI/CD | Planned (Phase 3) | Automated test runners, rate limiting, and observability |
+| PostgreSQL Relational Persistence | Planned (Phase 4) | Relational social graphs, Guilds, and SQL JOIN analytics |
+| Redis In-Memory Cache | Future | High-concurrency caching and rate-limiting buckets |
 
 ---
 
 ## 2. Product Overview
 
-**CodeQuest** is a professional gamified coding-learning platform designed to help learners progress from beginner-friendly programming experiences toward real software development.
+**CodeVerse** is a professional gamified coding-learning platform designed to help learners progress from beginner-friendly programming experiences toward real software development.
 
 The core learning philosophy is:
 
@@ -289,47 +295,55 @@ Databases, AI providers, network services, and execution environments can fail a
 flowchart TD
     U[User / Learner]
 
-    F[React Frontend]
+    subgraph ClientTier ["Frontend Client Tier (React 19 + Vite 6)"]
+        F[React SPA Shell / HUD]
+        BLOCKS[Blockly Visual Workspace]
+        WORKER[Browser Web Worker Sandbox\n1,000ms Watchdog Guard]
+        BLOCKS -->|Generate JS| WORKER
+        WORKER -->|Execution Result| F
+    end
 
-    API[Backend REST API]
+    subgraph GatewayTier ["Backend Application Gateway (Node.js + Express 5)"]
+        API[Express REST API Gateway]
+        AUTH[Authentication Service]
+        CURRIC[Curriculum / Topics]
+        QUIZ[Quiz Engine & Evaluation]
+        GAME[Gamification / XP]
+        AI[AI Question Service - Phase 2]
+    end
 
-    AUTH[Authentication]
-    LEARN[Learning Module]
-    CHALLENGE[Challenge Module]
-    PROGRESS[Progress Module]
-    GAME[Gamification]
-    AI[AI Service]
-    EXEC[Code Execution]
+    subgraph PersistenceTier ["Polyglot Persistence Layer"]
+        MONGO[(MongoDB 7 / Mongoose 9\nPRIMARY MVP PERSISTENCE\nUsers • Topics • Questions\nAttempts • AI Cache)]
+        POSTGRES[(PostgreSQL 16\nPHASE 4 RELATIONAL PERSISTENCE\nGuilds • GuildMembers\nSocial Graph • SQL Leaderboards)]
+    end
 
-    DB[(PostgreSQL)]
-    MONGO[(MongoDB)]
-    LLM[External LLM Provider]
-    SANDBOX[Isolated Execution Environment]
+    subgraph ExternalServices ["External Intelligence"]
+        LLM[Google Gemini 1.5 Flash API]
+    end
 
     U --> F
-    F --> API
+    F -->|REST / JWT| API
 
     API --> AUTH
-    API --> LEARN
-    API --> CHALLENGE
-    API --> PROGRESS
+    API --> CURRIC
+    API --> QUIZ
     API --> GAME
     API --> AI
-    API --> EXEC
 
-    AUTH --> DB
-    LEARN --> DB
-    CHALLENGE --> DB
-    PROGRESS --> DB
-    GAME --> DB
-
-    AI --> LLM
+    AUTH --> MONGO
+    CURRIC --> MONGO
+    QUIZ --> MONGO
+    GAME --> MONGO
     AI --> MONGO
 
-    EXEC --> SANDBOX
+    AI -.->|Prompt / JSON Schema| LLM
+    API -.->|Phase 4 Relational Queries| POSTGRES
 ```
 
-The exact database and infrastructure topology must follow actual repository implementation and justified product requirements.
+The database and infrastructure topology strictly enforces:
+1. **Zero Server RCE:** Untrusted learner JavaScript executes entirely within the browser Web Worker sandbox.
+2. **MongoDB as Primary MVP:** All core MVP entities (Users, Topics, Questions, Attempts, Progress) reside in MongoDB.
+3. **PostgreSQL Deferred to Phase 4:** Relational persistence is introduced strictly in Phase 4 for Guilds and social graphs.
 
 ---
 
@@ -611,34 +625,47 @@ Handles XP and achievements.
 
 Handles LLM-based question generation.
 
-### Evaluation
+### Assessment & Evaluation
 
-Handles answer/code evaluation.
-
-### Code Execution
-
-Handles safe learner-code execution orchestration.
+Handles server-side answer evaluation, score computation, and XP calculation. Arbitrary student code is sandboxed client-side in browser Web Workers.
 
 ---
 
 # 15. REST API Architecture
 
-The system uses resource-oriented REST APIs.
+The system uses resource-oriented REST APIs adhering to the canonical LLD implementation contract:
 
-Representative endpoints:
-
+### 1. Authentication Service (`/api/auth`)
 ```text
-GET    /api/levels
-GET    /api/levels/:id
-GET    /api/challenges/:id
-POST   /api/challenges/:id/attempts
-GET    /api/progress
-POST   /api/ai/questions
+POST   /api/auth/register          # Register user with bcrypt hashing
+POST   /api/auth/login             # Authenticate credentials and issue JWT
+GET    /api/auth/profile           # Retrieve authenticated user claims
 ```
 
-The exact endpoint structure must match the implemented application.
+### 2. Curriculum Service (`/api/topics`)
+```text
+GET    /api/topics                 # Retrieve full curriculum and concept hierarchy
+```
 
-REST APIs should use standard HTTP methods and appropriate HTTP status codes.
+### 3. Quiz & Assessment Service (`/api/quizzes`)
+```text
+GET    /api/quizzes/:topicId       # Deliver topic questions (answers excluded)
+POST   /api/quizzes/:id/submit     # Submit attempt for deterministic evaluation
+```
+
+### 4. Adaptive AI Question Service (`/api/ai-questions`) — Phase 2
+```text
+POST   /api/ai-questions/generate  # Synthesize adaptive question via Gemini
+```
+
+### 5. Infrastructure Health Probe
+```text
+GET    /api/health                 # Process liveliness and database status
+```
+
+*Architectural Boundary Note:* Pedagogical entities such as learning paths, levels, challenges, attempts, and progress records are modeled within MongoDB document schemas (`Topic`, `Question`, `QuizAttempt`) rather than as disparate, conflicting REST endpoint contracts.
+
+REST APIs enforce standard HTTP status codes, stateless JWT bearer authentication, and uniform JSON error envelopes.
 
 ---
 
@@ -664,39 +691,33 @@ The API should not return `200 OK` for failed operations simply to simplify fron
 
 # 17. Database Architecture
 
-The system should use database technologies based on actual product requirements.
+CodeVerse leverages a polyglot persistence strategy tailored to distinct operational and data lifecycle requirements.
 
-## PostgreSQL
+## MongoDB (Primary MVP Persistence)
 
-PostgreSQL is appropriate for structured relational data such as:
+MongoDB 7 (via Mongoose 9) serves as the primary document persistence engine for the MVP application. It provides schema enforcement, flexible document modeling, and dynamic query capabilities ideal for educational learning data:
 
-- Users
-- Learning paths
-- Levels
-- Concepts
-- Challenges
-- Attempts
-- Progress
-- Achievements
-- Social or collaborative data
+MongoDB owns:
+- **Users:** Learner profiles, authentication credentials, total XP, current level tier, and daily streaks.
+- **Topics:** Curriculum taxonomy, realm paths, progressive concepts, and unlock criteria.
+- **Questions:** Static question bank with polymorphic options, code snippets, and difficulty scaffolding.
+- **QuizAttempts:** Immutable attempt logs storing chosen answers, computed scores, and XP awarded.
+- **AI-Generated Questions & Cache:** Structured LLM-generated questions, pedagogical hints, and validation metadata.
+- **Progress Documents:** Real-time learner progress documents modeled alongside user activity.
 
-The relational model provides:
+Document modeling allows hierarchical curriculum structures, polymorphic question types (multiple-choice, code snippet, predictive), and atomic updating of learner stats without complex multi-table migrations during early iterations.
 
-- Primary keys
-- Foreign keys
-- Referential integrity
-- Transactions
-- SQL JOINs
+## PostgreSQL (Phase 4 Social & Relational Systems)
 
-## MongoDB
+PostgreSQL 16 is **not an MVP dependency**. It is architecturally planned for **Phase 4** to support multi-user social systems, guilds, and competitive relational rankings.
 
-MongoDB may be appropriate for flexible document-oriented data such as:
+PostgreSQL owns:
+- **Guilds:** Developer guilds, clans, and collective quest entities.
+- **GuildMembers:** Many-to-many relationship mappings with roles, permissions, and join dates.
+- **Social Graph:** Cohorts, peer connections, and collaborative group activities.
+- **Relational Leaderboards:** Weekly cohort rankings and multi-table SQL `JOIN` analytics where strict ACID transactions, foreign key cascades, and relational aggregations are essential.
 
-- AI-generated questions
-- Flexible AI metadata
-- Evaluation artifacts
-
-MongoDB should not be introduced merely to satisfy a Project Score requirement.
+This polyglot allocation ensures the MVP remains lean, fast, and resilient while establishing a clear schema boundary for post-MVP relational expansion.
 
 ---
 
@@ -793,42 +814,37 @@ The visual editor should remain isolated from core backend business logic.
 
 # 21. Code Execution Architecture
 
-Arbitrary learner code should not execute directly inside the primary API process.
+### 21.1 Core Security Invariant
 
-Recommended architecture:
+**UNTRUSTED LEARNER CODE MUST NEVER EXECUTE INSIDE THE NODE.JS API PROCESS.**
+
+To eliminate catastrophic Remote Code Execution (RCE) vulnerabilities, memory exhaustion, fork bombs, and server denial-of-service risks, CodeVerse offloads all untrusted learner JavaScript execution strictly to the learner's browser client within an isolated Web Worker sandbox.
+
+### 21.2 Client-Side Execution Boundary
 
 ```text
-Frontend
-    ↓
-Backend API
-    ↓
-Execution Request
-    ↓
-Isolated Worker / Sandbox
-    ↓
-Language Runtime
-    ↓
-Execution Output
-    ↓
-Evaluator
-    ↓
-Backend
-    ↓
-Frontend
+React UI (BlockWorkspace / CodePreview)
+     │
+     ▼ (1. Assembles visual AST & emits pure JavaScript)
+Browser Web Worker Sandbox (Dedicated Client Thread)
+     │
+     ├── 2. Runs isolated script with shadowed globals
+     ├── 3. Enforces 1,000 ms watchdog timeout guard
+     │
+     ▼ (4. Emits execution result / console logs via postMessage)
+React UI (TerminalDock / Assertion Validator)
 ```
 
-The execution environment should enforce:
+### 21.3 Worker Sandbox Invariants
 
-- CPU limits
-- Memory limits
-- Timeouts
-- Output limits
-- Filesystem restrictions
-- Network restrictions
-- Process isolation
-- Infinite-loop protection
+The Web Worker sandbox (`frontend/src/workers/codeRunner.worker.js`) satisfies the following technical constraints:
 
-If the current implementation uses a browser Web Worker, the Web Worker remains the execution boundary and should include a watchdog timeout.
+1. **Main Thread Isolation:** Executes entirely outside the main UI thread to prevent complex computational blocks or loops from freezing the user interface.
+2. **Zero DOM & Storage Access:** The worker context has no access to `window`, `document`, DOM tree, `localStorage`, `sessionStorage`, or cookies.
+3. **Network Isolation:** Shadowed global environment restricts outgoing HTTP/WebSocket networking from the sandbox.
+4. **1,000 ms Watchdog Guard:** A hard watchdog timer on the main thread monitors worker execution. If execution exceeds 1,000 ms (e.g., infinite loops or runaway recursion), `worker.terminate()` is called immediately.
+5. **Clean Worker Re-instantiation:** Terminated or faulted workers are immediately garbage-collected and recreated fresh for subsequent challenges.
+6. **Backend Demarcation:** The backend API process handles persistence, data validation, quiz grading, and XP awards. It never accepts, parses, or evaluates arbitrary code strings on the server.
 
 ---
 
@@ -1356,7 +1372,7 @@ These should only become independent services when actual scale or operational r
 | Technology | Purpose | Status | Architectural Reason |
 |---|---|---|---|
 | React | Frontend UI | Planned / Implemented | Component-based UI |
-| TypeScript | Type safety | Planned / Implemented | Maintainability and safer refactoring |
+| JavaScript (ES6+) | Implementation Language | Implemented / Planned | Clean modern JavaScript (JSX for frontend, ES Modules for backend) |
 | REST API | Client/server communication | Planned / Implemented | Simple resource-oriented communication |
 | Node.js | Backend runtime | Planned / Implemented | Async I/O and JavaScript ecosystem |
 | Express | Backend API framework | Planned / Implemented | Lightweight REST API framework |
@@ -1496,54 +1512,50 @@ These concepts should be connected to actual repository code during implementati
 
 ---
 
-# 45. Future Evolution
+# 45. Phased Roadmap
 
-The CodeQuest architecture supports phased post-MVP expansion.
+The CodeVerse architecture is structured across four progressive phases:
 
-### Phase 2 — Adaptive AI Engine
+### Phase 1 — MVP Core
+- React 19 + Vite 6 frontend SPA with cyber telemetry shell
+- Node.js + Express 5 backend gateway with non-blocking resilience
+- MongoDB 7 / Mongoose 9 document persistence
+- Stateless JWT authentication and bcrypt password hashing
+- Curriculum topics and concept roadmap (`/api/topics`)
+- Static question bank and quiz engine (`/api/quizzes`)
+- Server-side deterministic grading and anti-cheat answer projections
+- XP formulas, level progression tiers, and UTC daily streaks
+- Visual block workspace (Blockly integration with type sockets)
+- Real-time client JavaScript code generator
+- Browser Web Worker execution sandbox with 1,000 ms watchdog guard
 
-- Server-side LLM pipeline
-- Adaptive difficulty engine
-- Bloom-based learning calibration
-- Mistake remediation
-- Structured AI output validation
+### Phase 2 — Adaptive Learning
+- Adaptive difficulty engine calibrated on rolling attempt accuracy
+- Bloom-style multi-stage cognitive staircase progression
+- Google Gemini 1.5 Flash structured question generation (`/api/ai-questions/generate`)
+- Strict Zod schema validation on LLM payloads
+- Pre-seeded question fallback repository for zero-downtime failover
+- AI synthesized question caching in MongoDB
 
-### Phase 3 — Multi-Language Execution
-
-- Additional programming languages
-- WebAssembly runtimes
-- Client-side Python execution
-- Additional sandboxed runtimes
+### Phase 3 — Production Hardening
+- Comprehensive test automation suites (unit, integration, and E2E)
+- CI/CD deployment pipelines (GitHub Actions)
+- Tiered rate limiting (IP-based auth guards, user-based submission limits)
+- Structured logging, request tracking, and APM observability
+- Production cloud deployment orchestration (Container/PaaS)
+- Performance optimization and security hardening audits
 
 ### Phase 4 — Social and Relational Systems
+- Normalized PostgreSQL 16 relational database layer
+- Developer guilds, clans, and collaborative quests
+- Multi-table SQL JOIN queries for relational analytics
+- Competitive weekly cohort leaderboards
+- Guild member permission hierarchies and cascading integrity constraints
 
-- Developer guilds
-- Collaborative quests
-- Team challenges
-- Competitive leaderboards
-- PostgreSQL relational features
-- SQL JOIN-based analytics
-
-### Phase 5 — Advanced Coding Arena
-
-- Full-screen IDE mode
-- Monaco editor
-- Multi-file workspaces
-- Project-based learning
-- Git portfolio integration
-
-Potential future technologies include:
-
-- Redis
-- Background queues
-- RAG
-- LLM evaluations
-- Function calling
-- Multi-step AI agents
-- WebSockets
-- Mobile clients
-
-These remain future capabilities unless supported by actual implementation.
+### Post-Phase 4 Capabilities (Future)
+- Redis distributed in-memory cache for ultra-high concurrency
+- WebAssembly (WASM) / Pyodide client-side Python execution
+- Full-screen text editor arena with syntax auto-complete
 
 ---
 
@@ -1609,56 +1621,51 @@ The following decisions should be understood and defended during the technical v
 
 # 48. Final Architecture Summary
 
-The intended CodeQuest architecture is:
+The intended CodeVerse architecture is:
 
 ```text
-                         ┌─────────────────────┐
-                         │       Learner       │
-                         └──────────┬──────────┘
-                                    │
-                                    ▼
-                         ┌─────────────────────┐
-                         │ React Frontend      │
-                         │ Dashboard           │
-                         │ Learning            │
-                         │ Challenges          │
-                         │ Blockly / Code      │
-                         └──────────┬──────────┘
-                                    │ REST
-                                    ▼
-                         ┌─────────────────────┐
-                         │ Backend API         │
-                         │                     │
-                         │ Authentication      │
-                         │ Learning            │
-                         │ Challenges          │
-                         │ Progress            │
-                         │ Gamification        │
-                         │ AI                  │
-                         │ Evaluation          │
-                         │ Code Execution      │
-                         └───────┬─────┬───────┘
-                                 │     │
-                    ┌────────────┘     └──────────────┐
-                    ▼                                 ▼
-          ┌──────────────────┐              ┌──────────────────┐
-          │ PostgreSQL       │              │ AI Service       │
-          │ Relational Data  │              │ Prompt Builder   │
-          │ Progress         │              │ Validation       │
-          │ Challenges       │              └────────┬─────────┘
-          │ Users            │                       │
-          └──────────────────┘                       ▼
-                                             ┌──────────────────┐
-                                             │ LLM Provider     │
-                                             └──────────────────┘
-
-                    Backend
-                       │
-                       ▼
-             ┌──────────────────────┐
-             │ Isolated Execution   │
-             │ Environment          │
-             └──────────────────────┘
+                         ┌────────────────────────────────────────┐
+                         │                Learner                 │
+                         └───────────────────┬────────────────────┘
+                                             │
+                                             ▼
+                         ┌────────────────────────────────────────┐
+                         │   React Frontend Tier (Vite 6 SPA)     │
+                         │   • Dashboard & Progression HUD        │
+                         │   • Curriculum Roadmap Canvas          │
+                         │   • Visual Block Workspace (Blockly)   │
+                         │   • Live Syntax Code Preview           │
+                         └───────┬────────────────────────┬───────┘
+                                 │                        │
+       (Learner Code Execution)  │                        │ REST API (JWT)
+                                 ▼                        ▼
+       ┌───────────────────────────────────┐    ┌────────────────────────────────────────┐
+       │ Browser Web Worker Sandbox        │    │ Backend API Gateway (Express 5)        │
+       │ • 1,000 ms Watchdog Timeout Guard │    │ • Authentication (JWT / bcrypt)        │
+       │ • Shadowed Globals & Zero DOM     │    │ • Curriculum & Quizzes Gateway         │
+       │ • Complete UI Thread Isolation    │    │ • Deterministic Grading & XP Scoring   │
+       └───────────────────────────────────┘    │ • AI Question Service Orchestrator     │
+                                                └────────┬──────────────────────┬────────┘
+                                                         │                      │
+                                            ┌────────────┘                      └──────────────┐
+                                            ▼ (MVP Document Store)                             ▼ (Phase 2 LLM)
+                                  ┌───────────────────────────┐                      ┌──────────────────┐
+                                  │ MongoDB 7 (Mongoose 9)    │                      │ Google Gemini    │
+                                  │ PRIMARY PERSISTENCE       │                      │ 1.5 Flash API    │
+                                  │ • Users & Gamification    │                      └──────────────────┘
+                                  │ • Topics & Concepts       │
+                                  │ • Questions & Attempts    │
+                                  │ • AI Question Cache       │
+                                  └───────────────────────────┘
+                                                │
+                                                ▼ (Phase 4 Relational Systems)
+                                  ┌───────────────────────────┐
+                                  │ PostgreSQL 16             │
+                                  │ RELATIONAL PERSISTENCE    │
+                                  │ • Guilds & GuildMembers   │
+                                  │ • Social Graph Entities   │
+                                  │ • SQL JOIN Leaderboards   │
+                                  └───────────────────────────┘
 ```
 
 The central architectural principle is:

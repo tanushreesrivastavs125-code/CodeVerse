@@ -1,0 +1,2 @@
+# Relational migrations directory (Phase 4 per LLD Section 4 & 19)
+# Will contain PostgreSQL 16 DDL files such as 001_relational_schema.sql
