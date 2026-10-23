@@ -3,6 +3,7 @@ import cors from 'cors';
 import { config } from './config/env.js';
 import { getDatabaseStatus } from './config/database.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import authRoutes from './routes/auth.routes.js';
 
 const app = express();
 
@@ -31,6 +32,9 @@ app.get('/api/health', (_req, res) => {
     database: dbStatus.state
   });
 });
+
+// Authentication routes
+app.use('/api/auth', authRoutes);
 
 // Fallback for unmapped routes
 app.use(notFoundHandler);

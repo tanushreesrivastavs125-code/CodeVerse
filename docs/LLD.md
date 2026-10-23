@@ -387,6 +387,9 @@ HTTP Request
 
 ## 13. REST API Contracts
 
+> [!NOTE]
+> Response bodies listed in the table below describe the inner payload schema delivered within the standardized `{ "success": true, "data": ... }` success envelope defined in Section 10 (`API Client Design`). Failure responses omit `data` and follow the error envelope defined in Section 16 (`{ "success": false, "error": { "code", "message", "details" }, "timestamp" }`).
+
 | Method | Endpoint | Purpose | Auth | Request Body | Response Body | Success | Error Codes |
 |:---|:---|:---|:---:|:---|:---|:---:|:---:|
 | `POST` | `/api/auth/register` | Register new account | Public | `{ username, email, password }` | `{ token, user: { id, username, totalXp, level } }` | `201` | `400, 409` |

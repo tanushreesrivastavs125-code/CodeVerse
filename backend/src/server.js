@@ -3,6 +3,7 @@ import path from 'node:path';
 import app from './app.js';
 import { config } from './config/env.js';
 import { connectDatabase, disconnectDatabase, sanitizeErrorMessage } from './config/database.js';
+import { validateJwtConfig } from './config/jwt.js';
 
 let isShuttingDown = false;
 let sigintListener = null;
@@ -117,7 +118,15 @@ export function unregisterShutdownHandlers() {
  * @returns {Promise<import('http').Server>} Active HTTP server instance
  */
 export async function startServer(port = config.port, options = {}) {
-  const { skipDatabase = false, dbOptions = {} } = options;
+  const {
+    skipDatabase = false,
+    dbOptions = {},
+    nodeEnv = config.nodeEnv
+  } = options;
+  const jwtSecret = 'jwtSecret' in options ? options.jwtSecret : config.jwtSecret;
+
+  // Step 1: Validate JWT configuration during startup (fails fast if missing, weak, or dev secret in production)
+  validateJwtConfig(jwtSecret, nodeEnv);
 
   // Step 3: Attempt database connection before opening the HTTP port
   if (!skipDatabase) {

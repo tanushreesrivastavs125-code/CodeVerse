@@ -2,6 +2,8 @@ import { test, describe, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { startServer, shutdown, unregisterShutdownHandlers } from '../src/server.js';
 import { _resetDatabaseStateForTesting, getDatabaseStatus } from '../src/config/database.js';
+import { ConfigurationError } from '../src/config/env.js';
+import { INSECURE_DEV_SECRET } from '../src/config/jwt.js';
 
 describe('Application Lifecycle & Graceful Shutdown', () => {
   let activeServer;
@@ -74,5 +76,67 @@ describe('Application Lifecycle & Graceful Shutdown', () => {
     );
 
     assert.equal(activeServer.listening, false);
+  });
+
+  test('startServer fails fast in production when JWT_SECRET is missing, weak, or the dev secret', async () => {
+    // 1. Missing / undefined secret in production
+    await assert.rejects(
+      async () => {
+        await startServer(0, {
+          skipDatabase: true,
+          nodeEnv: 'production',
+          jwtSecret: undefined
+        });
+      },
+      (err) => {
+        assert.ok(err instanceof ConfigurationError);
+        assert.ok(err.message.includes('JWT_SECRET is required in production environment'));
+        return true;
+      }
+    );
+
+    // 2. Insecure dev secret in production
+    await assert.rejects(
+      async () => {
+        await startServer(0, {
+          skipDatabase: true,
+          nodeEnv: 'production',
+          jwtSecret: INSECURE_DEV_SECRET
+        });
+      },
+      (err) => {
+        assert.ok(err instanceof ConfigurationError);
+        assert.ok(err.message.includes('secure, custom JWT_SECRET (minimum 32 characters)'));
+        return true;
+      }
+    );
+
+    // 3. Weak secret under 32 characters in production
+    await assert.rejects(
+      async () => {
+        await startServer(0, {
+          skipDatabase: true,
+          nodeEnv: 'production',
+          jwtSecret: 'too_short_secret_for_production'
+        });
+      },
+      (err) => {
+        assert.ok(err instanceof ConfigurationError);
+        assert.ok(err.message.includes('secure, custom JWT_SECRET (minimum 32 characters)'));
+        return true;
+      }
+    );
+  });
+
+  test('startServer starts successfully in production when provided a valid, strong JWT secret', async () => {
+    const strongProdSecret = 'super_strong_production_jwt_secret_with_over_32_characters!';
+    activeServer = await startServer(0, {
+      skipDatabase: true,
+      nodeEnv: 'production',
+      jwtSecret: strongProdSecret
+    });
+
+    assert.ok(activeServer, 'Server instance should be created');
+    assert.ok(activeServer.listening, 'Server should be listening in production with valid JWT secret');
   });
 });
