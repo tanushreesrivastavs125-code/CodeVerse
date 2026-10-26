@@ -4,6 +4,7 @@ import { config } from './config/env.js';
 import { getDatabaseStatus } from './config/database.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/auth.routes.js';
+import topicRoutes from './routes/topic.routes.js';
 
 const app = express();
 
@@ -35,6 +36,9 @@ app.get('/api/health', (_req, res) => {
 
 // Authentication routes
 app.use('/api/auth', authRoutes);
+
+// Curriculum and Topics routes
+app.use('/api/topics', topicRoutes);
 
 // Fallback for unmapped routes
 app.use(notFoundHandler);
