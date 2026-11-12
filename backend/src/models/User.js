@@ -38,6 +38,11 @@ const userSchema = new mongoose.Schema(
       default: 0,
       min: [0, 'currentStreak cannot be negative']
     },
+    coins: {
+      type: Number,
+      default: 0,
+      min: [0, 'coins cannot be negative']
+    },
     lastActiveDate: {
       type: Date,
       default: null
@@ -83,6 +88,7 @@ userSchema.methods.toSafeObject = function () {
     email: this.email,
     totalXp: this.totalXp,
     level: this.level,
+    coins: this.coins ?? 0,
     currentStreak: this.currentStreak,
     role: this.role,
     createdAt: this.createdAt,
