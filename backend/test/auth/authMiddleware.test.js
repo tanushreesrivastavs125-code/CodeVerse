@@ -146,5 +146,113 @@ describe('authMiddleware Token Inspection', () => {
     assert.equal(calledNextWith.statusCode, 401);
     assert.equal(calledNextWith.errorCode, 'INVALID_TOKEN');
   });
+
+  describe('Cookie-Based Authentication & Precedence', () => {
+    test('successfully authenticates via HTTP-only cookie when Authorization header is absent', () => {
+      const token = signToken({
+        id: 'cookie_user_123',
+        username: 'cookie_pilot',
+        role: 'user'
+      });
+      const req = {
+        headers: {},
+        cookies: { token }
+      };
+      let calledNext = false;
+      let errorPassed = null;
+
+      authMiddleware(req, {}, (err) => {
+        calledNext = true;
+        errorPassed = err;
+      });
+
+      assert.equal(calledNext, true);
+      assert.equal(errorPassed, undefined);
+      assert.equal(req.user.id, 'cookie_user_123');
+      assert.equal(req.user.username, 'cookie_pilot');
+      assert.equal(req.user.role, 'user');
+    });
+
+    test('rejects request with 401 when both Authorization header and cookie are absent', () => {
+      const req = { headers: {}, cookies: {} };
+      let calledNextWith = null;
+
+      authMiddleware(req, {}, (err) => {
+        calledNextWith = err;
+      });
+
+      assert.ok(calledNextWith instanceof AppError);
+      assert.equal(calledNextWith.statusCode, 401);
+      assert.equal(calledNextWith.errorCode, 'UNAUTHORIZED');
+    });
+
+    test('rejects request with invalid or corrupted cookie token', () => {
+      const req = { headers: {}, cookies: { token: 'corrupted.jwt.cookie' } };
+      let calledNextWith = null;
+
+      authMiddleware(req, {}, (err) => {
+        calledNextWith = err;
+      });
+
+      assert.ok(calledNextWith instanceof AppError);
+      assert.equal(calledNextWith.statusCode, 401);
+      assert.equal(calledNextWith.errorCode, 'INVALID_TOKEN');
+    });
+
+    test('strict precedence: invalid Authorization header rejects with 401 without falling back to valid cookie', () => {
+      const validCookieToken = signToken({ id: 'valid_cookie_user', username: 'cookie_pilot' });
+      const req = {
+        headers: { authorization: 'Bearer invalid.header.token' },
+        cookies: { token: validCookieToken }
+      };
+      let calledNextWith = null;
+
+      authMiddleware(req, {}, (err) => {
+        calledNextWith = err;
+      });
+
+      assert.ok(calledNextWith instanceof AppError);
+      assert.equal(calledNextWith.statusCode, 401);
+      assert.equal(calledNextWith.errorCode, 'INVALID_TOKEN');
+      assert.equal(req.user, undefined);
+    });
+
+    test('strict precedence: malformed Authorization header rejects with 401 without falling back to valid cookie', () => {
+      const validCookieToken = signToken({ id: 'valid_cookie_user', username: 'cookie_pilot' });
+      const req = {
+        headers: { authorization: 'Basic user:pass' },
+        cookies: { token: validCookieToken }
+      };
+      let calledNextWith = null;
+
+      authMiddleware(req, {}, (err) => {
+        calledNextWith = err;
+      });
+
+      assert.ok(calledNextWith instanceof AppError);
+      assert.equal(calledNextWith.statusCode, 401);
+      assert.ok(calledNextWith.message.includes('Bearer'));
+      assert.equal(req.user, undefined);
+    });
+
+    test('strict precedence: expired Authorization header rejects with 401 without falling back to valid cookie', () => {
+      const expiredHeaderToken = signToken({ id: 'header_user' }, { expiresIn: '0s' });
+      const validCookieToken = signToken({ id: 'valid_cookie_user', username: 'cookie_pilot' });
+      const req = {
+        headers: { authorization: `Bearer ${expiredHeaderToken}` },
+        cookies: { token: validCookieToken }
+      };
+      let calledNextWith = null;
+
+      authMiddleware(req, {}, (err) => {
+        calledNextWith = err;
+      });
+
+      assert.ok(calledNextWith instanceof AppError);
+      assert.equal(calledNextWith.statusCode, 401);
+      assert.equal(calledNextWith.errorCode, 'TOKEN_EXPIRED');
+      assert.equal(req.user, undefined);
+    });
+  });
 });
 

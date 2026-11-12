@@ -6,6 +6,25 @@ export const MIN_JWT_SECRET_LENGTH = 32;
 export const JWT_ALGORITHM = 'HS256';
 export const JWT_ISSUER = 'codeverse';
 export const JWT_AUDIENCE = 'codeverse-client';
+export const AUTH_COOKIE_NAME = 'token';
+
+/**
+ * Returns standard cookie options for HTTP-only JWT browser authentication.
+ *
+ * @param {object} [overrides]
+ * @returns {object} Express cookie configuration
+ */
+export function getAuthCookieOptions(overrides = {}) {
+  const isProduction = config.nodeEnv === 'production';
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'strict' : 'lax',
+    path: '/',
+    maxAge: 24 * 60 * 60 * 1000,
+    ...overrides
+  };
+}
 
 /**
  * Validates JWT configuration for startup or runtime usage.

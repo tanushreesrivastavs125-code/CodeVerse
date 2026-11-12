@@ -1,32 +1,47 @@
-import { verifyToken } from '../config/jwt.js';
+import { verifyToken, AUTH_COOKIE_NAME } from '../config/jwt.js';
 import { AppError } from './errorHandler.js';
 
 /**
- * Express middleware to authenticate Bearer JWT access tokens.
- * Decodes valid claims and attaches safe user identity to req.user.
- * Rejects missing, malformed, invalid, and expired tokens with 401 Unauthorized.
+ * Express middleware to authenticate JWT access tokens via Bearer header or HTTP-only cookie.
+ *
+ * Precedence Rule:
+ * - If an Authorization header is explicitly supplied, it takes strict precedence.
+ * - If the supplied Authorization header is malformed, invalid, or expired, authentication
+ *   fails immediately (401 Unauthorized) without falling back to a cookie.
+ * - If no Authorization header is present, authentication falls back to the HTTP-only cookie.
+ * - If neither is present, request is rejected with 401 Unauthorized.
  *
  * @type {import('express').RequestHandler}
  */
 export function authMiddleware(req, _res, next) {
   const authHeader = req.headers.authorization;
+  const cookieToken = req.cookies?.[AUTH_COOKIE_NAME];
 
-  if (!authHeader || typeof authHeader !== 'string' || authHeader.trim().length === 0) {
-    return next(
-      new AppError('Authentication required. Missing authorization header.', 401, 'UNAUTHORIZED')
-    );
-  }
+  let token = null;
+  let authSource = null;
 
-  if (!authHeader.startsWith('Bearer ')) {
-    return next(
-      new AppError('Malformed authorization header. Format must be "Bearer <token>".', 401, 'UNAUTHORIZED')
-    );
-  }
+  if (authHeader !== undefined && authHeader !== null && authHeader !== '') {
+    // Explicit Authorization header provided
+    authSource = 'header';
+    if (typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
+      return next(
+        new AppError('Malformed authorization header. Format must be "Bearer <token>".', 401, 'UNAUTHORIZED')
+      );
+    }
 
-  const token = authHeader.slice(7).trim();
-  if (token.length === 0) {
+    token = authHeader.slice(7).trim();
+    if (token.length === 0) {
+      return next(
+        new AppError('Malformed authorization header. Token cannot be empty.', 401, 'UNAUTHORIZED')
+      );
+    }
+  } else if (cookieToken && typeof cookieToken === 'string' && cookieToken.trim().length > 0) {
+    // Cookie-based session authentication fallback
+    authSource = 'cookie';
+    token = cookieToken.trim();
+  } else {
     return next(
-      new AppError('Malformed authorization header. Token cannot be empty.', 401, 'UNAUTHORIZED')
+      new AppError('Authentication required. Missing authorization credentials.', 401, 'UNAUTHORIZED')
     );
   }
 
@@ -43,6 +58,7 @@ export function authMiddleware(req, _res, next) {
       email: decoded.email,
       role: decoded.role || 'user'
     };
+    req.authSource = authSource;
 
     next();
   } catch (err) {

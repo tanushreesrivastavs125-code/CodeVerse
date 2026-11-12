@@ -50,7 +50,7 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: {
-        values: ['user', 'admin'],
+        values: ['user', 'admin', 'guest'],
         message: '{VALUE} is not a valid role'
       },
       default: 'user'
@@ -91,6 +91,7 @@ userSchema.methods.toSafeObject = function () {
     coins: this.coins ?? 0,
     currentStreak: this.currentStreak,
     role: this.role,
+    isGuest: this.role === 'guest',
     createdAt: this.createdAt,
     updatedAt: this.updatedAt
   };
