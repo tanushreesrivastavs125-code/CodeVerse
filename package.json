@@ -14,6 +14,7 @@
     "seed:backend": "npm --workspace=backend run seed",
     "build:frontend": "npm --workspace=frontend run build",
     "test:backend": "npm --workspace=backend run test",
+    "test:campaign:integration": "npm --workspace=backend run test:campaign:integration",
     "test": "npm run test:backend && npm run build:frontend",
     "lint:backend": "npm --workspace=backend run lint",
     "lint:frontend": "npm --workspace=frontend run lint",
