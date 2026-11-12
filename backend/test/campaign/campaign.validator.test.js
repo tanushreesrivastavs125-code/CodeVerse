@@ -33,16 +33,17 @@ describe('Campaign Validator Rules', () => {
       };
       const result = validateRunPayload(validPayload);
       assert.deepEqual(result.program, [{ type: 'move' }]);
-      assert.equal(result.idempotencyKey, undefined);
     });
 
-    test('accepts valid payload with optional idempotencyKey', () => {
-      const validPayload = {
+    test('rejects payload with unexpected idempotencyKey as unrecognized', () => {
+      const payloadWithIdemp = {
         program: [{ type: 'move' }],
         idempotencyKey: 'idemp-12345'
       };
-      const result = validateRunPayload(validPayload);
-      assert.equal(result.idempotencyKey, 'idemp-12345');
+      assert.throws(
+        () => validateRunPayload(payloadWithIdemp),
+        /Unrecognized payload field: "idempotencyKey"/
+      );
     });
 
     test('rejects non-object, null, or array body', () => {

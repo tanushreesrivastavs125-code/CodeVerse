@@ -8,6 +8,7 @@
     "start": "node src/server.js",
     "seed": "node src/seeds/seedTopics.js",
     "test": "node --test test/**/*.test.js",
+    "test:campaign:integration": "node test/campaign/run-campaign-integration.js",
     "lint": "eslint ."
   },
   "dependencies": {
@@ -21,6 +22,7 @@
   "devDependencies": {
     "@eslint/js": "^9.20.0",
     "eslint": "^9.20.0",
-    "globals": "^15.14.0"
+    "globals": "^15.14.0",
+    "mongodb-memory-server": "^11.3.0"
   }
 }

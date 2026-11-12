@@ -451,18 +451,20 @@ describe('Campaign & Game API Contracts (/api/game)', () => {
         if (options?.session) {
           return null;
         }
-        // Outside the aborted transaction session, read the winning doc
         return winningDoc;
       });
+
+      mock.method(CampaignProgress, 'findOneAndUpdate', async () => winningDoc);
 
       mock.method(CampaignProgress, 'create', async (docs) => {
         createCalls++;
         if (createCalls === 1) {
           return docs; // Winner commits first
         }
-        // Colliding concurrent insertion throws duplicate key error code 11000
-        const dupErr = new Error('E11000 duplicate key error');
+        // Colliding concurrent insertion throws duplicate key error code 11000 on expected unique index
+        const dupErr = new Error('E11000 duplicate key error unique_user_level_campaign_version');
         dupErr.code = 11000;
+        dupErr.keyPattern = { user: 1, levelId: 1, campaignVersion: 1 };
         throw dupErr;
       });
 

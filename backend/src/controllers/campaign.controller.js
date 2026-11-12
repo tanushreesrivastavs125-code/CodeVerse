@@ -28,13 +28,12 @@ export async function getLevels(req, res, next) {
 export async function runLevel(req, res, next) {
   try {
     const levelId = validateLevelId(req.params.id);
-    const { program, idempotencyKey } = validateRunPayload(req.body);
+    const { program } = validateRunPayload(req.body);
 
     const outcome = await campaignService.runCampaignLevel({
       userId: req.user.id,
       levelId,
-      program,
-      idempotencyKey
+      program
     });
 
     res.status(200).json({

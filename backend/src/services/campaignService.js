@@ -15,6 +15,71 @@ export const FIRST_CLEAR_XP = 100;
 export const FIRST_CLEAR_COINS = 25;
 
 /**
+ * Confirms whether an error is an E11000 duplicate-key error belonging to the
+ * expected completion unique constraint: { user: 1, levelId: 1, campaignVersion: 1 }.
+ *
+ * @param {any} err
+ * @returns {boolean}
+ */
+export function isExpectedCompletionDuplicateKey(err) {
+  if (!err || (err.code !== 11000 && err.codeName !== 'DuplicateKey')) {
+    return false;
+  }
+  if (err.keyPattern) {
+    return Boolean(err.keyPattern.user && err.keyPattern.levelId && err.keyPattern.campaignVersion);
+  }
+  if (typeof err.message === 'string') {
+    return (
+      err.message.includes('unique_user_level_campaign_version') ||
+      err.message.includes('user_1_levelId_1_campaignVersion_1') ||
+      (err.message.includes('levelId') && err.message.includes('campaignVersion'))
+    );
+  }
+  return false;
+}
+
+/**
+ * Atomically recovers from a duplicate-key race condition by updating the winning
+ * completion document using $max for stars and $inc for attempts.
+ * Performs bounded retries if the winning transaction commit is still in flight.
+ *
+ * @param {object} params
+ * @param {string} params.userId
+ * @param {number} params.levelId
+ * @param {number} params.stars
+ * @param {Date} params.now
+ * @param {number} [params.maxRetries=3]
+ * @returns {Promise<object | null>} Resulting committed document, or null if uncommitted
+ */
+export async function recoverFromDuplicateKey({ userId, levelId, stars, now, maxRetries = 3 }) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const committedDoc = await CampaignProgress.findOneAndUpdate(
+      { user: userId, levelId, campaignVersion: CAMPAIGN_VERSION },
+      {
+        $max: { stars },
+        $inc: { attempts: 1 },
+        $set: { lastCompletedAt: now }
+      },
+      {
+        returnDocument: 'after',
+        lean: true
+      }
+    );
+
+    if (committedDoc) {
+      return committedDoc;
+    }
+
+    // Bounded backoff wait if the concurrent write has not surfaced yet
+    if (attempt < maxRetries - 1) {
+      await new Promise((resolve) => setTimeout(resolve, 50 * (attempt + 1)));
+    }
+  }
+
+  return null;
+}
+
+/**
  * Retrieves the full list of campaign sectors with player-specific unlock and completion state.
  *
  * @param {string} userId - Authenticated player ObjectId
@@ -223,28 +288,26 @@ export async function runCampaignLevel({ userId, levelId, program }) {
     updatedUser = txResult.user;
     finalStars = txResult.stars;
   } catch (err) {
-    if (err.code === 11000) {
+    if (isExpectedCompletionDuplicateKey(err)) {
       // Duplicate key error aborted the transaction.
-      // Another concurrent request committed the first clear.
-      // Re-read winning record OUTSIDE the aborted transaction session.
-      const winningDoc = await CampaignProgress.findOne({
-        user: userId,
+      // Another concurrent request won the race to insert the first clear.
+      // Atomically update best stars and attempts outside the aborted session.
+      const recoveredDoc = await recoverFromDuplicateKey({
+        userId,
         levelId,
-        campaignVersion: CAMPAIGN_VERSION
+        stars: simResult.stars,
+        now
       });
 
-      if (winningDoc) {
-        if (simResult.stars > winningDoc.stars) {
-          winningDoc.stars = simResult.stars;
-        }
-        winningDoc.attempts = (winningDoc.attempts || 1) + 1;
-        winningDoc.lastCompletedAt = now;
-        await winningDoc.save();
-        finalStars = winningDoc.stars;
-      } else {
-        finalStars = simResult.stars;
+      if (!recoveredDoc) {
+        throw new AppError(
+          'Concurrent completion collision detected, but no committed completion record was found. Please retry your submission.',
+          409,
+          'CONCURRENT_CONFLICT'
+        );
       }
 
+      finalStars = recoveredDoc.stars;
       awardedXp = 0;
       awardedCoins = 0;
       updatedUser = await User.findById(userId);

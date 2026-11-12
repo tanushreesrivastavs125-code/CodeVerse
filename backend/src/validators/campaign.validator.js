@@ -14,7 +14,7 @@ const FORBIDDEN_FIELDS = [
   'role'
 ];
 
-const ALLOWED_TOP_LEVEL_KEYS = new Set(['program', 'idempotencyKey']);
+const ALLOWED_TOP_LEVEL_KEYS = new Set(['program']);
 
 /**
  * Validates level identifier route parameter.
@@ -45,7 +45,7 @@ export function validateLevelId(rawId) {
  * Strictly rejects client-supplied rewards, unlocks, scores, and unknown fields.
  *
  * @param {any} body
- * @returns {{ program: Array, idempotencyKey?: string }}
+ * @returns {{ program: Array }}
  */
 export function validateRunPayload(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
@@ -87,10 +87,6 @@ export function validateRunPayload(body) {
   }
 
   return {
-    program: body.program,
-    idempotencyKey:
-      typeof body.idempotencyKey === 'string' && body.idempotencyKey.trim().length > 0
-        ? body.idempotencyKey.trim()
-        : undefined
+    program: body.program
   };
 }
