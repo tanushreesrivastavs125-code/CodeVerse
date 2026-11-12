@@ -68,9 +68,9 @@ export function CampaignSelectorModal({
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(7, 15, 24, 0.88)',
-        backdropFilter: 'blur(8px)',
-        zIndex: 2000, // Explicitly above Blockly workspace and flyouts
+        backgroundColor: 'rgba(5, 10, 15, 0.88)',
+        backdropFilter: 'blur(10px)',
+        zIndex: 10000, // Explicitly above Blockly workspace and flyouts
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -87,11 +87,11 @@ export function CampaignSelectorModal({
         style={{
           width: '100%',
           maxWidth: '820px',
-          backgroundColor: '#0c1824',
+          backgroundColor: 'var(--bg-card)',
           borderRadius: 'var(--radius-lg)',
           border: '1px solid var(--border-glow)',
           padding: '1.75rem',
-          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.75)',
+          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.85)',
           maxHeight: '90vh',
           display: 'flex',
           flexDirection: 'column',

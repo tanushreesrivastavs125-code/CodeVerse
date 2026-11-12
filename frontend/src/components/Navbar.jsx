@@ -42,7 +42,8 @@ export function Navbar() {
     fontWeight: location.pathname === path ? 600 : 400,
     padding: '0.4rem 0.8rem',
     borderRadius: 'var(--radius-sm)',
-    backgroundColor: location.pathname === path ? 'rgba(6, 182, 212, 0.1)' : 'transparent',
+    backgroundColor: location.pathname === path ? 'rgba(66, 227, 198, 0.12)' : 'transparent',
+    border: location.pathname === path ? '1px solid rgba(66, 227, 198, 0.3)' : '1px solid transparent',
     transition: 'all 0.15s ease'
   });
 
@@ -51,49 +52,56 @@ export function Navbar() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '0.9rem 1.75rem',
-      backgroundColor: 'rgba(17, 24, 39, 0.85)',
-      backdropFilter: 'blur(12px)',
+      padding: '0.85rem 1.75rem',
+      backgroundColor: 'rgba(8, 19, 27, 0.92)',
+      backdropFilter: 'blur(16px)',
       borderBottom: '1px solid var(--border-subtle)',
       position: 'sticky',
       top: 0,
       zIndex: 50
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', textDecoration: 'none' }}>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', textDecoration: 'none' }}>
           <div style={{
             width: '28px',
             height: '28px',
             borderRadius: '6px',
-            background: 'linear-gradient(135deg, var(--accent-cyan), var(--accent-blue))',
+            background: 'linear-gradient(135deg, #0b2f33, #164e56)',
+            border: '1px solid #42e3c6',
+            boxShadow: '0 0 12px rgba(66, 227, 198, 0.25)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontWeight: 800,
-            fontSize: '1rem',
-            color: '#fff'
+            fontSize: '0.9rem',
+            color: '#42e3c6'
           }}>
             ⚡
           </div>
           <span style={{
             fontSize: '1.25rem',
-            fontWeight: 700,
-            background: 'linear-gradient(135deg, #06b6d4, #3b82f6)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
+            fontWeight: 800,
+            color: '#f2f7f8',
             letterSpacing: '-0.02em'
           }}>
-            CodeVerse
+            Code<span style={{ color: 'var(--accent-cyan)' }}>Verse</span>
           </span>
         </Link>
 
-        {isAuthenticated && (
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <Link to="/playground" style={navLinkStyle('/playground')}>Playground</Link>
-            <Link to="/dashboard" style={navLinkStyle('/dashboard')}>Dashboard</Link>
-            <Link to="/profile" style={navLinkStyle('/profile')}>Profile</Link>
-          </div>
-        )}
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          {isAuthenticated ? (
+            <>
+              <Link to="/playground" style={navLinkStyle('/playground')}>Playground</Link>
+              <Link to="/dashboard" style={navLinkStyle('/dashboard')}>Campaign</Link>
+              <Link to="/leaderboard" style={navLinkStyle('/leaderboard')}>Leaderboard</Link>
+              <Link to="/profile" style={navLinkStyle('/profile')}>Profile</Link>
+            </>
+          ) : (
+            <>
+              <Link to="/leaderboard" style={navLinkStyle('/leaderboard')}>Leaderboard</Link>
+            </>
+          )}
+        </div>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -147,8 +155,8 @@ export function Navbar() {
                 </span>
               )}
               <span style={{ color: 'var(--text-muted)' }}>|</span>
-              <span style={{ color: '#10b981' }}>{user.totalXp ?? 0} XP</span>
-              <span style={{ color: '#fbbf24' }}>🪙 {user.coins ?? 0}</span>
+              <span style={{ color: 'var(--accent-emerald)', fontFamily: 'var(--font-mono)' }}>{user.totalXp ?? 0} XP</span>
+              <span style={{ color: 'var(--accent-gold)', fontFamily: 'var(--font-mono)' }}>🪙 {user.coins ?? 0}</span>
             </div>
             <button
               onClick={handleLogout}
@@ -173,13 +181,15 @@ export function Navbar() {
             <Link
               to="/play"
               style={{
-                backgroundColor: 'rgba(6, 182, 212, 0.15)',
-                border: '1px solid var(--border-glow)',
+                backgroundColor: 'rgba(66, 227, 198, 0.12)',
+                border: '1px solid var(--accent-cyan)',
                 color: 'var(--accent-cyan)',
                 padding: '0.35rem 0.85rem',
                 borderRadius: 'var(--radius-sm)',
                 fontSize: '0.85rem',
-                fontWeight: 600
+                fontWeight: 700,
+                fontFamily: 'var(--font-mono)',
+                transition: 'all 0.15s ease'
               }}
             >
               ⚡ Quick Play
@@ -192,7 +202,8 @@ export function Navbar() {
                 color: 'var(--text-secondary)',
                 padding: '0.35rem 0.75rem',
                 borderRadius: 'var(--radius-sm)',
-                fontSize: '0.85rem'
+                fontSize: '0.85rem',
+                transition: 'all 0.15s ease'
               }}
             >
               Sign in
@@ -200,13 +211,14 @@ export function Navbar() {
             <Link
               to="/signup"
               style={{
-                backgroundColor: 'var(--accent-blue)',
+                backgroundColor: 'var(--accent-cyan)',
                 border: 'none',
-                color: '#fff',
-                padding: '0.35rem 0.75rem',
+                color: '#050a0f',
+                padding: '0.35rem 0.85rem',
                 borderRadius: 'var(--radius-sm)',
                 fontSize: '0.85rem',
-                fontWeight: 600
+                fontWeight: 700,
+                transition: 'all 0.15s ease'
               }}
             >
               Sign up

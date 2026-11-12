@@ -9,6 +9,7 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/auth.routes.js';
 import topicRoutes from './routes/topic.routes.js';
 import campaignRoutes from './routes/campaign.routes.js';
+import leaderboardRoutes from './routes/leaderboard.routes.js';
 
 const app = express();
 
@@ -51,6 +52,9 @@ app.use('/api/topics', topicRoutes);
 
 // Game Campaign routes
 app.use('/api/game', campaignRoutes);
+
+// Global Leaderboard routes
+app.use('/api/leaderboard', leaderboardRoutes);
 
 // Fallback for unmapped routes
 app.use(notFoundHandler);

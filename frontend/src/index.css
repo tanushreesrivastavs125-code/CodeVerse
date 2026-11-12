@@ -1,28 +1,34 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
 :root {
-  /* Cyber Palette tokens per PRD Section 25 */
-  --bg-primary: #0b0f19;
-  --bg-secondary: #111827;
-  --bg-card: #1f2937;
-  --bg-card-hover: #283548;
+  /* CodeVerse Cyber Neon Palette */
+  --bg-primary: #050a0f;
+  --bg-secondary: #0b141d;
+  --bg-card: #08131b;
+  --bg-card-hover: #0e1e2c;
 
-  --accent-cyan: #06b6d4;
-  --accent-blue: #3b82f6;
-  --accent-emerald: #10b981;
-  --accent-red: #ef4444;
+  --accent-cyan: #42e3c6;
+  --accent-teal: #49ebc3;
+  --accent-blue: #38bdf8;
+  --accent-emerald: #34d399;
+  --accent-red: #ff4d6d;
+  --accent-gold: #f2cc66;
+  --accent-purple: #c084fc;
 
-  --text-primary: #f9fafb;
-  --text-secondary: #d1d5db;
-  --text-muted: #9ca3af;
+  --text-primary: #e5f0f2;
+  --text-secondary: #9cb9c0;
+  --text-muted: #648690;
 
-  --border-subtle: rgba(75, 85, 99, 0.4);
-  --border-glow: rgba(6, 182, 212, 0.35);
+  --border-subtle: #1b343e;
+  --border-glow: #244b56;
+  --border-active: #42e3c6;
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
   --radius-sm: 6px;
   --radius-md: 10px;
-  --radius-lg: 16px;
+  --radius-lg: 14px;
 }
 
 *, *::before, *::after {
@@ -40,6 +46,19 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Subtle background vignette */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 85% 0%, rgba(6, 59, 70, 0.18), transparent 65%),
+              linear-gradient(90deg, rgba(5, 10, 15, 0.4), rgba(5, 10, 15, 0.64) 45%, rgba(5, 10, 15, 0.27));
 }
 
 code, pre {
@@ -49,8 +68,78 @@ code, pre {
 a {
   color: var(--accent-cyan);
   text-decoration: none;
+  transition: color 0.15s ease;
 }
 
 a:hover {
-  text-decoration: underline;
+  color: var(--accent-teal);
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* Visible accessible keyboard focus */
+:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-glow);
+}
+
+/* Modal z-index above Blockly */
+.modal-backdrop, [role="dialog"] {
+  z-index: 10000;
+}
+
+/* Keyframes */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .code-flow {
+    opacity: 0.1 !important;
+  }
 }

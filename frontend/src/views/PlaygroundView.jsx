@@ -271,15 +271,22 @@ export function PlaygroundView() {
 
           <div style={{ textAlign: 'right' }}>
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>TOTAL XP</span>
-            <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--accent-emerald)' }}>
+            <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--accent-cyan)' }}>
               {user?.totalXp || 0} XP
             </span>
           </div>
 
           <div style={{ textAlign: 'right' }}>
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>CREDITS</span>
-            <span style={{ fontSize: '1rem', fontWeight: 700, color: '#fbbf24' }}>
+            <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--accent-gold)' }}>
               🪙 {user?.coins || 0}
+            </span>
+          </div>
+
+          <div style={{ textAlign: 'right' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>STREAK</span>
+            <span style={{ fontSize: '1rem', fontWeight: 700, color: '#fb923c' }}>
+              🔥 {user?.streak || 0}
             </span>
           </div>
         </div>

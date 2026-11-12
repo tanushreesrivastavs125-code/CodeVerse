@@ -79,3 +79,41 @@ export function authMiddleware(req, _res, next) {
     );
   }
 }
+
+/**
+ * Optional authentication middleware.
+ * Attaches player identity to req.user if valid credentials (header or cookie) are provided,
+ * but allows unauthenticated visitors to proceed anonymously without 401 error.
+ *
+ * @type {import('express').RequestHandler}
+ */
+export function optionalAuthMiddleware(req, _res, next) {
+  const authHeader = req.headers.authorization;
+  const cookieToken = req.cookies?.[AUTH_COOKIE_NAME];
+
+  let token = null;
+
+  if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+    token = authHeader.slice(7).trim();
+  } else if (cookieToken && typeof cookieToken === 'string' && cookieToken.trim().length > 0) {
+    token = cookieToken.trim();
+  }
+
+  if (token) {
+    try {
+      const decoded = verifyToken(token);
+      if (decoded && decoded.id) {
+        req.user = {
+          id: decoded.id,
+          username: decoded.username,
+          email: decoded.email,
+          role: decoded.role || 'user'
+        };
+      }
+    } catch {
+      // Proceed unauthenticated on invalid/expired tokens in optional mode
+    }
+  }
+
+  next();
+}

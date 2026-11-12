@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+
 /**
  * ResultModal renders victory rewards or failure feedback upon run completion.
  * Shows authoritative stars, earned XP/coins, replay indicators, and next sector navigation.
@@ -8,6 +10,18 @@ export function ResultModal({
   onNextSector,
   hasNextSector = false
 }) {
+  // Listen for Escape key to close modal
+  useEffect(() => {
+    if (!result) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [result, onClose]);
+
   if (!result) return null;
 
   const isVictory = Boolean(result.passed);
@@ -21,13 +35,16 @@ export function ResultModal({
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(7, 15, 24, 0.85)',
-        backdropFilter: 'blur(8px)',
-        zIndex: 2000, // Above Blockly workspace and flyouts
+        backgroundColor: 'rgba(5, 10, 15, 0.88)',
+        backdropFilter: 'blur(10px)',
+        zIndex: 10000, // Above Blockly workspace and flyouts
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '1.5rem'
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
@@ -36,17 +53,36 @@ export function ResultModal({
         style={{
           width: '100%',
           maxWidth: '560px',
-          backgroundColor: '#0c1824',
+          backgroundColor: 'var(--bg-card)',
           borderRadius: 'var(--radius-lg)',
-          border: isVictory ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid rgba(239, 68, 68, 0.5)',
+          border: isVictory ? '1px solid var(--accent-emerald)' : '1px solid var(--accent-red)',
           padding: '2.25rem',
           boxShadow: isVictory
-            ? '0 25px 60px rgba(16, 185, 129, 0.2)'
-            : '0 25px 60px rgba(239, 68, 68, 0.2)',
+            ? '0 25px 60px rgba(52, 211, 153, 0.2)'
+            : '0 25px 60px rgba(255, 77, 109, 0.2)',
           textAlign: 'center',
-          animation: 'scaleIn 0.25s ease-out'
+          animation: 'scaleIn 0.25s ease-out',
+          position: 'relative'
         }}
       >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close result modal"
+          style={{
+            position: 'absolute',
+            top: '1rem',
+            right: '1rem',
+            background: 'none',
+            border: 'none',
+            color: 'var(--text-muted)',
+            fontSize: '1.25rem',
+            cursor: 'pointer',
+            padding: '0.25rem 0.5rem'
+          }}
+        >
+          ✕
+        </button>
         {/* Emblem */}
         <div
           style={{
