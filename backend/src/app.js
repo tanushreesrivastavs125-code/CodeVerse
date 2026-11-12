@@ -5,6 +5,7 @@ import { getDatabaseStatus } from './config/database.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/auth.routes.js';
 import topicRoutes from './routes/topic.routes.js';
+import campaignRoutes from './routes/campaign.routes.js';
 
 const app = express();
 
@@ -39,6 +40,9 @@ app.use('/api/auth', authRoutes);
 
 // Curriculum and Topics routes
 app.use('/api/topics', topicRoutes);
+
+// Game Campaign routes
+app.use('/api/game', campaignRoutes);
 
 // Fallback for unmapped routes
 app.use(notFoundHandler);

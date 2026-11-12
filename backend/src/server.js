@@ -4,6 +4,7 @@ import app from './app.js';
 import { config } from './config/env.js';
 import { connectDatabase, disconnectDatabase, sanitizeErrorMessage } from './config/database.js';
 import { validateJwtConfig } from './config/jwt.js';
+import { ensureCampaignProgressIndexes } from './models/CampaignProgress.js';
 
 let isShuttingDown = false;
 let sigintListener = null;
@@ -133,6 +134,11 @@ export async function startServer(port = config.port, options = {}) {
     try {
       await connectDatabase(config.mongoUri, dbOptions);
       console.log('[Server] MongoDB connected successfully.');
+      try {
+        await ensureCampaignProgressIndexes();
+      } catch (idxErr) {
+        console.warn(`[Server] CampaignProgress index initialization notice: ${sanitizeErrorMessage(idxErr)}`);
+      }
     } catch (err) {
       // Degraded mode rationale:
       // Aligns with Step 0 design where database availability is non-blocking for process boot.
