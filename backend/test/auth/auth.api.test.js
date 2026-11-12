@@ -98,6 +98,12 @@ describe('Authentication API Endpoint Contract (/api/auth)', () => {
       assert.ok(createdDoc.password.startsWith('$2'), 'Stored password must be a bcrypt hash');
       const isHashValid = await bcrypt.compare(rawPassword, createdDoc.password);
       assert.equal(isHashValid, true, 'Stored bcrypt hash must verify against original password');
+
+      // Cookie session verification: verify Set-Cookie header issued
+      const setCookie = response.headers.get('set-cookie');
+      assert.ok(setCookie, 'Registration must issue Set-Cookie header');
+      assert.ok(setCookie.includes('token='), 'Set-Cookie header must include token cookie');
+      assert.ok(setCookie.toLowerCase().includes('httponly'), 'Session cookie must be HttpOnly');
     });
 
     test('returns 400 Bad Request on input validation failure', async () => {
@@ -212,6 +218,12 @@ describe('Authentication API Endpoint Contract (/api/auth)', () => {
       assert.equal(user.password, undefined);
       const rawText = JSON.stringify(body);
       assert.ok(!rawText.includes(passwordHash));
+
+      // Cookie session verification: verify Set-Cookie header issued
+      const setCookie = response.headers.get('set-cookie');
+      assert.ok(setCookie, 'Login must issue Set-Cookie header');
+      assert.ok(setCookie.includes('token='), 'Set-Cookie header must include token cookie');
+      assert.ok(setCookie.toLowerCase().includes('httponly'), 'Session cookie must be HttpOnly');
     });
 
     test('returns generic 401 error for incorrect password without leaking specifics', async () => {
@@ -486,6 +498,206 @@ describe('Authentication API Endpoint Contract (/api/auth)', () => {
       assert.equal(resBadAud.status, 401);
       const bodyBadAud = await resBadAud.json();
       assert.equal(bodyBadAud.error.code, 'INVALID_TOKEN');
+    });
+
+    test('retrieves user profile when authenticated via HTTP-only session cookie', async () => {
+      const dbUser = {
+        _id: '507f1f77bcf86cd799439055',
+        id: '507f1f77bcf86cd799439055',
+        username: 'cookie_operator',
+        email: 'operator@codeverse.io',
+        totalXp: 450,
+        level: 3,
+        role: 'user',
+        toSafeObject() {
+          return {
+            id: this.id,
+            username: this.username,
+            email: this.email,
+            totalXp: this.totalXp,
+            level: this.level,
+            role: this.role,
+            isGuest: false
+          };
+        }
+      };
+
+      mock.method(User, 'findById', () => ({
+        select: async () => dbUser
+      }));
+
+      const cookieJwt = signToken({
+        id: dbUser.id,
+        username: dbUser.username,
+        email: dbUser.email,
+        role: dbUser.role
+      });
+
+      const response = await fetch(`${baseUrl}/api/auth/profile`, {
+        headers: {
+          Cookie: `token=${cookieJwt}`
+        }
+      });
+
+      assert.equal(response.status, 200);
+      const body = await response.json();
+      assert.equal(body.success, true);
+      assert.equal(body.data.id, dbUser.id);
+      assert.equal(body.data.username, 'cookie_operator');
+      assert.equal(body.data.totalXp, 450);
+    });
+
+    test('strict precedence: invalid Authorization header rejects with 401 without cookie fallback', async () => {
+      const validCookieJwt = signToken({
+        id: '507f1f77bcf86cd799439055',
+        username: 'cookie_operator'
+      });
+
+      const response = await fetch(`${baseUrl}/api/auth/profile`, {
+        headers: {
+          Authorization: 'Bearer invalid.header.jwt',
+          Cookie: `token=${validCookieJwt}`
+        }
+      });
+
+      assert.equal(response.status, 401);
+      const body = await response.json();
+      assert.equal(body.success, false);
+      assert.equal(body.error.code, 'INVALID_TOKEN');
+    });
+  });
+
+  describe('POST /api/auth/logout', () => {
+    test('successfully clears the session cookie and returns success response', async () => {
+      const response = await fetch(`${baseUrl}/api/auth/logout`, {
+        method: 'POST'
+      });
+
+      assert.equal(response.status, 200);
+      const body = await response.json();
+      assert.equal(body.success, true);
+      assert.ok(body.data.message.includes('Logged out'));
+
+      const setCookie = response.headers.get('set-cookie');
+      assert.ok(setCookie, 'Logout must issue Set-Cookie header');
+      assert.ok(
+        setCookie.includes('Max-Age=0') || setCookie.includes('token=;') || setCookie.includes('expires='),
+        'Set-Cookie header must invalidate the cookie'
+      );
+    });
+  });
+
+  describe('POST /api/auth/guest', () => {
+    test('creates persistent guest account and sets HTTP-only cookie when unauthenticated', async () => {
+      let createdGuest = null;
+
+      mock.method(User, 'create', async (data) => {
+        createdGuest = {
+          _id: '507f1f77bcf86cd799439088',
+          id: '507f1f77bcf86cd799439088',
+          ...data,
+          totalXp: 0,
+          level: 1,
+          coins: 0,
+          currentStreak: 0,
+          createdAt: new Date(),
+          toSafeObject() {
+            return {
+              id: this.id,
+              username: this.username,
+              email: this.email,
+              totalXp: this.totalXp,
+              level: this.level,
+              coins: this.coins,
+              currentStreak: this.currentStreak,
+              role: this.role,
+              isGuest: true
+            };
+          }
+        };
+        return createdGuest;
+      });
+
+      const response = await fetch(`${baseUrl}/api/auth/guest`, {
+        method: 'POST'
+      });
+
+      assert.equal(response.status, 201);
+      const body = await response.json();
+      assert.equal(body.success, true);
+      assert.ok(body.data.token, 'Must return signed token');
+      assert.equal(body.data.isExisting, false);
+      assert.equal(body.data.user.role, 'guest');
+      assert.equal(body.data.user.isGuest, true);
+      assert.ok(body.data.user.username.startsWith('Guest_'));
+
+      const setCookie = response.headers.get('set-cookie');
+      assert.ok(setCookie, 'Guest registration must issue Set-Cookie header');
+      assert.ok(setCookie.includes('token='), 'Set-Cookie header must contain token');
+      assert.ok(setCookie.toLowerCase().includes('httponly'), 'Guest cookie must be HttpOnly');
+    });
+
+    test('reuses existing session when valid token cookie is provided', async () => {
+      const existingUser = {
+        _id: '507f1f77bcf86cd799439099',
+        id: '507f1f77bcf86cd799439099',
+        username: 'Guest_reused_unit',
+        email: 'guest_reused@guest.codeverse.io',
+        role: 'guest',
+        totalXp: 100,
+        level: 1,
+        coins: 25,
+        toSafeObject() {
+          return {
+            id: this.id,
+            username: this.username,
+            email: this.email,
+            role: this.role,
+            totalXp: this.totalXp,
+            level: this.level,
+            coins: this.coins,
+            isGuest: true
+          };
+        }
+      };
+
+      mock.method(User, 'findById', async () => existingUser);
+
+      const existingJwt = signToken({
+        id: existingUser.id,
+        username: existingUser.username,
+        role: existingUser.role
+      });
+
+      const response = await fetch(`${baseUrl}/api/auth/guest`, {
+        method: 'POST',
+        headers: {
+          Cookie: `token=${existingJwt}`
+        }
+      });
+
+      assert.equal(response.status, 200);
+      const body = await response.json();
+      assert.equal(body.success, true);
+      assert.equal(body.data.isExisting, true);
+      assert.equal(body.data.user.id, existingUser.id);
+      assert.equal(body.data.user.username, 'Guest_reused_unit');
+      assert.equal(body.data.user.totalXp, 100);
+    });
+
+    test('strictly rejects client-supplied forbidden fields with 400 Bad Request', async () => {
+      for (const forbiddenKey of ['role', 'totalXp', 'coins', 'level', 'xp']) {
+        const response = await fetch(`${baseUrl}/api/auth/guest`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [forbiddenKey]: 9999 })
+        });
+
+        assert.equal(response.status, 400, `Key ${forbiddenKey} must be rejected`);
+        const body = await response.json();
+        assert.equal(body.success, false);
+        assert.equal(body.error.code, 'VALIDATION_ERROR');
+      }
     });
   });
 });

@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
 import { signToken } from '../config/jwt.js';
@@ -153,5 +154,59 @@ export async function getProfile(userId) {
     role: user.role || 'user',
     createdAt: user.createdAt,
     updatedAt: user.updatedAt
+  };
+}
+
+/**
+ * Creates a real persistent guest account in MongoDB or resumes an existing valid session.
+ *
+ * @param {string | null} [existingUserId] - Existing user ID if caller already has a valid session
+ * @returns {Promise<{ token: string, user: object, isExisting: boolean }>}
+ */
+export async function createOrResumeGuest(existingUserId = null) {
+  if (existingUserId) {
+    const existingUser = await User.findById(existingUserId);
+    if (existingUser) {
+      const token = signToken({
+        id: existingUser._id ? existingUser._id.toString() : existingUser.id,
+        username: existingUser.username,
+        email: existingUser.email,
+        role: existingUser.role || 'guest'
+      });
+
+      return {
+        token,
+        user: typeof existingUser.toSafeObject === 'function' ? existingUser.toSafeObject() : existingUser,
+        isExisting: true
+      };
+    }
+  }
+
+  // Generate unique server-side guest identity (alphanumeric, max 30 chars)
+  const suffix = crypto.randomBytes(3).toString('hex');
+  const nowTs = Date.now().toString(36);
+  const username = `Guest_${suffix}_${nowTs}`.slice(0, 28);
+  const email = `guest_${suffix}_${nowTs}@guest.codeverse.io`;
+  const rawPassword = crypto.randomBytes(32).toString('hex');
+  const passwordHash = await bcrypt.hash(rawPassword, BCRYPT_SALT_ROUNDS);
+
+  const guestUser = await User.create({
+    username,
+    email,
+    password: passwordHash,
+    role: 'guest'
+  });
+
+  const token = signToken({
+    id: guestUser._id ? guestUser._id.toString() : guestUser.id,
+    username: guestUser.username,
+    email: guestUser.email,
+    role: 'guest'
+  });
+
+  return {
+    token,
+    user: typeof guestUser.toSafeObject === 'function' ? guestUser.toSafeObject() : guestUser,
+    isExisting: false
   };
 }
