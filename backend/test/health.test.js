@@ -41,6 +41,7 @@ describe('Health Endpoint Contract & Observability', () => {
       assert.equal(body.status, 'ok');
       assert.equal(body.service, 'CodeVerse API Gateway');
       assert.equal(body.database, 'disconnected');
+      assert.equal(body.transactions, false);
       assert.ok(typeof body.uptime === 'number');
       assert.ok(body.timestamp);
     } finally {
@@ -59,8 +60,38 @@ describe('Health Endpoint Contract & Observability', () => {
       const body = await response.json();
       assert.equal(body.status, 'ok');
       assert.equal(body.database, 'connected');
+      assert.equal(body.transactions, false);
     } finally {
       Object.defineProperty(mongoose.connection, 'readyState', { value: originalReadyState, configurable: true });
+    }
+  });
+
+  test('GET /api/health reports transactions true when replica set is connected', async () => {
+    const originalReadyState = mongoose.connection.readyState;
+    const originalClient = mongoose.connection.client;
+    try {
+      Object.defineProperty(mongoose.connection, 'readyState', { value: 1, configurable: true });
+      Object.defineProperty(mongoose.connection, 'client', {
+        value: {
+          topology: {
+            description: {
+              type: 'ReplicaSetWithPrimary'
+            }
+          }
+        },
+        configurable: true
+      });
+
+      const response = await fetch(`${baseUrl}/api/health`);
+      assert.equal(response.status, 200);
+
+      const body = await response.json();
+      assert.equal(body.status, 'ok');
+      assert.equal(body.database, 'connected');
+      assert.equal(body.transactions, true);
+    } finally {
+      Object.defineProperty(mongoose.connection, 'readyState', { value: originalReadyState, configurable: true });
+      Object.defineProperty(mongoose.connection, 'client', { value: originalClient, configurable: true });
     }
   });
 
