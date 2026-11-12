@@ -14,6 +14,7 @@ import {
 } from '../../src/services/campaignService.js';
 import { canUseTransactions, withTransaction } from '../../src/services/rewardService.js';
 import { validateRunPayload } from '../../src/validators/campaign.validator.js';
+import { levels } from '../../../shared/game.js';
 
 /**
  * Validates that an integration test connection string strictly targets a dedicated
@@ -541,6 +542,223 @@ describe('Real MongoDB Replica Set Integration Verification', () => {
       });
 
       assert.equal(result, null, 'Must return null when winning record does not exist');
+    });
+  });
+
+  describe('24-Sector End-to-End Campaign Progression & Expansion Compatibility', () => {
+    const move = { type: 'move' };
+    const collect = { type: 'collect' };
+    const right = { type: 'right' };
+    const left = { type: 'left' };
+    const jump = { type: 'jump' };
+    const activate = { type: 'activate' };
+    const pulse = { type: 'pulse' };
+    const repeat = (count, ...body) => ({ type: 'repeat', count, body });
+
+    const solutions1to12 = [
+      [repeat(3, move)],
+      [move, collect, move, move, collect, move],
+      [move, move, right, move, collect, move],
+      [repeat(4, move, collect), move, move],
+      [move, jump, move, collect, move],
+      [move, activate, repeat(4, move), collect, move],
+      [repeat(8, move, { type: 'if', sensor: 'energy', body: [collect] })],
+      [repeat(4, move), right, move, move, right, move, move, collect, move],
+      [move, activate, repeat(3, move), jump, collect, move],
+      [repeat(8, { type: 'if', sensor: 'wall', body: [right], elseBody: [move] }, { type: 'if', sensor: 'energy', body: [collect] })],
+      [move, collect, move, repeat(3, pulse), repeat(3, move)],
+      [move, collect, move, activate, repeat(3, move), jump, collect, move, repeat(3, pulse), move, move]
+    ];
+
+    function solveLevel(level) {
+      if (level.id <= 12) {
+        return solutions1to12[level.id - 1];
+      }
+
+      const cells = [];
+      level.map.forEach((row, y) => [...row].forEach((tile, x) => {
+        if (tile !== '#') cells.push({ x, y, tile });
+      }));
+
+      const start = cells.find((p) => p.tile === 'S');
+      const path = [start];
+      let prev;
+      while (path.at(-1).tile !== 'G') {
+        const current = path.at(-1);
+        const next = cells.find((p) => p !== prev && Math.abs(p.x - current.x) + Math.abs(p.y - current.y) === 1);
+        assert.ok(next, `Path should be continuous in level ${level.id}`);
+        prev = current;
+        path.push(next);
+      }
+
+      let dir = 0;
+      let idx = 0;
+      const commands = [];
+
+      while (idx < path.length) {
+        const here = path[idx];
+        if (here.tile === 'C') {
+          commands.push(level.requireSensors ? { type: 'if', sensor: 'energy', body: [collect] } : collect);
+        }
+        if (here.tile === 'T') {
+          commands.push(activate);
+        }
+        if (idx === path.length - 1) break;
+
+        const next = path[idx + 1];
+        const wanted = next.x > here.x ? 0 : next.y > here.y ? 1 : next.x < here.x ? 2 : 3;
+        const turn = (wanted - dir + 4) % 4;
+
+        if (turn === 3) commands.push(left);
+        else for (let i = 0; i < turn; i++) commands.push(right);
+        dir = wanted;
+
+        if (next.tile === 'H') {
+          commands.push(jump);
+          idx += 2;
+        } else {
+          if (next.tile === 'X') {
+            commands.push(...Array(level.bossHealth || 3).fill(pulse));
+          }
+          commands.push(move);
+          idx++;
+        }
+      }
+
+      const compact = [];
+      for (let i = 0; i < commands.length;) {
+        let end = i + 1;
+        while (end < commands.length && JSON.stringify(commands[end]) === JSON.stringify(commands[i])) end++;
+        const count = end - i;
+        compact.push(count > 1 ? repeat(count, commands[i]) : commands[i]);
+        i = end;
+      }
+
+      return compact.some((n) => n.type === 'repeat') ? compact : [repeat(1, ...compact)];
+    }
+
+    test('an existing player with completed early levels retains progress, stars, and balances after 24-level expansion', async () => {
+      // Simulate historical player who completed sectors 1..3 before Stage 5 expansion
+      const historicalPlayer = await User.create({
+        username: `HistoricalPilot_${Date.now()}`,
+        email: `pilot_${Date.now()}@codeverse.io`,
+        password: 'Password123!',
+        totalXp: 300,
+        coins: 75,
+        level: 2,
+        currentStreak: 3,
+        role: 'user'
+      });
+      testUsersToCleanup.add(historicalPlayer.id);
+
+      for (let lvl = 1; lvl <= 3; lvl++) {
+        await CampaignProgress.create({
+          user: historicalPlayer.id,
+          levelId: lvl,
+          campaignVersion: CAMPAIGN_VERSION,
+          stars: 3,
+          attempts: 1,
+          xpAwarded: 100,
+          coinsAwarded: 25,
+          rewardClaimed: true
+        });
+      }
+
+      const campaignView = await getCampaignLevels(historicalPlayer.id);
+      assert.equal(campaignView.length, 24, 'All 24 sectors should be visible');
+
+      // Sectors 1-3 should remain completed with 3 stars
+      for (let i = 0; i < 3; i++) {
+        assert.equal(campaignView[i].completed, true);
+        assert.equal(campaignView[i].stars, 3);
+        assert.equal(campaignView[i].unlocked, true);
+      }
+
+      // Sector 4 should be unlocked next
+      assert.equal(campaignView[3].unlocked, true);
+      assert.equal(campaignView[3].completed, false);
+
+      // Sectors 5-24 must remain locked
+      for (let i = 4; i < 24; i++) {
+        assert.equal(campaignView[i].unlocked, false, `Sector ${campaignView[i].id} should be locked`);
+      }
+
+      // User XP and coin balances remain completely intact
+      const refreshed = await User.findById(historicalPlayer.id);
+      assert.equal(refreshed.totalXp, 300);
+      assert.equal(refreshed.coins, 75);
+    });
+
+    test('fresh pilot progresses sequentially through all 24 levels in real MongoDB replica set', async () => {
+      const pilot = await User.create({
+        username: `GrandMasterPilot_${Date.now()}`,
+        email: `grandmaster_${Date.now()}@codeverse.io`,
+        password: 'Password123!',
+        totalXp: 0,
+        coins: 0,
+        level: 1,
+        currentStreak: 0,
+        role: 'user'
+      });
+      testUsersToCleanup.add(pilot.id);
+
+      // Verify level 2 is initially locked
+      const initialLevels = await getCampaignLevels(pilot.id);
+      assert.equal(initialLevels[0].unlocked, true);
+      assert.equal(initialLevels[1].unlocked, false);
+
+      // Execute each level sequentially 1 to 24
+      for (let i = 0; i < 24; i++) {
+        const lvl = levels[i];
+        const program = solveLevel(lvl);
+
+        const outcome = await runCampaignLevel({
+          userId: pilot.id,
+          levelId: lvl.id,
+          program
+        });
+
+        assert.equal(outcome.passed, true, `Level ${lvl.id} failed`);
+        assert.equal(outcome.earned.xp, 100, `Level ${lvl.id} did not award 100 XP`);
+        assert.equal(outcome.earned.coins, 25, `Level ${lvl.id} did not award 25 coins`);
+        assert.ok(outcome.stars >= 1, `Level ${lvl.id} had 0 stars`);
+
+        if (lvl.id < 24) {
+          assert.equal(outcome.unlockedNext, true, `Level ${lvl.id} should unlock next level`);
+        } else {
+          // Final level must NOT report that a nonexistent next level was unlocked
+          assert.equal(outcome.unlockedNext, false, 'Final level 24 must report unlockedNext: false');
+        }
+      }
+
+      // Verify cumulative progression in real MongoDB
+      const finalUser = await User.findById(pilot.id);
+      assert.equal(finalUser.totalXp, 2400, '24 levels * 100 XP = 2400 XP');
+      assert.equal(finalUser.coins, 600, '24 levels * 25 coins = 600 coins');
+
+      const allProgress = await CampaignProgress.find({ user: pilot.id });
+      assert.equal(allProgress.length, 24, '24 CampaignProgress documents should exist');
+
+      // Verify replay protection on level 1 and level 24
+      const replayLvl1 = await runCampaignLevel({
+        userId: pilot.id,
+        levelId: 1,
+        program: solveLevel(levels[0])
+      });
+      assert.equal(replayLvl1.earned.xp, 0);
+      assert.equal(replayLvl1.earned.coins, 0);
+
+      const replayLvl24 = await runCampaignLevel({
+        userId: pilot.id,
+        levelId: 24,
+        program: solveLevel(levels[23])
+      });
+      assert.equal(replayLvl24.earned.xp, 0);
+      assert.equal(replayLvl24.earned.coins, 0);
+
+      const postReplayUser = await User.findById(pilot.id);
+      assert.equal(postReplayUser.totalXp, 2400);
+      assert.equal(postReplayUser.coins, 600);
     });
   });
 });

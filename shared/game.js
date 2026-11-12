@@ -35,7 +35,126 @@ export const createLevel = (
   ...extra
 });
 
-// Initial baseline campaign sectors for Stage 1
+// Districts taxonomy for campaign grouping
+export const DISTRICTS = [
+  { id: 1, name: 'Neon Outskirts', sectors: [1, 2, 3, 4], focus: 'Sequences, collection, turns & loops' },
+  { id: 2, name: 'Cipher District', sectors: [5, 6, 7, 8], focus: 'Jumps, terminals, bridges & conditions' },
+  { id: 3, name: 'Firewall Core', sectors: [9, 10, 11, 12], focus: 'Sensors, combined mechanics & guardian combat' },
+  { id: 4, name: 'Shadow Network', sectors: [13, 14, 15, 16], focus: 'Longer routes, multiple objectives & advanced loops' },
+  { id: 5, name: 'Quantum Grid', sectors: [17, 18, 19, 20], focus: 'Adaptive programs, sensor decisions & tight efficiency' },
+  { id: 6, name: 'Singularity', sectors: [21, 22, 23, 24], focus: 'Expert combinations, demanding routes & final 8-point guardian' }
+];
+
+function generateAdvancedLevels() {
+  const designs = [
+    ['Relay Ascent', 'Shadow Network', 3, 9, 3, 0, false, 0],
+    ['Corrupted Relay', 'Shadow Network', 3, 10, 4, 1, false, 0],
+    ['Bridge Labyrinth', 'Shadow Network', 3, 10, 4, 2, true, 0],
+    ['Shadow Sentinel', 'Shadow Network', 3, 11, 5, 2, true, 4],
+    ['Sensor Sweep', 'Quantum Grid', 4, 11, 5, 3, true, 4],
+    ['Fractured Lanes', 'Quantum Grid', 4, 11, 6, 4, true, 4],
+    ['Quantum Lock', 'Quantum Grid', 4, 11, 7, 5, true, 5],
+    ['Grid Overload', 'Quantum Grid', 4, 11, 8, 6, true, 5],
+    ['Deep Core Descent', 'Singularity', 5, 11, 8, 6, true, 6],
+    ['Blackout Protocol', 'Singularity', 5, 11, 9, 7, true, 6],
+    ['Last Transmission', 'Singularity', 5, 11, 10, 8, true, 7],
+    ['The Singularity', 'Singularity', 5, 11, 12, 9, true, 8]
+  ];
+
+  return designs.map(([title, zone, lanes, width, crystals, hazards, bridges, bossHealth], index) => {
+    const id = index + 13;
+    const height = lanes * 2 + 1;
+    const grid = Array.from({ length: height }, () => Array(width).fill('#'));
+    const path = [];
+
+    for (let lane = 0; lane < lanes; lane++) {
+      const y = lane * 2 + 1;
+      const xs = Array.from({ length: width - 2 }, (_, i) => (lane % 2 ? width - 2 - i : i + 1));
+      for (const x of xs) {
+        grid[y][x] = '.';
+        path.push({ x, y });
+      }
+      if (lane < lanes - 1) {
+        const x = xs.at(-1);
+        grid[y + 1][x] = '.';
+        path.push({ x, y: y + 1 });
+      }
+    }
+
+    const place = (i, tile) => {
+      const p = path[i];
+      grid[p.y][p.x] = tile;
+    };
+
+    place(0, 'S');
+    place(path.length - 1, 'G');
+
+    if (bridges) {
+      place(1, 'T');
+      place(2, 'B');
+      place(3, 'B');
+    }
+
+    if (bossHealth) {
+      place(path.length - 3, 'X');
+    }
+
+    const eligible = path
+      .map((p, i) => ({ p, i }))
+      .filter(
+        ({ p, i }) =>
+          i > 4 &&
+          i < path.length - 4 &&
+          grid[p.y][p.x] === '.' &&
+          path[i - 1].y === p.y &&
+          path[i + 1].y === p.y
+      );
+
+    const hazardIndices = [];
+    for (const { i } of eligible) {
+      if (hazardIndices.length === hazards) break;
+      if (hazardIndices.every((h) => Math.abs(h - i) > 1)) {
+        place(i, 'H');
+        hazardIndices.push(i);
+      }
+    }
+
+    const available = path
+      .map((p, i) => ({ p, i }))
+      .filter(({ p, i }) => i > 0 && i < path.length - 1 && grid[p.y][p.x] === '.');
+
+    for (let i = 0; i < crystals; i++) {
+      place(available[Math.floor((i * available.length) / crystals)].i, 'C');
+    }
+
+    const turns = (lanes - 1) * 2;
+    const par = path.length - 1 - hazards + turns + crystals + (bridges ? 1 : 0) + bossHealth;
+    const maxActions = par + Math.max(1, 13 - index);
+    const maxBlocks = par + 12 - index;
+
+    return createLevel(
+      id,
+      title,
+      zone,
+      id >= 17 ? 'Adaptive programs' : 'Advanced loops',
+      `Recover ${crystals} shards across ${lanes} lanes${hazards ? `, jump ${hazards} corruption tiles` : ''}${bridges ? ', restore the bridges' : ''}${bossHealth ? `, and break a ${bossHealth}-point guardian shield` : ''}. Use loops${id >= 17 ? ' and a sensor condition' : ''} to extract within the program limits.`,
+      'Plan each lane before launching. Alternate right and left turns at the ends, jump red tiles, and collect before leaving a shard. A repeat block saves program space; sensors can check energy before collecting.',
+      grid.map((row) => row.join('')),
+      0,
+      par,
+      {
+        bossHealth,
+        maxActions,
+        maxBlocks,
+        requireLoops: true,
+        requireSensors: id >= 17,
+        difficulty: id
+      }
+    );
+  });
+}
+
+// Canonical campaign sectors (24 progressively challenging missions across six districts)
 export const levels = [
   createLevel(
     1,
@@ -46,7 +165,8 @@ export const levels = [
     'Three forward moves reach the portal.',
     ['#######', '#S..G##', '#######'],
     0,
-    3
+    3,
+    { difficulty: 1 }
   ),
   createLevel(
     2,
@@ -57,7 +177,8 @@ export const levels = [
     'Move onto a shard and use collect before moving on.',
     ['########', '#SC.CG##', '########'],
     0,
-    6
+    6,
+    { difficulty: 2 }
   ),
   createLevel(
     3,
@@ -68,8 +189,118 @@ export const levels = [
     'Turn right to face south. Turning does not change your tile.',
     ['#######', '#S..###', '###C###', '###G###', '#######'],
     0,
-    6
-  )
+    6,
+    { difficulty: 3 }
+  ),
+  createLevel(
+    4,
+    'Loop Runner',
+    'Neon Outskirts',
+    'Loops',
+    'Cross the long corridor with a compact program.',
+    'A repeat block can hold both move and collect.',
+    ['##########', '#SCCCC.G##', '##########'],
+    0,
+    11,
+    { difficulty: 4 }
+  ),
+  createLevel(
+    5,
+    'Broken Circuit',
+    'Cipher District',
+    'Jump',
+    'Jump across the corrupted tile. Recover the energy before exiting.',
+    'Jump travels two tiles in your current direction.',
+    ['########', '#S.H.CG#', '########'],
+    0,
+    5,
+    { difficulty: 5 }
+  ),
+  createLevel(
+    6,
+    'Switch Protocol',
+    'Cipher District',
+    'State',
+    'Activate the terminal to extend the bridge, then escape.',
+    'Stand on the terminal and activate it before crossing B.',
+    ['#########', '#STBB.CG#', '#########'],
+    0,
+    8,
+    { difficulty: 6 }
+  ),
+  createLevel(
+    7,
+    'Signal Scanner',
+    'Cipher District',
+    'Conditions',
+    'Recover the scattered shards along the corridor.',
+    'Repeat: move, then if standing on energy, collect.',
+    ['###########', '#S.C.C..CG#', '###########'],
+    0,
+    11,
+    { difficulty: 7 }
+  ),
+  createLevel(
+    8,
+    'The Spiral',
+    'Cipher District',
+    'Nested logic',
+    'Follow the path around the void. Collect the shard inside.',
+    'Move east, turn south, then turn west on the lower path.',
+    ['#########', '#S....###', '#####.###', '##GC..###', '#########'],
+    0,
+    12,
+    { difficulty: 8 }
+  ),
+  createLevel(
+    9,
+    'Double Breach',
+    'Firewall Core',
+    'Jump + state',
+    'Power the bridge, jump the hazard and claim the shard.',
+    'Activate the terminal, cross the bridge, and jump over the hazard.',
+    ['###########', '#STBB.HCG##', '###########'],
+    0,
+    9,
+    { difficulty: 9 }
+  ),
+  createLevel(
+    10,
+    'Dead End Decoder',
+    'Firewall Core',
+    'Sensors',
+    'Follow the bent passage to extraction.',
+    'Repeat: if a wall is ahead, turn right; otherwise move. Collect when standing on energy.',
+    ['#########', '#S...####', '####.####', '####C####', '####G####', '#########'],
+    0,
+    9,
+    { difficulty: 10 }
+  ),
+  createLevel(
+    11,
+    'Firewall Guardian',
+    'Firewall Core',
+    'Boss battle',
+    'Collect the charge. Face the guardian and fire three pulses to break its shield.',
+    'Pulse works within three tiles in the direction you face. Defeat the guardian before crossing its tile.',
+    ['#########', '#SC.X.G##', '#########'],
+    0,
+    10,
+    { bossHealth: 3, difficulty: 11 }
+  ),
+  createLevel(
+    12,
+    'Zero Day Escape',
+    'Firewall Core',
+    'Final mission',
+    'Recover every shard, extend the bridge, cross the breach, and destroy the core.',
+    'First move onto the terminal and activate. Jump the hazard, collect the second shard, then pulse the core three times.',
+    ['#############', '#SCTBB.HC.XG#', '#############'],
+    0,
+    16,
+    { bossHealth: 3, difficulty: 12 }
+  ),
+  ...generateAdvancedLevels()
 ];
 
 // Heading vectors: 0: East, 1: South, 2: West, 3: North
@@ -223,6 +454,8 @@ export function simulate(level, program) {
   let state = initialState(level);
   let ticks = 0;
   let stopped = false;
+  let executedLoops = 0;
+  let executedSensors = 0;
   const frames = [{ ...state, collected: [...state.collected] }];
   const totalEnergy = level.map.join('').split('C').length - 1;
 
@@ -280,6 +513,7 @@ export function simulate(level, program) {
       if (++ticks > 300) throw new Error('Program exceeds the 300-instruction limit.');
 
       if (node.type === 'repeat') {
+        executedLoops++;
         for (let i = 0; i < node.count; i++) {
           if (stopped) break;
           run(node.body, depth + 1);
@@ -288,6 +522,7 @@ export function simulate(level, program) {
       }
 
       if (node.type === 'if') {
+        executedSensors++;
         const condition = sensor(node.sensor);
         if (condition) {
           run(node.body, depth + 1);
@@ -389,10 +624,10 @@ export function simulate(level, program) {
 
   const programBlocks = countBlocks(program);
   const constraintMessage =
-    level.requireLoops && !hasCommand('repeat')
-      ? 'This sector requires a repeat block.'
-      : level.requireSensors && !hasCommand('if')
-      ? 'This sector requires a sensor condition.'
+    level.requireLoops && (!hasCommand('repeat') || executedLoops === 0)
+      ? 'This sector requires an executed repeat block.'
+      : level.requireSensors && (!hasCommand('if') || executedSensors === 0)
+      ? 'This sector requires an evaluated sensor condition.'
       : level.maxBlocks && programBlocks > level.maxBlocks
       ? `Program too large: ${programBlocks}/${level.maxBlocks} blocks. Use loops to reduce repetition.`
       : level.maxActions && state.steps > level.maxActions

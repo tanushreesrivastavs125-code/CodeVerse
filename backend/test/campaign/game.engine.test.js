@@ -21,7 +21,7 @@ const repeat = (count, ...body) => ({ type: 'repeat', count, body });
 const ifSensor = (sensor, body, elseBody = []) => ({ type: 'if', sensor, body, elseBody });
 
 test('Level definitions and initial world state', () => {
-  assert.equal(levels.length, 3);
+  assert.equal(levels.length, 24);
   assert.equal(directions.length, 4);
   assert.deepEqual(directions[0], { x: 1, y: 0 }); // East
   assert.deepEqual(directions[1], { x: 0, y: 1 }); // South
@@ -366,4 +366,181 @@ test('Determinism: identical inputs yield identical frame snapshots', () => {
   // Frame 3: extraction reached at (4,1)
   assert.equal(run1.frames[3].event, 'move');
   assert.equal(run1.frames[3].x, 4);
+});
+
+test('24-level campaign structural integrity and district distribution', () => {
+  assert.equal(levels.length, 24);
+
+  // Verify unique IDs 1..24
+  const ids = levels.map((l) => l.id);
+  assert.deepEqual(ids, Array.from({ length: 24 }, (_, i) => i + 1));
+
+  // Verify map invariants: exactly one 'S', exactly one 'G', valid par
+  for (const lvl of levels) {
+    const flattened = lvl.map.join('');
+    const sCount = (flattened.match(/S/g) || []).length;
+    const gCount = (flattened.match(/G/g) || []).length;
+    assert.equal(sCount, 1, `Level ${lvl.id} must have exactly one spawn tile`);
+    assert.equal(gCount, 1, `Level ${lvl.id} must have exactly one extraction goal`);
+    assert.ok(lvl.par >= 1, `Level ${lvl.id} must have par >= 1`);
+  }
+
+  // Verify districts taxonomy (4 levels per district across 6 districts)
+  const districts = [
+    { name: 'Neon Outskirts', slice: [0, 4] },
+    { name: 'Cipher District', slice: [4, 8] },
+    { name: 'Firewall Core', slice: [8, 12] },
+    { name: 'Shadow Network', slice: [12, 16] },
+    { name: 'Quantum Grid', slice: [16, 20] },
+    { name: 'Singularity', slice: [20, 24] }
+  ];
+
+  for (const d of districts) {
+    const districtLevels = levels.slice(d.slice[0], d.slice[1]);
+    assert.equal(districtLevels.length, 4);
+    for (const lvl of districtLevels) {
+      assert.equal(lvl.zone, d.name);
+    }
+  }
+
+  // Verify guardian boss health progression
+  assert.equal(levels[10].bossHealth, 3); // Level 11
+  assert.equal(levels[11].bossHealth, 3); // Level 12
+  assert.equal(levels[15].bossHealth, 4); // Level 16
+  assert.equal(levels[16].bossHealth, 4); // Level 17
+  assert.equal(levels[17].bossHealth, 4); // Level 18
+  assert.equal(levels[18].bossHealth, 5); // Level 19
+  assert.equal(levels[19].bossHealth, 5); // Level 20
+  assert.equal(levels[20].bossHealth, 6); // Level 21
+  assert.equal(levels[21].bossHealth, 6); // Level 22
+  assert.equal(levels[22].bossHealth, 7); // Level 23
+  assert.equal(levels[23].bossHealth, 8); // Level 24 (Final Boss)
+});
+
+test('Advanced sector requirements and dead branch execution guards', () => {
+  // Levels 13-24 require loops
+  for (let i = 12; i < 24; i++) {
+    assert.equal(levels[i].requireLoops, true, `Level ${levels[i].id} must require loops`);
+  }
+
+  // Levels 17-24 require sensors
+  for (let i = 16; i < 24; i++) {
+    assert.equal(levels[i].requireSensors, true, `Level ${levels[i].id} must require sensors`);
+  }
+
+  // An unexecuted repeat block hidden inside an unexecuted if-branch must not satisfy requireLoops
+  const lvl13 = levels[12];
+  const deadLoopProg = [
+    m,
+    ifSensor('wall', [repeat(2, m)]) // wall is false at (1,1) facing east
+  ];
+  const deadLoopRes = simulate(lvl13, deadLoopProg);
+  assert.equal(deadLoopRes.passed, false);
+  assert.match(deadLoopRes.message, /requires an executed repeat block/);
+
+  // A program without sensor conditions must fail requireSensors
+  const lvl17 = levels[16];
+  const noSensorProg = [
+    repeat(1, m)
+  ];
+  const noSensorRes = simulate(lvl17, noSensorProg);
+  assert.equal(noSensorRes.passed, false);
+  assert.match(noSensorRes.message, /requires an evaluated sensor condition/);
+});
+
+test('Playable solutions for all 24 campaign levels', () => {
+  const solutions1to12 = [
+    [repeat(3, m)],
+    [m, c, m, m, c, m],
+    [m, m, r, m, c, m],
+    [repeat(4, m, c), m, m],
+    [m, j, m, c, m],
+    [m, a, repeat(4, m), c, m],
+    [repeat(8, m, ifSensor('energy', [c]))],
+    [repeat(4, m), r, m, m, r, m, m, c, m],
+    [m, a, repeat(3, m), j, c, m],
+    [repeat(8, ifSensor('wall', [r], [m]), ifSensor('energy', [c]))],
+    [m, c, m, repeat(3, p), repeat(3, m)],
+    [m, c, m, a, repeat(3, m), j, c, m, repeat(3, p), m, m]
+  ];
+
+  function advancedSolver(level) {
+    const cells = [];
+    level.map.forEach((row, y) => [...row].forEach((tile, x) => {
+      if (tile !== '#') cells.push({ x, y, tile });
+    }));
+
+    const start = cells.find(point => point.tile === 'S');
+    const path = [start];
+    let prev;
+    while (path.at(-1).tile !== 'G') {
+      const current = path.at(-1);
+      const next = cells.find(point => point !== prev && Math.abs(point.x - current.x) + Math.abs(point.y - current.y) === 1);
+      assert.ok(next, `Path should be continuous in level ${level.id}`);
+      prev = current;
+      path.push(next);
+    }
+
+    let dir = 0;
+    let idx = 0;
+    const commands = [];
+
+    while (idx < path.length) {
+      const here = path[idx];
+      if (here.tile === 'C') {
+        commands.push(level.requireSensors ? ifSensor('energy', [c]) : c);
+      }
+      if (here.tile === 'T') {
+        commands.push(a);
+      }
+      if (idx === path.length - 1) break;
+
+      const next = path[idx + 1];
+      const wanted = next.x > here.x ? 0 : next.y > here.y ? 1 : next.x < here.x ? 2 : 3;
+      const turn = (wanted - dir + 4) % 4;
+
+      if (turn === 3) commands.push(l);
+      else for (let i = 0; i < turn; i++) commands.push(r);
+      dir = wanted;
+
+      if (next.tile === 'H') {
+        commands.push(j);
+        idx += 2;
+      } else {
+        if (next.tile === 'X') {
+          commands.push(...Array(level.bossHealth || 3).fill(p));
+        }
+        commands.push(m);
+        idx++;
+      }
+    }
+
+    const compact = [];
+    for (let i = 0; i < commands.length;) {
+      let end = i + 1;
+      while (end < commands.length && JSON.stringify(commands[end]) === JSON.stringify(commands[i])) end++;
+      const count = end - i;
+      compact.push(count > 1 ? repeat(count, commands[i]) : commands[i]);
+      i = end;
+    }
+
+    return compact.some(node => node.type === 'repeat') ? compact : [repeat(1, ...compact)];
+  }
+
+  for (let i = 0; i < 24; i++) {
+    const lvl = levels[i];
+    const prog = i < 12 ? solutions1to12[i] : advancedSolver(lvl);
+    const result = simulate(lvl, prog);
+
+    assert.equal(result.passed, true, `Level ${lvl.id} (${lvl.title}) failed: ${result.message}`);
+    assert.ok(result.stars >= 1, `Level ${lvl.id} earned 0 stars`);
+    assert.equal(result.state.collected.length, result.totalEnergy, `Level ${lvl.id} missed energy shards`);
+
+    if (lvl.maxActions) {
+      assert.ok(result.state.steps <= lvl.maxActions, `Level ${lvl.id} exceeded maxActions budget`);
+    }
+    if (lvl.maxBlocks) {
+      assert.ok(result.programBlocks <= lvl.maxBlocks, `Level ${lvl.id} exceeded maxBlocks budget`);
+    }
+  }
 });

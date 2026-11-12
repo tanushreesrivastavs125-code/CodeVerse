@@ -103,7 +103,7 @@ describe('Campaign & Game API Contracts (/api/game)', () => {
       const body = await response.json();
       assert.equal(body.success, true);
       assert.equal(Array.isArray(body.data), true);
-      assert.equal(body.data.length, 3);
+      assert.equal(body.data.length, 24);
 
       // Level 1 starts unlocked
       const l1 = body.data[0];
@@ -111,10 +111,17 @@ describe('Campaign & Game API Contracts (/api/game)', () => {
       assert.equal(l1.unlocked, true);
       assert.equal(l1.completed, false);
       assert.equal(l1.stars, 0);
+      assert.ok('difficulty' in l1);
+      assert.ok('bossHealth' in l1);
+      assert.ok('maxBlocks' in l1);
+      assert.ok('maxActions' in l1);
+      assert.ok('requireLoops' in l1);
+      assert.ok('requireSensors' in l1);
 
-      // Levels 2 & 3 start locked
-      assert.equal(body.data[1].unlocked, false);
-      assert.equal(body.data[2].unlocked, false);
+      // Levels 2 through 24 start locked
+      for (let i = 1; i < 24; i++) {
+        assert.equal(body.data[i].unlocked, false, `Level ${body.data[i].id} should start locked`);
+      }
     });
 
     test('returns unlocked state for level 2 when level 1 is completed', async () => {

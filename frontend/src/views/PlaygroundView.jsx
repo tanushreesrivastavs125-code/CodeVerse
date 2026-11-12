@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api, ApiClientError } from '../api/client.js';
 import { WorldScene } from '../components/game/world/WorldScene.jsx';
@@ -68,9 +69,12 @@ export function PlaygroundView() {
     }
   }, []);
 
+  const [searchParams] = useSearchParams();
+  const urlLevelId = Number(searchParams.get('level') || searchParams.get('sector')) || null;
+
   useEffect(() => {
-    loadLevels();
-  }, [loadLevels]);
+    loadLevels(urlLevelId);
+  }, [loadLevels, urlLevelId]);
 
   // Callback when a run animation finishes
   const handleRunFinished = useCallback(

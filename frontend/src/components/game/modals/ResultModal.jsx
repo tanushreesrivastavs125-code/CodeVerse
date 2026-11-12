@@ -139,6 +139,26 @@ export function ResultModal({
                 Replay completed — sector rewards already claimed on previous clearance.
               </span>
             )}
+
+            {isVictory && !hasNextSector && (
+              <div
+                style={{
+                  marginTop: '0.75rem',
+                  padding: '0.85rem 1rem',
+                  backgroundColor: 'rgba(217, 70, 239, 0.12)',
+                  border: '1px solid rgba(217, 70, 239, 0.4)',
+                  borderRadius: 'var(--radius-md)',
+                  textAlign: 'center'
+                }}
+              >
+                <div style={{ color: '#f0abfc', fontWeight: 800, fontSize: '0.95rem', letterSpacing: '0.05em' }}>
+                  🏆 CAMPAIGN MASTERED // THE SINGULARITY SECURED
+                </div>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: '0.35rem 0 0' }}>
+                  All 24 sectors across all six districts are secured! Autonomous drone navigation mastery achieved.
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -178,7 +198,7 @@ export function ResultModal({
               fontSize: '0.9rem'
             }}
           >
-            {isVictory ? 'Replay / Refine Code' : 'Debug & Rebuild Program'}
+            {isVictory && !hasNextSector ? 'Review Campaign Dossier' : isVictory ? 'Replay / Refine Code' : 'Debug & Rebuild Program'}
           </button>
         </div>
       </div>
