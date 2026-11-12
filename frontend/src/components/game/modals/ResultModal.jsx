@@ -1,0 +1,189 @@
+/**
+ * ResultModal renders victory rewards or failure feedback upon run completion.
+ * Shows authoritative stars, earned XP/coins, replay indicators, and next sector navigation.
+ */
+export function ResultModal({
+  result,
+  onClose,
+  onNextSector,
+  hasNextSector = false
+}) {
+  if (!result) return null;
+
+  const isVictory = Boolean(result.passed);
+  const stars = Number(result.stars) || 0;
+  const xpEarned = result.earned?.xp ?? 0;
+  const coinsEarned = result.earned?.coins ?? 0;
+  const isReplay = isVictory && xpEarned === 0 && coinsEarned === 0;
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(7, 15, 24, 0.85)',
+        backdropFilter: 'blur(8px)',
+        zIndex: 2000, // Above Blockly workspace and flyouts
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1.5rem'
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        style={{
+          width: '100%',
+          maxWidth: '560px',
+          backgroundColor: '#0c1824',
+          borderRadius: 'var(--radius-lg)',
+          border: isVictory ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid rgba(239, 68, 68, 0.5)',
+          padding: '2.25rem',
+          boxShadow: isVictory
+            ? '0 25px 60px rgba(16, 185, 129, 0.2)'
+            : '0 25px 60px rgba(239, 68, 68, 0.2)',
+          textAlign: 'center',
+          animation: 'scaleIn 0.25s ease-out'
+        }}
+      >
+        {/* Emblem */}
+        <div
+          style={{
+            fontSize: '3rem',
+            lineHeight: 1,
+            marginBottom: '0.75rem',
+            color: isVictory ? '#34d399' : '#f87171'
+          }}
+        >
+          {isVictory ? '✦' : '⚠'}
+        </div>
+
+        <div
+          style={{
+            fontSize: '0.78rem',
+            fontFamily: 'var(--font-mono)',
+            color: isVictory ? 'var(--accent-emerald)' : '#f87171',
+            letterSpacing: '0.1em',
+            marginBottom: '0.25rem'
+          }}
+        >
+          {isVictory ? 'MISSION ACCOMPLISHED // SECTOR SECURED' : 'MISSION FAILED // DIAGNOSTICS LOGGED'}
+        </div>
+
+        <h2
+          style={{
+            fontSize: '1.85rem',
+            fontWeight: 800,
+            color: 'var(--text-primary)',
+            marginBottom: '0.5rem'
+          }}
+        >
+          {isVictory ? 'Objective Complete!' : 'Drone Calibration Failed'}
+        </h2>
+
+        <p
+          style={{
+            color: 'var(--text-secondary)',
+            fontSize: '0.95rem',
+            lineHeight: 1.6,
+            maxWidth: '440px',
+            margin: '0 auto 1.5rem'
+          }}
+        >
+          {result.message || (isVictory ? 'Drone reached the extraction portal successfully.' : 'Program terminated before extraction.')}
+        </p>
+
+        {/* Victory Stars & Rewards */}
+        {isVictory && (
+          <div
+            style={{
+              backgroundColor: 'rgba(17, 24, 39, 0.8)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
+              padding: '1.25rem',
+              marginBottom: '1.5rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '0.75rem'
+            }}
+          >
+            {/* Stars */}
+            <div style={{ fontSize: '2.2rem', letterSpacing: '0.2em' }}>
+              {[1, 2, 3].map((starIdx) => (
+                <span
+                  key={starIdx}
+                  style={{
+                    color: starIdx <= stars ? '#facc15' : 'rgba(75, 85, 99, 0.4)',
+                    textShadow: starIdx <= stars ? '0 0 15px rgba(250, 204, 21, 0.6)' : 'none'
+                  }}
+                >
+                  ★
+                </span>
+              ))}
+            </div>
+
+            {/* Currency rewards */}
+            <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.92rem', fontFamily: 'var(--font-mono)' }}>
+              <span style={{ color: 'var(--accent-emerald)', fontWeight: 700 }}>
+                +{xpEarned} Flight XP
+              </span>
+              <span style={{ color: '#fbbf24', fontWeight: 700 }}>
+                +{coinsEarned} Drone Credits
+              </span>
+            </div>
+
+            {isReplay && (
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                Replay completed — sector rewards already claimed on previous clearance.
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Actions */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {isVictory && hasNextSector && (
+            <button
+              type="button"
+              onClick={onNextSector}
+              style={{
+                padding: '0.75rem 1.6rem',
+                backgroundColor: 'var(--accent-cyan)',
+                color: '#070f18',
+                fontWeight: 700,
+                borderRadius: 'var(--radius-md)',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '0.92rem',
+                boxShadow: '0 0 15px rgba(6, 182, 212, 0.4)'
+              }}
+            >
+              Next Sector →
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              padding: '0.75rem 1.4rem',
+              backgroundColor: 'rgba(31, 41, 55, 0.8)',
+              color: 'var(--text-primary)',
+              fontWeight: 600,
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-subtle)',
+              cursor: 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            {isVictory ? 'Replay / Refine Code' : 'Debug & Rebuild Program'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default ResultModal;

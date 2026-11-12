@@ -1,380 +1,405 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api, ApiClientError } from '../api/client.js';
+import { WorldScene } from '../components/game/world/WorldScene.jsx';
+import { BlocklyEditor } from '../components/game/blockly/BlocklyEditor.jsx';
+import { validateProgramAST } from '../components/game/blockly/astCompiler.js';
+import { PlaybackControls } from '../components/game/controls/PlaybackControls.jsx';
+import { MissionBriefing } from '../components/game/controls/MissionBriefing.jsx';
+import { CampaignSelectorModal } from '../components/game/modals/CampaignSelectorModal.jsx';
+import { ResultModal } from '../components/game/modals/ResultModal.jsx';
+import { useGamePlayback } from '../hooks/useGamePlayback.js';
+
+const STARTER_BLOCKS = {
+  1: `<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="cv_repeat" x="30" y="30">
+    <field name="COUNT">3</field>
+    <statement name="DO">
+      <block type="cv_move"></block>
+    </statement>
+  </block>
+</xml>`
+};
 
 export function PlaygroundView() {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const [levels, setLevels] = useState([]);
-  const [selectedLevelId, setSelectedLevelId] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [activeLevel, setActiveLevel] = useState(null);
+  const [loadingLevels, setLoadingLevels] = useState(true);
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+  const [program, setProgram] = useState([]);
+  const activeLevelIdRef = useRef(null);
 
+  // Sync ref with active level id to guard against stale responses
   useEffect(() => {
-    let isMounted = true;
+    activeLevelIdRef.current = activeLevel?.id || null;
+  }, [activeLevel?.id]);
 
-    async function loadCampaign() {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await api.campaign.getLevels();
-        if (isMounted) {
-          setLevels(data);
-          // Auto-select the first uncompleted unlocked sector, or level 1
-          const active = data.find((l) => l.unlocked && !l.completed) || data[0];
-          if (active) {
-            setSelectedLevelId(active.id);
+  // Load levels on initial mount
+  const loadLevels = useCallback(async (selectId = null) => {
+    try {
+      setLoadingLevels(true);
+      const data = await api.campaign.getLevels();
+      setLevels(data || []);
+
+      if (data && data.length > 0) {
+        if (selectId) {
+          const match = data.find((l) => l.id === selectId);
+          if (match && match.unlocked) {
+            setActiveLevel(match);
+            return;
           }
         }
-      } catch (err) {
-        if (isMounted) {
-          if (err instanceof ApiClientError) {
-            setError(err.message);
-          } else {
-            setError('Failed to load campaign sector telemetry from the gateway.');
+
+        // Default to current level if already set and still unlocked
+        setActiveLevel((current) => {
+          if (current) {
+            const updated = data.find((l) => l.id === current.id);
+            if (updated && updated.unlocked) return updated;
           }
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+          // Otherwise first incomplete unlocked level, or first level
+          return data.find((l) => l.unlocked && !l.completed) || data[0];
+        });
       }
+    } catch {
+      // Gracefully handled by UI
+    } finally {
+      setLoadingLevels(false);
     }
-
-    loadCampaign();
-
-    return () => {
-      isMounted = false;
-    };
   }, []);
 
-  if (loading) {
+  useEffect(() => {
+    loadLevels();
+  }, [loadLevels]);
+
+  // Callback when a run animation finishes
+  const handleRunFinished = useCallback(
+    async (_finalOutcome) => {
+      // Reconcile user profile and campaign progress on server
+      try {
+        await Promise.all([
+          refreshProfile(),
+          api.campaign.getLevels().then((freshLevels) => {
+            setLevels(freshLevels || []);
+            // Update active level metadata in place without switching away
+            if (activeLevelIdRef.current) {
+              const updated = freshLevels.find((l) => l.id === activeLevelIdRef.current);
+              if (updated) {
+                setActiveLevel(updated);
+              }
+            }
+          })
+        ]);
+      } catch {
+        // Telemetry refresh failure does not block result presentation
+      }
+    },
+    [refreshProfile]
+  );
+
+  const {
+    worldState,
+    isBusy,
+    speed,
+    soundEnabled,
+    result,
+    error,
+    setError,
+    setResult,
+    resetWorld,
+    startPlayback,
+    toggleSpeed,
+    toggleSound
+  } = useGamePlayback({
+    level: activeLevel,
+    onRunFinished: handleRunFinished
+  });
+
+  // Handle program compilation updates from BlocklyEditor
+  const handleProgramChange = useCallback((newAst) => {
+    setProgram(newAst);
+  }, []);
+
+  // Launch program
+  const handleLaunch = async () => {
+    if (isBusy || !activeLevel) return;
+
+    setError(null);
+    setResult(null);
+
+    // 1. Client-side AST validation
+    const validation = validateProgramAST(program);
+    if (!validation.valid) {
+      setError(validation.error);
+      return;
+    }
+
+    const currentLevelId = activeLevel.id;
+
+    try {
+      // 2. Transmit to authoritative campaign API
+      const runOutcome = await api.campaign.runLevel(currentLevelId, { program });
+
+      // 3. Stale response guard: verify player did not switch levels while fetch was in flight
+      if (activeLevelIdRef.current !== currentLevelId) {
+        return;
+      }
+
+      // 4. Start visual playback of frames
+      startPlayback(runOutcome);
+    } catch (err) {
+      if (activeLevelIdRef.current !== currentLevelId) {
+        return;
+      }
+
+      if (err instanceof ApiClientError) {
+        if (err.status === 401) {
+          setError('Your session has expired. Please refresh or sign in to continue.');
+        } else if (err.status === 403) {
+          setError('This sector is currently locked. Complete earlier sectors to access.');
+        } else if (err.status === 503) {
+          setError('Authoritative rewards currently unavailable. Replica-set transaction support required.');
+        } else {
+          setError(err.message || 'Mission execution failed.');
+        }
+      } else {
+        setError(err.message || 'Unable to communicate with the CodeVerse simulation engine.');
+      }
+    }
+  };
+
+  // Next Sector Action
+  const handleNextSector = () => {
+    if (!activeLevel) return;
+    const nextLvl = levels.find((l) => l.id === activeLevel.id + 1);
+    if (nextLvl && nextLvl.unlocked) {
+      setResult(null);
+      setActiveLevel(nextLvl);
+    }
+  };
+
+  const hasNextSector = Boolean(
+    activeLevel && levels.find((l) => l.id === activeLevel.id + 1 && l.unlocked)
+  );
+
+  if (loadingLevels && !activeLevel) {
     return (
-      <div style={{ maxWidth: '1000px', margin: '3rem auto', padding: '0 1.5rem', textAlign: 'center' }}>
-        <div style={{
-          width: '40px',
-          height: '40px',
-          margin: '0 auto 1rem',
-          border: '3px solid var(--border-subtle)',
-          borderTopColor: 'var(--accent-cyan)',
-          borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite'
-        }} />
-        <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '0.9rem' }}>
-          DOWNLOADING SECTOR TELEMETRY FROM GRID...
-        </p>
+      <div style={{ maxWidth: '800px', margin: '4rem auto', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
+        <div style={{ width: '36px', height: '36px', border: '3px solid rgba(6, 182, 212, 0.2)', borderTopColor: 'var(--accent-cyan)', borderRadius: '50%', margin: '0 auto 1rem', animation: 'spin 0.8s linear infinite' }} />
+        <span style={{ color: 'var(--text-muted)' }}>Initialising flight matrix & sector telemetry...</span>
       </div>
     );
   }
-
-  if (error) {
-    return (
-      <div style={{
-        maxWidth: '600px',
-        margin: '3rem auto',
-        padding: '2rem',
-        backgroundColor: 'var(--bg-card)',
-        border: '1px solid var(--accent-red)',
-        borderRadius: 'var(--radius-lg)',
-        textAlign: 'center'
-      }}>
-        <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>⚠️</div>
-        <h3 style={{ color: 'var(--accent-red)', marginBottom: '0.5rem' }}>Sector Telemetry Unavailable</h3>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.25rem' }}>{error}</p>
-        <button
-          onClick={() => window.location.reload()}
-          style={{
-            backgroundColor: 'var(--accent-cyan)',
-            color: '#0b0f19',
-            border: 'none',
-            padding: '0.5rem 1.25rem',
-            borderRadius: 'var(--radius-sm)',
-            fontWeight: 600,
-            cursor: 'pointer'
-          }}
-        >
-          Retry Connection
-        </button>
-      </div>
-    );
-  }
-
-  const selectedLevel = levels.find((l) => l.id === selectedLevelId) || levels[0];
 
   return (
-    <div style={{ maxWidth: '1100px', margin: '2rem auto', padding: '0 1.5rem' }}>
-      {/* Player HUD Banner */}
-      <div style={{
+    <div
+      style={{
+        maxWidth: '1440px',
+        margin: '0 auto',
+        padding: '1.5rem',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '1rem',
-        padding: '1.25rem 1.75rem',
-        backgroundColor: 'var(--bg-card)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius-lg)',
-        marginBottom: '2rem',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
-      }}>
+        flexDirection: 'column',
+        gap: '1.25rem'
+      }}
+    >
+      {/* Flight Control Telemetry Header */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          paddingBottom: '1rem',
+          borderBottom: '1px solid var(--border-subtle)'
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{
-            width: '46px',
-            height: '46px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(59, 130, 246, 0.2))',
-            border: '1px solid var(--border-glow)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '1.5rem'
-          }}>
+          <div
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, var(--accent-cyan), var(--accent-blue))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.3rem'
+            }}
+          >
             🛰️
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                {user?.username}
-              </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                {user?.username || 'Autonomous Pilot'}
+              </h1>
               {user?.isGuest && (
-                <span style={{
-                  fontSize: '0.7rem',
-                  padding: '0.15rem 0.45rem',
-                  borderRadius: '4px',
-                  backgroundColor: 'rgba(245, 158, 11, 0.15)',
-                  color: '#f59e0b',
-                  fontWeight: 600
-                }}>
-                  GUEST RECON
+                <span
+                  style={{
+                    padding: '0.15rem 0.5rem',
+                    borderRadius: '4px',
+                    fontSize: '0.72rem',
+                    fontFamily: 'var(--font-mono)',
+                    backgroundColor: 'rgba(234, 179, 8, 0.15)',
+                    color: '#eab308',
+                    border: '1px solid rgba(234, 179, 8, 0.4)'
+                  }}
+                >
+                  GUEST SESSION
                 </span>
               )}
             </div>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Callsign ID: {user?.id}
-            </p>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+              ID: <code style={{ color: 'var(--accent-cyan)' }}>{user?.id}</code> • Campaign Operations
+            </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-          <div>
-            <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>TIER</span>
-            <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-cyan)' }}>Level {user?.level ?? 1}</span>
+        {/* Player Chips */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', fontFamily: 'var(--font-mono)' }}>
+          <div style={{ textAlign: 'right' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>PILOT TIER</span>
+            <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--accent-cyan)' }}>
+              Level {user?.level || 1}
+            </span>
           </div>
-          <div>
-            <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>CUMULATIVE XP</span>
-            <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#10b981' }}>{user?.totalXp ?? 0} XP</span>
-          </div>
-          <div>
-            <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>COINS</span>
-            <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fbbf24' }}>🪙 {user?.coins ?? 0}</span>
-          </div>
-          <div>
-            <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>STREAK</span>
-            <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f97316' }}>🔥 {user?.currentStreak ?? 0}d</span>
-          </div>
-        </div>
-      </div>
 
-      {/* Sector Navigation Selector Tabs */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h3 style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Select Campaign Sector ({levels.length} Total)
-        </h3>
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          {levels.map((lvl) => {
-            const isSelected = lvl.id === selectedLevelId;
-            return (
-              <button
-                key={lvl.id}
-                onClick={() => lvl.unlocked && setSelectedLevelId(lvl.id)}
-                disabled={!lvl.unlocked}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.6rem 1rem',
-                  borderRadius: 'var(--radius-sm)',
-                  border: isSelected ? '1px solid var(--accent-cyan)' : '1px solid var(--border-subtle)',
-                  backgroundColor: isSelected
-                    ? 'rgba(6, 182, 212, 0.15)'
-                    : lvl.unlocked
-                    ? 'var(--bg-card)'
-                    : 'rgba(31, 41, 55, 0.4)',
-                  color: isSelected ? 'var(--accent-cyan)' : lvl.unlocked ? 'var(--text-primary)' : 'var(--text-muted)',
-                  cursor: lvl.unlocked ? 'pointer' : 'not-allowed',
-                  opacity: lvl.unlocked ? 1 : 0.6,
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <span>{lvl.unlocked ? (lvl.completed ? '✅' : '🎯') : '🔒'}</span>
-                <span style={{ fontWeight: 600 }}>Sector {lvl.id}</span>
-                {lvl.completed && (
-                  <span style={{ color: '#fbbf24', fontSize: '0.85rem' }}>
-                    {'★'.repeat(lvl.stars)}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+          <div style={{ textAlign: 'right' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>TOTAL XP</span>
+            <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--accent-emerald)' }}>
+              {user?.totalXp || 0} XP
+            </span>
+          </div>
+
+          <div style={{ textAlign: 'right' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>CREDITS</span>
+            <span style={{ fontSize: '1rem', fontWeight: 700, color: '#fbbf24' }}>
+              🪙 {user?.coins || 0}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Selected Sector Mission Dossier */}
-      {selectedLevel && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '1.5rem',
-          marginBottom: '2rem'
-        }}>
-          {/* Mission Briefing Card */}
-          <div style={{
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '1.75rem',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-              <div>
-                <span style={{
-                  fontSize: '0.75rem',
-                  color: 'var(--accent-cyan)',
-                  fontFamily: 'var(--font-mono)',
-                  letterSpacing: '0.05em'
-                }}>
-                  {selectedLevel.zone?.toUpperCase()} • SECTOR {selectedLevel.id}
-                </span>
-                <h3 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  {selectedLevel.title}
-                </h3>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>TACTICAL PAR</span>
-                <span style={{ fontSize: '1rem', fontWeight: 700, color: '#10b981' }}>{selectedLevel.par} actions</span>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: '1.25rem' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>MISSION OBJECTIVE</span>
-              <p style={{ fontSize: '0.95rem', color: 'var(--text-primary)', marginTop: '0.25rem', lineHeight: 1.5 }}>
-                {selectedLevel.briefing}
-              </p>
-            </div>
-
-            <div style={{
-              backgroundColor: 'rgba(59, 130, 246, 0.08)',
-              border: '1px solid rgba(59, 130, 246, 0.25)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '0.75rem 1rem',
-              marginBottom: '1.25rem'
-            }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--accent-blue)', display: 'block' }}>
-                💡 FLIGHT DIRECTIVE
-              </span>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-                {selectedLevel.hint}
-              </p>
-            </div>
-
-            <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              <div>
-                <span>Concept: </span>
-                <strong style={{ color: 'var(--text-primary)' }}>{selectedLevel.concept}</strong>
-              </div>
-              <div>
-                <span>Stars: </span>
-                <strong style={{ color: '#fbbf24' }}>
-                  {selectedLevel.stars > 0 ? '★'.repeat(selectedLevel.stars) : 'None'}
-                </strong>
-              </div>
-              <div>
-                <span>Status: </span>
-                <strong style={{ color: selectedLevel.completed ? '#10b981' : '#f59e0b' }}>
-                  {selectedLevel.completed ? 'Cleared' : 'Active'}
-                </strong>
-              </div>
-            </div>
-          </div>
-
-          {/* Tactical Map Grid View */}
-          <div style={{
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '1.75rem',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
+      {/* Global Error Alert Banner */}
+      {error && (
+        <div
+          style={{
+            padding: '0.9rem 1.25rem',
+            backgroundColor: 'rgba(239, 68, 68, 0.12)',
+            border: '1px solid rgba(239, 68, 68, 0.4)',
+            borderRadius: 'var(--radius-md)',
+            color: '#fca5a5',
+            fontSize: '0.9rem',
             display: 'flex',
-            flexDirection: 'column'
-          }}>
-            <h4 style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Sector Reconnaissance Grid
-            </h4>
-
-            <div style={{
-              backgroundColor: 'var(--bg-secondary)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-md)',
-              padding: '1.25rem',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '1.2rem',
-              lineHeight: '1.4',
-              letterSpacing: '0.3em',
-              flex: 1
-            }}>
-              {selectedLevel.map.map((row, rIdx) => (
-                <div key={rIdx} style={{ whiteSpace: 'pre' }}>
-                  {row.split('').map((char, cIdx) => {
-                    let color = 'var(--text-muted)';
-                    let bg = 'transparent';
-                    if (char === '#') color = 'rgba(75, 85, 99, 0.5)';
-                    if (char === 'S') { color = 'var(--accent-cyan)'; bg = 'rgba(6, 182, 212, 0.2)'; }
-                    if (char === 'G') { color = '#10b981'; bg = 'rgba(16, 185, 129, 0.2)'; }
-                    if (char === 'C') { color = '#fbbf24'; bg = 'rgba(251, 191, 36, 0.2)'; }
-                    return (
-                      <span key={cIdx} style={{ color, backgroundColor: bg, padding: '0 2px', borderRadius: '3px' }}>
-                        {char}
-                      </span>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '1rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              <span><strong style={{ color: 'var(--accent-cyan)' }}>S</strong> Drone Start</span>
-              <span><strong style={{ color: '#10b981' }}>G</strong> Portal Exit</span>
-              <span><strong style={{ color: '#fbbf24' }}>C</strong> Energy Shard</span>
-              <span><strong style={{ color: 'rgba(75, 85, 99, 0.8)' }}>#</strong> Barrier Wall</span>
-            </div>
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <span style={{ fontSize: '1.2rem' }}>⚠</span>
+            <span>{error}</span>
           </div>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#fca5a5',
+              cursor: 'pointer',
+              fontSize: '1rem'
+            }}
+          >
+            ✕
+          </button>
         </div>
       )}
 
-      {/* Stage 4 Notice Box */}
-      <div style={{
-        padding: '1rem 1.5rem',
-        borderRadius: 'var(--radius-md)',
-        backgroundColor: 'rgba(6, 182, 212, 0.05)',
-        border: '1px solid var(--border-glow)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '1rem'
-      }}>
-        <span style={{ fontSize: '1.5rem' }}>🔧</span>
-        <div>
-          <strong style={{ color: 'var(--accent-cyan)', fontSize: '0.9rem' }}>
-            Stage 3 Shell Online:
-          </strong>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.15rem' }}>
-            Live sector mission data and player sessions are authoritative and verified against the backend. The interactive Blockly visual code editor and animated canvas renderer are scheduled for Stage 4.
-          </p>
+      {/* Main Dual-Column Game Shell */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1.25fr) minmax(360px, 1fr)',
+          gap: '1.5rem',
+          alignItems: 'start'
+        }}
+      >
+        {/* Left Column: World Simulation & Mission HUD */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <WorldScene
+            level={activeLevel}
+            state={worldState}
+          />
+
+          <MissionBriefing level={activeLevel} />
+
+          <PlaybackControls
+            isBusy={isBusy}
+            onLaunch={handleLaunch}
+            onReset={resetWorld}
+            speed={speed}
+            onSpeedToggle={toggleSpeed}
+            sound={soundEnabled}
+            onSoundToggle={toggleSound}
+            onOpenMap={() => setIsMapModalOpen(true)}
+            programLength={program.length}
+            hasActiveLevel={Boolean(activeLevel)}
+          />
+        </div>
+
+        {/* Right Column: Blockly Editor & Program Preview */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <BlocklyEditor
+            key={`blockly-${activeLevel?.id}`}
+            onProgramChange={handleProgramChange}
+            isBusy={isBusy}
+            initialXml={STARTER_BLOCKS[activeLevel?.id] || null}
+          />
+
+          <div
+            style={{
+              padding: '0.85rem 1rem',
+              backgroundColor: 'rgba(17, 24, 39, 0.6)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-subtle)',
+              fontSize: '0.82rem',
+              color: 'var(--text-muted)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+          >
+            <span>💡</span>
+            <span>
+              Tip: Drag action blocks from the toolbox to build your sequence. Use repeat blocks for compact tactical par execution.
+            </span>
+          </div>
         </div>
       </div>
+
+      {/* Modals & Overlays */}
+      <CampaignSelectorModal
+        isOpen={isMapModalOpen}
+        onClose={() => setIsMapModalOpen(false)}
+        levels={levels}
+        currentLevelId={activeLevel?.id}
+        onSelectLevel={(lvl) => {
+          resetWorld();
+          setActiveLevel(lvl);
+        }}
+        isBusy={isBusy}
+      />
+
+      <ResultModal
+        result={result}
+        onClose={() => setResult(null)}
+        onNextSector={handleNextSector}
+        hasNextSector={hasNextSector}
+      />
     </div>
   );
 }
 
+export default PlaygroundView;
