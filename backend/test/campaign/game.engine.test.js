@@ -278,6 +278,75 @@ test('Static program validation and bounded execution limits', () => {
   assert.throws(() => simulate(l1, infiniteLoop), /A run can contain at most 150 actions/);
 });
 
+test('Sensors: hazard, wall, guardian detection and elseBody branching', () => {
+  // Test map: #S.H.XG# with guardian shield 1
+  const complexLevel = createLevel(
+    95,
+    'Sensor Matrix Test',
+    'Test Zone',
+    'Advanced Sensors',
+    'Test all sensors and branches',
+    'Evaluate conditions',
+    ['########', '#S.H.XG#', '########'],
+    0,
+    10,
+    { bossHealth: 1 }
+  );
+
+  // If hazard ahead, jump; else move
+  const adaptiveProgram = [
+    m, // at (2,1)
+    ifSensor('hazard', [j], [m]), // hazard ahead at (3,1), so branch takes [j] -> lands at (4,1)
+    ifSensor('guardian', [p], [m]), // guardian ahead at (5,1), so fires pulse
+    m, // moves to (5,1)
+    m // moves to (6,1) G
+  ];
+
+  const res = simulate(complexLevel, adaptiveProgram);
+  assert.equal(res.passed, true);
+  assert.equal(res.state.bossHP, 0);
+  assert.equal(res.state.x, 6);
+
+  // Test wall sensor: at spawn (1,1), turning left faces North (1,0 is # wall)
+  const wallSensorLevel = levels[0];
+  const wallProgram = [
+    l,
+    ifSensor('wall', [r, r], [m]) // wall ahead -> takes body: turns right twice (now South)
+  ];
+  const wallRes = simulate(wallSensorLevel, wallProgram);
+  assert.equal(wallRes.state.direction, 1); // Facing South
+});
+
+test('Pulse obstruction: obstacles block line-of-sight to guardian', () => {
+  // Map: #S.#.XG# where '#' at (3,1) blocks pulse from (2,1) to guardian at (5,1)
+  const wallBlockedLevel = createLevel(
+    94,
+    'Pulse Wall Blocked',
+    'Test Zone',
+    'LOS',
+    'Pulse cannot penetrate walls',
+    'LOS blocked',
+    ['########', '#S.#.XG#', '########'],
+    0,
+    5,
+    { bossHealth: 1 }
+  );
+
+  const blockedPulse = [m, p]; // at (2,1), wall at (3,1) blocks pulse
+  const blockedRes = simulate(wallBlockedLevel, blockedPulse);
+  assert.equal(blockedRes.frames[2].event, 'miss');
+  assert.equal(blockedRes.state.bossHP, 1);
+});
+
+test('Static program validation: payload size bound check', () => {
+  // Program payload exceeding 64KB
+  const hugePayload = Array(2000).fill({ type: 'move' });
+  assert.throws(
+    () => validateProgram(hugePayload),
+    /Program payload exceeds maximum size limit|Program exceeds the 300-instruction limit/
+  );
+});
+
 test('Determinism: identical inputs yield identical frame snapshots', () => {
   const l1 = levels[0];
   const prog = [repeat(3, m)];
