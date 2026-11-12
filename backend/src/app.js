@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { config } from './config/env.js';
 import { getDatabaseStatus } from './config/database.js';
+import { canUseTransactions } from './services/rewardService.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/auth.routes.js';
 import topicRoutes from './routes/topic.routes.js';
@@ -31,7 +32,8 @@ app.get('/api/health', (_req, res) => {
     service: 'CodeVerse API Gateway',
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
-    database: dbStatus.state
+    database: dbStatus.state,
+    transactions: canUseTransactions()
   });
 });
 

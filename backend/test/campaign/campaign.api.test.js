@@ -1,5 +1,6 @@
 import { test, describe, before, after, beforeEach, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
+import mongoose from 'mongoose';
 import app from '../../src/app.js';
 import User from '../../src/models/User.js';
 import CampaignProgress from '../../src/models/CampaignProgress.js';
@@ -66,6 +67,7 @@ describe('Campaign & Game API Contracts (/api/game)', () => {
 
   beforeEach(() => {
     mock.restoreAll();
+    delete mongoose.connection._forceTransactionSupport;
     testUser.totalXp = 0;
     testUser.level = 1;
     testUser.coins = 0;
@@ -75,6 +77,7 @@ describe('Campaign & Game API Contracts (/api/game)', () => {
 
   afterEach(() => {
     mock.restoreAll();
+    delete mongoose.connection._forceTransactionSupport;
   });
 
   describe('GET /api/game/levels (Protected)', () => {
@@ -274,26 +277,49 @@ describe('Campaign & Game API Contracts (/api/game)', () => {
       assert.equal(testUser.coins, 0);
     });
 
-    test('first successful clear awards 100 XP, 25 coins, increments streak, and unlocks next level', async () => {
-      let insertedProgress = null;
+    test('returns 503 TRANSACTIONS_UNAVAILABLE when transactions are unavailable for reward-bearing run', async () => {
+      delete mongoose.connection._forceTransactionSupport;
+      mock.method(CampaignAttempt, 'create', async () => ({}));
+
+      const solution = [{ type: 'move' }, { type: 'move' }, { type: 'move' }];
+
+      const response = await fetch(`${baseUrl}/api/game/levels/1/run`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ program: solution })
+      });
+
+      assert.equal(response.status, 503);
+      const body = await response.json();
+      assert.equal(body.success, false);
+      assert.equal(body.error.code, 'TRANSACTIONS_UNAVAILABLE');
+      assert.match(body.error.message, /replica set is required/);
+
+      // Balances preserved
+      assert.equal(testUser.totalXp, 0);
+      assert.equal(testUser.coins, 0);
+    });
+
+    test('first successful clear with replica-set transactions awards 100 XP, 25 coins, streak, and unlocks next level', async () => {
+      mongoose.connection._forceTransactionSupport = true;
+      const mockSession = {
+        startTransaction() {},
+        async commitTransaction() {},
+        async abortTransaction() {},
+        async endSession() {}
+      };
+      mock.method(mongoose, 'startSession', async () => mockSession);
       mock.method(CampaignAttempt, 'create', async () => ({}));
       mock.method(User, 'findById', async () => testUser);
 
-      // Mock first-clear upsert in standalone mode
-      mock.method(CampaignProgress, 'findOneAndUpdate', async (query, update) => {
-        if (update.$set?.rewardClaimed === true) {
-          return { ...insertedProgress, rewardClaimed: true };
-        }
-        insertedProgress = {
-          user: testUser.id,
-          levelId: 1,
-          campaignVersion: 'v1',
-          stars: 2,
-          rewardClaimed: false
-        };
-        return {
-          lastErrorObject: { updatedExisting: false }
-        };
+      let createdProgress = null;
+      mock.method(CampaignProgress, 'findOne', async () => null);
+      mock.method(CampaignProgress, 'create', async (docs) => {
+        createdProgress = docs[0];
+        return docs;
       });
 
       // Level 1 valid solution: 3 forward moves
@@ -322,16 +348,37 @@ describe('Campaign & Game API Contracts (/api/game)', () => {
       assert.equal(testUser.coins, 25);
       assert.equal(testUser.level, 2); // 100 XP reaches level 2
       assert.equal(testUser.currentStreak, 1);
+
+      // Document invariants
+      assert.ok(createdProgress);
+      assert.equal(createdProgress.xpAwarded, 100);
+      assert.equal(createdProgress.coinsAwarded, 25);
+      assert.equal(createdProgress.rewardClaimed, true);
     });
 
     test('replaying cleared level can improve stars but awards 0 duplicate currency', async () => {
-      let progressDoc = {
+      mongoose.connection._forceTransactionSupport = true;
+      const mockSession = {
+        startTransaction() {},
+        async commitTransaction() {},
+        async abortTransaction() {},
+        async endSession() {}
+      };
+      mock.method(mongoose, 'startSession', async () => mockSession);
+      mock.method(CampaignAttempt, 'create', async () => ({}));
+      mock.method(User, 'findById', async () => testUser);
+
+      let savedDoc = null;
+      const progressDoc = {
         user: testUser.id,
         levelId: 1,
         campaignVersion: 'v1',
         stars: 2,
         attempts: 1,
-        save: async () => progressDoc
+        save: async function () {
+          savedDoc = this;
+          return this;
+        }
       };
 
       testUser.totalXp = 100;
@@ -339,13 +386,7 @@ describe('Campaign & Game API Contracts (/api/game)', () => {
       testUser.level = 2;
       testUser.currentStreak = 1;
 
-      mock.method(CampaignAttempt, 'create', async () => ({}));
-      mock.method(User, 'findById', async () => testUser);
-
-      // Standalone upsert reports updatedExisting: true (replay)
-      mock.method(CampaignProgress, 'findOneAndUpdate', async () => ({
-        lastErrorObject: { updatedExisting: true }
-      }));
+      mock.method(CampaignProgress, 'findOne', async () => progressDoc);
 
       // Submit 3-star repeat solution
       const repeatSolution = [{ type: 'repeat', count: 3, body: [{ type: 'move' }] }];
@@ -366,32 +407,67 @@ describe('Campaign & Game API Contracts (/api/game)', () => {
       assert.equal(body.data.earned.xp, 0, 'Replay must award 0 XP');
       assert.equal(body.data.earned.coins, 0, 'Replay must award 0 coins');
 
+      // Best stars updated
+      assert.ok(savedDoc);
+      assert.equal(savedDoc.stars, 3);
+      assert.equal(savedDoc.attempts, 2);
+
       // Balances preserved
       assert.equal(testUser.totalXp, 100);
       assert.equal(testUser.coins, 25);
     });
 
-    test('concurrent submissions race condition awards XP exactly once without double-awarding', async () => {
-      let winnerDetermined = false;
+    test('concurrent first-clear race condition: duplicate key aborts transaction, safely re-reads winning doc outside transaction, and prevents double-awarding', async () => {
+      mongoose.connection._forceTransactionSupport = true;
       mock.method(CampaignAttempt, 'create', async () => ({}));
       mock.method(User, 'findById', async () => testUser);
 
-      mock.method(CampaignProgress, 'findOneAndUpdate', async (query, update) => {
-        if (update.$set?.rewardClaimed === true) {
-          if (!winnerDetermined) {
-            winnerDetermined = true;
-            return { rewardClaimed: true };
-          }
-          return null; // Lost race
-        }
+      let abortedSessions = 0;
+      mock.method(mongoose, 'startSession', async () => {
         return {
-          lastErrorObject: { updatedExisting: false }
+          startTransaction() {},
+          async commitTransaction() {},
+          async abortTransaction() {
+            abortedSessions++;
+          },
+          async endSession() {}
         };
+      });
+
+      let createCalls = 0;
+      const winningDoc = {
+        user: testUser.id,
+        levelId: 1,
+        campaignVersion: 'v1',
+        stars: 2,
+        attempts: 1,
+        save: async function () {
+          return this;
+        }
+      };
+
+      mock.method(CampaignProgress, 'findOne', async (query, projection, options) => {
+        // Inside transaction sessions, neither saw existing doc yet
+        if (options?.session) {
+          return null;
+        }
+        // Outside the aborted transaction session, read the winning doc
+        return winningDoc;
+      });
+
+      mock.method(CampaignProgress, 'create', async (docs) => {
+        createCalls++;
+        if (createCalls === 1) {
+          return docs; // Winner commits first
+        }
+        // Colliding concurrent insertion throws duplicate key error code 11000
+        const dupErr = new Error('E11000 duplicate key error');
+        dupErr.code = 11000;
+        throw dupErr;
       });
 
       const solution = [{ type: 'move' }, { type: 'move' }, { type: 'move' }];
 
-      // Dispatch 2 concurrent run requests simultaneously
       const [res1, res2] = await Promise.all([
         fetch(`${baseUrl}/api/game/levels/1/run`, {
           method: 'POST',
@@ -408,11 +484,15 @@ describe('Campaign & Game API Contracts (/api/game)', () => {
       const body1 = await res1.json();
       const body2 = await res2.json();
 
+      assert.equal(res1.status, 200);
+      assert.equal(res2.status, 200);
+
       const totalAwardedXp = body1.data.earned.xp + body2.data.earned.xp;
       const totalAwardedCoins = body1.data.earned.coins + body2.data.earned.coins;
 
       assert.equal(totalAwardedXp, 100, 'Exactly one concurrent request must win the 100 XP reward');
       assert.equal(totalAwardedCoins, 25, 'Exactly one concurrent request must win the 25 coins reward');
+      assert.equal(abortedSessions, 1, 'The colliding transaction must be cleanly aborted');
       assert.equal(testUser.totalXp, 100);
       assert.equal(testUser.coins, 25);
     });

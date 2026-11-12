@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { AppError } from '../middleware/errorHandler.js';
 
 /**
  * Calculates current level tier from accumulated total XP based on CodeVerse formula:
@@ -89,24 +90,49 @@ export function calculateStreak(lastActiveDate, currentStreak = 0, now = new Dat
  */
 export function isReplicaSetConnected() {
   const readyState = mongoose.connection?.readyState;
+  if (readyState !== 1) {
+    return false;
+  }
   const client = mongoose.connection?.client;
-  const topologyType = client?.topology?.description?.type;
+  if (!client) {
+    return false;
+  }
+  const desc = client.topology?.description || client.topology?.s?.description;
+  const topologyType = desc?.type;
 
   return (
-    readyState === 1 &&
-    (topologyType === 'ReplicaSetWithPrimary' ||
-      topologyType === 'ReplicaSetNoPrimary' ||
-      topologyType === 'Sharded')
+    topologyType === 'ReplicaSetWithPrimary' ||
+    topologyType === 'ReplicaSetNoPrimary' ||
+    topologyType === 'Sharded' ||
+    Boolean(desc?.setName)
   );
 }
 
 /**
  * Determines whether MongoDB multi-document transactions can be executed.
+ * Enabled on replica sets/clusters or when explicitly enabled in test mode.
  *
  * @returns {boolean}
  */
 export function canUseTransactions() {
   return isReplicaSetConnected() || Boolean(mongoose.connection?._forceTransactionSupport);
+}
+
+/**
+ * Checks if an error has the MongoDB TransientTransactionError label.
+ *
+ * @param {any} err
+ * @returns {boolean}
+ */
+export function isTransientTransactionError(err) {
+  if (!err) return false;
+  if (typeof err.hasErrorLabel === 'function') {
+    return err.hasErrorLabel('TransientTransactionError');
+  }
+  if (Array.isArray(err.errorLabels)) {
+    return err.errorLabels.includes('TransientTransactionError');
+  }
+  return false;
 }
 
 /**
@@ -151,34 +177,50 @@ export async function commitWithRetry(session, maxRetries = 3) {
 
 /**
  * Safely executes database operations inside a MongoDB multi-document transaction
- * when connected to a replica set or sharded cluster. If running in a standalone
- * MongoDB environment (e.g., local single-node dev) or disconnected test mode,
- * executes the callback without a transaction session.
+ * with automatic retries for transient transaction errors (e.g. WriteConflict)
+ * and ambiguous commit outcomes.
+ *
+ * Fails fast if multi-document transactions are unavailable on the active connection.
  *
  * @template T
- * @param {(session: import('mongoose').ClientSession | null) => Promise<T>} callback
+ * @param {(session: import('mongoose').ClientSession) => Promise<T>} callback
+ * @param {number} [maxRetries=3]
  * @returns {Promise<T>}
  */
-export async function withTransaction(callback) {
+export async function withTransaction(callback, maxRetries = 3) {
   if (!canUseTransactions()) {
-    return callback(null);
+    throw new AppError(
+      'Multi-document database transactions are unavailable. A MongoDB replica set is required for reward-bearing campaign progression.',
+      503,
+      'TRANSACTIONS_UNAVAILABLE'
+    );
   }
 
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  let attempt = 0;
+  while (true) {
+    attempt++;
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-  try {
-    const result = await callback(session);
-    await commitWithRetry(session);
-    return result;
-  } catch (err) {
     try {
-      await session.abortTransaction();
-    } catch {
-      // Ignore secondary abort failures
+      const result = await callback(session);
+      await commitWithRetry(session, maxRetries);
+      await session.endSession();
+      return result;
+    } catch (err) {
+      try {
+        await session.abortTransaction();
+      } catch {
+        // Ignore secondary abort failure
+      }
+      await session.endSession();
+
+      // Retry transient transaction errors (such as WriteConflict under high concurrency)
+      if (attempt < maxRetries && isTransientTransactionError(err)) {
+        continue;
+      }
+
+      throw err;
     }
-    throw err;
-  } finally {
-    await session.endSession();
   }
 }

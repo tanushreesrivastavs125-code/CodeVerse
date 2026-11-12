@@ -129,13 +129,22 @@ export async function runCampaignLevel({ userId, levelId, program }) {
     };
   }
 
-  // Handle successful run: idempotent reward application
+  // Handle successful run: fail-fast if multi-document transactions are unavailable
+  if (!canUseTransactions()) {
+    throw new AppError(
+      'Multi-document database transactions are unavailable. A MongoDB replica set is required for reward-bearing campaign progression.',
+      503,
+      'TRANSACTIONS_UNAVAILABLE'
+    );
+  }
+
   let awardedXp = 0;
   let awardedCoins = 0;
   let updatedUser = null;
+  let finalStars = simResult.stars;
 
-  if (canUseTransactions()) {
-    await withTransaction(async (session) => {
+  try {
+    const txResult = await withTransaction(async (session) => {
       const existing = await CampaignProgress.findOne(
         { user: userId, levelId, campaignVersion: CAMPAIGN_VERSION },
         null,
@@ -150,145 +159,97 @@ export async function runCampaignLevel({ userId, levelId, program }) {
         existing.attempts += 1;
         existing.lastCompletedAt = now;
         await existing.save({ session });
-        awardedXp = 0;
-        awardedCoins = 0;
-        updatedUser = await User.findById(userId, null, { session });
-      } else {
-        // First-time completion
-        try {
-          await CampaignProgress.create(
-            [
-              {
-                user: userId,
-                levelId,
-                campaignVersion: CAMPAIGN_VERSION,
-                stars: simResult.stars,
-                attempts: 1,
-                firstCompletedAt: now,
-                lastCompletedAt: now,
-                xpAwarded: FIRST_CLEAR_XP,
-                coinsAwarded: FIRST_CLEAR_COINS,
-                rewardClaimed: true
-              }
-            ],
-            { session }
-          );
 
-          awardedXp = FIRST_CLEAR_XP;
-          awardedCoins = FIRST_CLEAR_COINS;
-
-          const user = await User.findById(userId, null, { session });
-          if (!user) throw new AppError('User not found.', 404, 'USER_NOT_FOUND');
-
-          const newTotalXp = (user.totalXp || 0) + FIRST_CLEAR_XP;
-          const newLevel = calculateLevel(newTotalXp);
-          const { currentStreak, lastActiveDate } = calculateStreak(
-            user.lastActiveDate,
-            user.currentStreak,
-            now
-          );
-
-          user.totalXp = newTotalXp;
-          user.level = newLevel;
-          user.coins = (user.coins || 0) + FIRST_CLEAR_COINS;
-          user.currentStreak = currentStreak;
-          user.lastActiveDate = lastActiveDate;
-
-          updatedUser = await user.save({ session });
-        } catch (err) {
-          if (err.code === 11000) {
-            // Concurrent submission won the race: treat as replay
-            const wonDoc = await CampaignProgress.findOne(
-              { user: userId, levelId, campaignVersion: CAMPAIGN_VERSION },
-              null,
-              { session }
-            );
-            if (wonDoc && simResult.stars > wonDoc.stars) {
-              wonDoc.stars = simResult.stars;
-              await wonDoc.save({ session });
-            }
-            awardedXp = 0;
-            awardedCoins = 0;
-            updatedUser = await User.findById(userId, null, { session });
-          } else {
-            throw err;
-          }
-        }
+        const user = await User.findById(userId, null, { session });
+        return {
+          isFirstClear: false,
+          stars: existing.stars,
+          awardedXp: 0,
+          awardedCoins: 0,
+          user
+        };
       }
-    });
-  } else {
-    // Standalone MongoDB: atomic findOneAndUpdate with unique key
-    const rawUpsert = await CampaignProgress.findOneAndUpdate(
-      { user: userId, levelId, campaignVersion: CAMPAIGN_VERSION },
-      {
-        $setOnInsert: {
-          user: userId,
-          levelId,
-          campaignVersion: CAMPAIGN_VERSION,
-          firstCompletedAt: now,
-          xpAwarded: FIRST_CLEAR_XP,
-          coinsAwarded: FIRST_CLEAR_COINS,
-          rewardClaimed: false
-        },
-        $max: { stars: simResult.stars },
-        $inc: { attempts: 1 },
-        $set: { lastCompletedAt: now }
-      },
-      { upsert: true, new: false, rawResult: true }
-    );
 
-    const isFirstClear = !rawUpsert.lastErrorObject?.updatedExisting;
-
-    if (isFirstClear) {
-      // Atomically claim the one-time reward
-      const claim = await CampaignProgress.findOneAndUpdate(
-        { user: userId, levelId, campaignVersion: CAMPAIGN_VERSION, rewardClaimed: false },
-        { $set: { rewardClaimed: true } },
-        { new: true }
-      );
-
-      if (claim) {
-        try {
-          const user = await User.findById(userId);
-          if (!user) throw new AppError('User not found.', 404, 'USER_NOT_FOUND');
-
-          const newTotalXp = (user.totalXp || 0) + FIRST_CLEAR_XP;
-          const newLevel = calculateLevel(newTotalXp);
-          const { currentStreak, lastActiveDate } = calculateStreak(
-            user.lastActiveDate,
-            user.currentStreak,
-            now
-          );
-
-          user.totalXp = newTotalXp;
-          user.level = newLevel;
-          user.coins = (user.coins || 0) + FIRST_CLEAR_COINS;
-          user.currentStreak = currentStreak;
-          user.lastActiveDate = lastActiveDate;
-
-          updatedUser = await user.save();
-          awardedXp = FIRST_CLEAR_XP;
-          awardedCoins = FIRST_CLEAR_COINS;
-        } catch (userErr) {
-          // Compensating rollback for standalone MongoDB if user update fails
-          await CampaignProgress.deleteOne({
+      // First-time completion: atomically create progress and award player currencies
+      await CampaignProgress.create(
+        [
+          {
             user: userId,
             levelId,
-            campaignVersion: CAMPAIGN_VERSION
-          });
-          throw userErr;
-        }
-      } else {
-        // Claimed concurrently
-        awardedXp = 0;
-        awardedCoins = 0;
-        updatedUser = await User.findById(userId);
+            campaignVersion: CAMPAIGN_VERSION,
+            stars: simResult.stars,
+            attempts: 1,
+            firstCompletedAt: now,
+            lastCompletedAt: now,
+            xpAwarded: FIRST_CLEAR_XP,
+            coinsAwarded: FIRST_CLEAR_COINS,
+            rewardClaimed: true
+          }
+        ],
+        { session }
+      );
+
+      const user = await User.findById(userId, null, { session });
+      if (!user) {
+        throw new AppError('User not found.', 404, 'USER_NOT_FOUND');
       }
-    } else {
-      // Replay
+
+      const newTotalXp = (user.totalXp || 0) + FIRST_CLEAR_XP;
+      const newLevel = calculateLevel(newTotalXp);
+      const { currentStreak, lastActiveDate } = calculateStreak(
+        user.lastActiveDate,
+        user.currentStreak,
+        now
+      );
+
+      user.totalXp = newTotalXp;
+      user.level = newLevel;
+      user.coins = (user.coins || 0) + FIRST_CLEAR_COINS;
+      user.currentStreak = currentStreak;
+      user.lastActiveDate = lastActiveDate;
+
+      const savedUser = await user.save({ session });
+      return {
+        isFirstClear: true,
+        stars: simResult.stars,
+        awardedXp: FIRST_CLEAR_XP,
+        awardedCoins: FIRST_CLEAR_COINS,
+        user: savedUser
+      };
+    });
+
+    awardedXp = txResult.awardedXp;
+    awardedCoins = txResult.awardedCoins;
+    updatedUser = txResult.user;
+    finalStars = txResult.stars;
+  } catch (err) {
+    if (err.code === 11000) {
+      // Duplicate key error aborted the transaction.
+      // Another concurrent request committed the first clear.
+      // Re-read winning record OUTSIDE the aborted transaction session.
+      const winningDoc = await CampaignProgress.findOne({
+        user: userId,
+        levelId,
+        campaignVersion: CAMPAIGN_VERSION
+      });
+
+      if (winningDoc) {
+        if (simResult.stars > winningDoc.stars) {
+          winningDoc.stars = simResult.stars;
+        }
+        winningDoc.attempts = (winningDoc.attempts || 1) + 1;
+        winningDoc.lastCompletedAt = now;
+        await winningDoc.save();
+        finalStars = winningDoc.stars;
+      } else {
+        finalStars = simResult.stars;
+      }
+
       awardedXp = 0;
       awardedCoins = 0;
       updatedUser = await User.findById(userId);
+    } else {
+      throw err;
     }
   }
 
@@ -296,7 +257,7 @@ export async function runCampaignLevel({ userId, levelId, program }) {
 
   return {
     passed: true,
-    stars: simResult.stars,
+    stars: finalStars,
     frames: simResult.frames,
     state: simResult.state,
     message: simResult.message,
