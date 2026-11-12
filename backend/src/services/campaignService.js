@@ -111,6 +111,12 @@ export async function getCampaignLevels(userId) {
       map: level.map,
       direction: level.direction,
       par: level.par,
+      difficulty: level.difficulty ?? level.id,
+      bossHealth: level.bossHealth ?? (level.map.some((r) => r.includes('X')) ? 3 : 0),
+      maxBlocks: level.maxBlocks ?? null,
+      maxActions: level.maxActions ?? null,
+      requireLoops: Boolean(level.requireLoops),
+      requireSensors: Boolean(level.requireSensors),
       completed: isCompleted,
       stars: progress ? progress.stars : 0,
       unlocked: isUnlocked

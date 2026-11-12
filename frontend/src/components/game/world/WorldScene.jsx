@@ -22,8 +22,20 @@ export function WorldScene({
   }, [map]);
 
   const collectedCount = state?.collected?.length || 0;
-  const boardWidth = cols * tileSize;
-  const boardHeight = rows * tileSize;
+
+  const effectiveTileSize = useMemo(() => {
+    if (cols > 10 || rows > 8) {
+      return Math.max(38, Math.min(tileSize, Math.floor(460 / Math.max(cols, rows))));
+    }
+    return tileSize;
+  }, [cols, rows, tileSize]);
+
+  const maxBossHP = useMemo(() => {
+    return level?.bossHealth || (level?.map?.some((r) => r.includes('X')) ? 3 : 0);
+  }, [level]);
+
+  const boardWidth = cols * effectiveTileSize;
+  const boardHeight = rows * effectiveTileSize;
 
   return (
     <div
@@ -76,6 +88,16 @@ export function WorldScene({
             </div>
           )}
 
+          {maxBossHP > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span style={{ color: '#d946ef' }}>⚡</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>GUARDIAN:</span>
+              <strong style={{ color: (state?.bossHP ?? maxBossHP) === 0 ? 'var(--accent-emerald)' : '#d946ef' }}>
+                {state?.bossHP ?? maxBossHP}/{maxBossHP}
+              </strong>
+            </div>
+          )}
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
             <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>ACTIONS:</span>
             <strong style={{ color: state?.steps <= (level?.par || 10) ? 'var(--accent-cyan)' : '#f97316' }}>
@@ -103,7 +125,8 @@ export function WorldScene({
           justifyContent: 'center',
           position: 'relative',
           background: 'radial-gradient(ellipse at 50% 60%, rgba(6, 182, 212, 0.08), transparent 70%), linear-gradient(to bottom, #070d14, #0b1522)',
-          overflow: 'hidden'
+          overflow: 'auto',
+          maxWidth: '100%'
         }}
       >
         {/* Ambient Grid Scanline Effect */}
@@ -147,10 +170,10 @@ export function WorldScene({
                   key={`${x}-${y}`}
                   style={{
                     position: 'absolute',
-                    left: `${x * tileSize}px`,
-                    top: `${y * tileSize}px`,
-                    width: `${tileSize}px`,
-                    height: `${tileSize}px`,
+                    left: `${x * effectiveTileSize}px`,
+                    top: `${y * effectiveTileSize}px`,
+                    width: `${effectiveTileSize}px`,
+                    height: `${effectiveTileSize}px`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -221,7 +244,7 @@ export function WorldScene({
                   {isShardTile && !isCollected && (
                     <div
                       style={{
-                        fontSize: `${tileSize * 0.45}px`,
+                        fontSize: `${effectiveTileSize * 0.45}px`,
                         color: '#fbbf24',
                         textShadow: '0 0 12px rgba(251, 191, 36, 0.8)',
                         animation: 'bounce 2s ease-in-out infinite',
@@ -236,7 +259,7 @@ export function WorldScene({
                   {isHazard && (
                     <div
                       style={{
-                        fontSize: `${tileSize * 0.35}px`,
+                        fontSize: `${effectiveTileSize * 0.35}px`,
                         color: '#ef4444',
                         fontWeight: 900,
                         textShadow: '0 0 8px rgba(239, 68, 68, 0.7)',
@@ -287,24 +310,26 @@ export function WorldScene({
                   {isBoss && (
                     <div
                       style={{
-                        width: '75%',
-                        height: '75%',
-                        backgroundColor: '#3b0764',
-                        border: '2px solid #d946ef',
+                        width: '78%',
+                        height: '78%',
+                        backgroundColor: (state?.bossHP ?? maxBossHP) === 0 ? '#1e293b' : '#3b0764',
+                        border: (state?.bossHP ?? maxBossHP) === 0 ? '2px dashed #4b5563' : '2px solid #d946ef',
                         borderRadius: '8px',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: '#f0abfc',
-                        fontSize: '14px',
+                        color: (state?.bossHP ?? maxBossHP) === 0 ? '#9ca3af' : '#f0abfc',
+                        fontSize: '11px',
                         fontWeight: 800,
-                        boxShadow: '0 0 14px rgba(217, 70, 239, 0.6)'
+                        boxShadow: (state?.bossHP ?? maxBossHP) === 0 ? 'none' : '0 0 14px rgba(217, 70, 239, 0.6)'
                       }}
-                      title="Firewall Guardian"
+                      title={`Firewall Guardian (${state?.bossHP ?? maxBossHP}/${maxBossHP} HP)`}
                     >
-                      <span>✕</span>
-                      <span style={{ fontSize: '7px', color: '#f5d0fe' }}>SHIELD</span>
+                      <span style={{ fontSize: '11px' }}>✕</span>
+                      <span style={{ fontSize: '7px', color: (state?.bossHP ?? maxBossHP) === 0 ? '#9ca3af' : '#f5d0fe' }}>
+                        {state?.bossHP ?? maxBossHP}/{maxBossHP}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -319,7 +344,7 @@ export function WorldScene({
               y={state.y}
               direction={state.direction}
               event={state.event}
-              tileSize={tileSize}
+              tileSize={effectiveTileSize}
             />
           )}
         </div>

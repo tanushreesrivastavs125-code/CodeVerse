@@ -78,7 +78,7 @@ describe('Stage 3 End-to-End Session & Routed Game Shell Verification', () => {
     const levelsBody = await levelsRes.json();
     assert.equal(levelsBody.success, true);
     assert.ok(Array.isArray(levelsBody.data));
-    assert.equal(levelsBody.data.length, 3);
+    assert.equal(levelsBody.data.length, 24);
     assert.equal(levelsBody.data[0].unlocked, true);
     assert.equal(levelsBody.data[1].unlocked, false);
     assert.equal(levelsBody.data[2].unlocked, false);

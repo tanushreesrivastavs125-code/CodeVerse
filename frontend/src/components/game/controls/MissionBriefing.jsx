@@ -47,6 +47,21 @@ export function MissionBriefing({ level }) {
             >
               {level.concept}
             </span>
+
+            {level.difficulty && (
+              <span
+                style={{
+                  fontSize: '0.68rem',
+                  padding: '0.1rem 0.45rem',
+                  borderRadius: '4px',
+                  backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                  color: '#a5b4fc',
+                  fontFamily: 'var(--font-mono)'
+                }}
+              >
+                DIFFICULTY {level.difficulty}
+              </span>
+            )}
           </div>
 
           <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.2rem' }}>
@@ -63,6 +78,40 @@ export function MissionBriefing({ level }) {
           </span>
         </div>
       </div>
+
+      {/* Program Requirement Badges */}
+      {(level.requireLoops || level.requireSensors || level.bossHealth > 0 || level.maxBlocks || level.maxActions) && (
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+            CONSTRAINTS:
+          </span>
+          {level.requireLoops && (
+            <span style={{ fontSize: '0.72rem', padding: '0.15rem 0.5rem', borderRadius: '4px', backgroundColor: 'rgba(147, 51, 234, 0.18)', color: '#d8b4fe', fontFamily: 'var(--font-mono)', border: '1px solid rgba(147, 51, 234, 0.35)' }}>
+              ↻ Loop Block Required
+            </span>
+          )}
+          {level.requireSensors && (
+            <span style={{ fontSize: '0.72rem', padding: '0.15rem 0.5rem', borderRadius: '4px', backgroundColor: 'rgba(59, 130, 246, 0.18)', color: '#93c5fd', fontFamily: 'var(--font-mono)', border: '1px solid rgba(59, 130, 246, 0.35)' }}>
+              👁 Sensor Condition Required
+            </span>
+          )}
+          {level.bossHealth > 0 && (
+            <span style={{ fontSize: '0.72rem', padding: '0.15rem 0.5rem', borderRadius: '4px', backgroundColor: 'rgba(217, 70, 239, 0.18)', color: '#f5d0fe', fontFamily: 'var(--font-mono)', border: '1px solid rgba(217, 70, 239, 0.35)' }}>
+              ✕ Guardian Shield ({level.bossHealth} HP)
+            </span>
+          )}
+          {level.maxBlocks && (
+            <span style={{ fontSize: '0.72rem', padding: '0.15rem 0.5rem', borderRadius: '4px', backgroundColor: 'rgba(234, 179, 8, 0.18)', color: '#fde047', fontFamily: 'var(--font-mono)', border: '1px solid rgba(234, 179, 8, 0.35)' }}>
+              Max {level.maxBlocks} Blocks
+            </span>
+          )}
+          {level.maxActions && (
+            <span style={{ fontSize: '0.72rem', padding: '0.15rem 0.5rem', borderRadius: '4px', backgroundColor: 'rgba(249, 115, 22, 0.18)', color: '#fdba74', fontFamily: 'var(--font-mono)', border: '1px solid rgba(249, 115, 22, 0.35)' }}>
+              Max {level.maxActions} Actions
+            </span>
+          )}
+        </div>
+      )}
 
       <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', lineHeight: 1.5 }}>
         {level.briefing}
