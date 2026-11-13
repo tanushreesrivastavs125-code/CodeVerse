@@ -3,11 +3,20 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=20.12.0",
+    "npm": ">=10.0.0"
+  },
   "workspaces": [
     "backend",
     "frontend"
   ],
   "scripts": {
+    "start": "node scripts/launcher.mjs --local",
+    "start:local": "node scripts/launcher.mjs --local",
+    "start:external": "node scripts/launcher.mjs --external",
+    "stop": "node scripts/launcher.mjs --stop",
+    "setup:env": "node scripts/setup-env.mjs",
     "dev:backend": "npm --workspace=backend run dev",
     "dev:frontend": "npm --workspace=frontend run dev",
     "start:backend": "npm --workspace=backend run start",
@@ -20,6 +29,7 @@
     "lint:backend": "npm --workspace=backend run lint",
     "lint:frontend": "npm --workspace=frontend run lint",
     "lint:shared": "eslint -c backend/eslint.config.js shared",
-    "lint": "npm run lint:backend && npm run lint:frontend && npm run lint:shared"
+    "lint": "npm run lint:backend && npm run lint:frontend && npm run lint:shared",
+    "verify": "npm run lint && npm test && npm run test:campaign:integration"
   }
 }

@@ -280,14 +280,20 @@ Stage 8: Startup, CI & Production Readiness
   - Rate-limited mutating operations (20 operations/min per user/IP) to protect transaction health.
   - Interactive `/guild` game shell UI featuring active squadron command HUD, public squadron directory with search, creation wizard with character counters, and honest guest session disclosures.
 
-#### Stage 8: Reliable Startup, CI & Release Readiness
+#### Stage 8: Reliable Startup, CI & Release Readiness (Completed)
 - **Branch:** `chore/game-release-readiness`
-- **Goal:** Developer ergonomics, automated CI pipelines, and production deployment scripts.
+- **Goal:** Developer ergonomics, automated CI pipelines, process lifecycle management, persistence guarantees, and production release readiness.
 - **Deliverables:**
-  - Root `start.mjs` launcher waiting for backend readiness before launching browser.
-  - Cross-platform Windows launcher (`Start-CodeVerse.cmd`).
-  - GitHub Actions CI matrix testing lint, unit tests, integration tests, and Vite build.
-  - Complete documentation covering local setup, environment variables, seeding, and production deployment.
+  - Automated environment setup helper (`scripts/setup-env.mjs`) generating a cryptographically secure 64-hex `JWT_SECRET` via `node:crypto` without overwriting existing files or leaking secrets.
+  - Managed local development mode with persistent on-disk storage (`.local-db/`) supporting full replica-set transactions across process restarts.
+  - Strict external database mode requiring `MONGODB_URI` and verifying cluster connectivity without silent fallback to local mode.
+  - Strict port policy (5000 API, 5173 Frontend, 27017 DB): fails fast with clear collision diagnostics; never shifts ports or terminates unrelated processes.
+  - Readiness probe on `/api/health` verifying both server liveness and transaction capability (`transactions: true`).
+  - Cross-platform process lifecycle coordinator (`scripts/launcher.mjs` and `start.mjs`) tracking child PIDs in `.codeverse-launcher.pid` with graceful shutdown (`npm run stop` / `SIGINT`).
+  - Windows convenience batch launcher (`Start-CodeVerse.cmd`) executable via double-click or CLI without PowerShell execution policy restrictions.
+  - Route-level code splitting via `React.lazy()` and Rollup manual chunking reducing initial landing bundle footprint from 1.23 MB to 27.34 kB (gzip: 8.58 kB), isolating heavy Blockly libraries until the `/playground` route is requested.
+  - GitHub Actions CI workflow (`.github/workflows/ci.yml`) validating linting, testing, and building across Ubuntu and Windows on Node 20 and 22.
+  - Complete operational documentation in `README.md` and automated release readiness test suite (`release-readiness.test.js` & `managed-db-persistence.test.js`).
 
 ---
 
