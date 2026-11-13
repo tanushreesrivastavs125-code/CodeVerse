@@ -255,13 +255,25 @@ Stage 8: Startup, CI & Production Readiness
   - All-time and weekly leaderboards aggregating verified campaign XP.
   - Accessibility compliance: visible focus indicators, screen reader labels, `prefers-reduced-motion` support.
 
-#### Stage 7: Supporting AI Mentor & Guilds
-- **Branch:** `feature/game-mentor-guilds`
-- **Goal:** Add pedagogical debugging assistant and social guild collaboration.
+#### Stage 7A: Game-Aware AI Flight Mentor & Reliable Offline Fallback
+- **Branch:** `feature/game-mentor`
+- **Goal:** Add an authenticated, rate-limited, pedagogical flight mentor providing contextual hints, concept explanations, simulation diagnostics, and tactical recommendations.
 - **Deliverables:**
-  - AI Mentor service: level-aware debugging hints without revealing full solutions.
-  - Rate limiting, bounded prompts, and offline fallback hints when LLM is unavailable.
-  - Guild management: create, join, leave guild; collective guild XP calculation.
+  - Game-aware mentor API endpoint (`POST /api/ai/mentor`) with 4 distinct modes (`hint`, `explain`, `debug`, `recommend`).
+  - Strict server-side validation: bounded AST validation, 500-character message bound, level unlock verification.
+  - Rate limiting (20 consultations per minute) and bounded provider timeout (8,000ms).
+  - External LLM provider integration (`LLM_API_KEY`, `LLM_API_URL`, `LLM_MODEL`) supporting Gemini and OpenAI-compatible formats.
+  - Robust deterministic autonomous fallback engine covering all 24 levels and game mechanics (headings/turns, hazards/jumps, energy collection, bridge terminals, loop compaction, sensors, guardian shields, and budgets).
+  - Honest source attribution badging (`🤖 AI Neural Guidance` vs `🛡️ Autonomous Offline Guidance`).
+  - Zero side effects: mentor requests never alter player XP, coins, stars, completions, or unlocks.
+  - Interactive frontend UI: dedicated `/mentor` command center and compact `MentorModal` accessible directly from the flight deck without resetting workspace programs.
+
+#### Stage 7B: Social Guilds & Team Leaderboards
+- **Branch:** `feature/guild-collaboration`
+- **Goal:** Add collaborative social teams, aggregate guild XP, and clan leaderboards.
+- **Deliverables:**
+  - Guild management: create, join, leave guild; guild member rosters.
+  - Collective guild XP calculation and weekly clan standings.
 
 #### Stage 8: Reliable Startup, CI & Release Readiness
 - **Branch:** `chore/game-release-readiness`

@@ -9,6 +9,7 @@ import { PlaybackControls } from '../components/game/controls/PlaybackControls.j
 import { MissionBriefing } from '../components/game/controls/MissionBriefing.jsx';
 import { CampaignSelectorModal } from '../components/game/modals/CampaignSelectorModal.jsx';
 import { ResultModal } from '../components/game/modals/ResultModal.jsx';
+import { MentorModal } from '../components/game/mentor/MentorModal.jsx';
 import { useGamePlayback } from '../hooks/useGamePlayback.js';
 
 const STARTER_BLOCKS = {
@@ -28,6 +29,7 @@ export function PlaygroundView() {
   const [activeLevel, setActiveLevel] = useState(null);
   const [loadingLevels, setLoadingLevels] = useState(true);
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+  const [isMentorModalOpen, setIsMentorModalOpen] = useState(false);
   const [program, setProgram] = useState([]);
   const activeLevelIdRef = useRef(null);
 
@@ -355,6 +357,7 @@ export function PlaygroundView() {
             sound={soundEnabled}
             onSoundToggle={toggleSound}
             onOpenMap={() => setIsMapModalOpen(true)}
+            onOpenMentor={() => setIsMentorModalOpen(true)}
             programLength={program.length}
             hasActiveLevel={Boolean(activeLevel)}
           />
@@ -379,18 +382,50 @@ export function PlaygroundView() {
               color: 'var(--text-muted)',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.5rem'
+              justifyContent: 'space-between',
+              gap: '0.75rem',
+              flexWrap: 'wrap'
             }}
           >
-            <span>💡</span>
-            <span>
-              Tip: Drag action blocks from the toolbox to build your sequence. Use repeat blocks for compact tactical par execution.
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span>💡</span>
+              <span>
+                Tip: Drag action blocks to build your sequence. Use repeat blocks for compact tactical par execution.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsMentorModalOpen(true)}
+              style={{
+                padding: '0.4rem 0.8rem',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--accent-cyan)',
+                backgroundColor: 'rgba(66, 227, 198, 0.12)',
+                color: 'var(--accent-cyan)',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                fontFamily: 'var(--font-mono)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}
+            >
+              <span>🤖</span>
+              <span>AI MENTOR</span>
+            </button>
           </div>
         </div>
       </div>
 
       {/* Modals & Overlays */}
+      <MentorModal
+        isOpen={isMentorModalOpen}
+        onClose={() => setIsMentorModalOpen(false)}
+        level={activeLevel}
+        program={program}
+      />
+
       <CampaignSelectorModal
         isOpen={isMapModalOpen}
         onClose={() => setIsMapModalOpen(false)}

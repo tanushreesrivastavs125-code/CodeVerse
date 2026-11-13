@@ -11,6 +11,7 @@ export function PlaybackControls({
   sound = false,
   onSoundToggle,
   onOpenMap,
+  onOpenMentor,
   programLength = 0,
   hasActiveLevel = true
 }) {
@@ -166,6 +167,29 @@ export function PlaybackControls({
         >
           🗺️ Campaign Sectors
         </button>
+
+        {onOpenMentor && (
+          <button
+            type="button"
+            onClick={onOpenMentor}
+            style={{
+              padding: '0.5rem 0.9rem',
+              backgroundColor: 'rgba(66, 227, 198, 0.12)',
+              border: '1px solid rgba(66, 227, 198, 0.4)',
+              borderRadius: 'var(--radius-sm)',
+              color: 'var(--accent-cyan)',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              fontFamily: 'var(--font-mono)'
+            }}
+          >
+            🤖 AI Mentor
+          </button>
+        )}
       </div>
     </div>
   );

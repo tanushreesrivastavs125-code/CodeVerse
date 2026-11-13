@@ -92,6 +92,10 @@ export const api = {
   leaderboard: {
     get: (range = 'all', limit = 20) => request(`/leaderboard?range=${range}&limit=${limit}`)
   },
+  ai: {
+    mentor: ({ mode, levelId, message, program }) =>
+      request('/ai/mentor', { method: 'POST', body: { mode, levelId, message, program } })
+  },
   health: {
     check: () => request('/health')
   }
