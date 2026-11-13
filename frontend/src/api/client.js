@@ -96,6 +96,21 @@ export const api = {
     mentor: ({ mode, levelId, message, program }) =>
       request('/ai/mentor', { method: 'POST', body: { mode, levelId, message, program } })
   },
+  guilds: {
+    list: (params = {}) => {
+      const q = new URLSearchParams();
+      if (params.limit) q.set('limit', String(params.limit));
+      if (params.search) q.set('search', params.search);
+      const queryStr = q.toString() ? `?${q.toString()}` : '';
+      return request(`/guilds${queryStr}`);
+    },
+    me: () => request('/guilds/me'),
+    getById: (id) => request(`/guilds/${id}`),
+    create: ({ name, description }) =>
+      request('/guilds', { method: 'POST', body: { name, description } }),
+    join: (id) => request(`/guilds/${id}/join`, { method: 'POST' }),
+    leave: () => request('/guilds/leave', { method: 'POST' })
+  },
   health: {
     check: () => request('/health')
   }

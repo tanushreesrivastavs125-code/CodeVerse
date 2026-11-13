@@ -268,12 +268,17 @@ Stage 8: Startup, CI & Production Readiness
   - Zero side effects: mentor requests never alter player XP, coins, stars, completions, or unlocks.
   - Interactive frontend UI: dedicated `/mentor` command center and compact `MentorModal` accessible directly from the flight deck without resetting workspace programs.
 
-#### Stage 7B: Social Guilds & Team Leaderboards
-- **Branch:** `feature/guild-collaboration`
-- **Goal:** Add collaborative social teams, aggregate guild XP, and clan leaderboards.
+#### Stage 7B: Persistent Guilds & Combined Member XP
+- **Branch:** `feature/game-guilds`
+- **Goal:** Implement persistent collaborative pilot squadrons, single-source-of-truth membership, deterministic ownership succession, clean disbanding, and real-time combined member XP.
 - **Deliverables:**
-  - Guild management: create, join, leave guild; guild member rosters.
-  - Collective guild XP calculation and weekly clan standings.
+  - Authoritative Guild and GuildMembership schemas with compound unique indexing enforcing at most one active guild per player.
+  - Multi-document ACID database transactions coordinating guild creation, join, leave, owner succession, and disbanding without dangling data.
+  - Dynamic derivation of Combined Member XP as the real-time sum of active members' authoritative lifetime XP with zero side-effects on personal player balances.
+  - Deterministic owner succession transferring leadership to the senior remaining member (`joinedAt: 1, _id: 1`) on owner departure; clean disbanding when the final pilot leaves.
+  - Safe public data exposure omitting emails, passwords, and sensitive credentials from roster payloads.
+  - Rate-limited mutating operations (20 operations/min per user/IP) to protect transaction health.
+  - Interactive `/guild` game shell UI featuring active squadron command HUD, public squadron directory with search, creation wizard with character counters, and honest guest session disclosures.
 
 #### Stage 8: Reliable Startup, CI & Release Readiness
 - **Branch:** `chore/game-release-readiness`

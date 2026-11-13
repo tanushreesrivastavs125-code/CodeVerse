@@ -94,6 +94,7 @@ export function Navbar() {
               <Link to="/playground" style={navLinkStyle('/playground')}>Playground</Link>
               <Link to="/dashboard" style={navLinkStyle('/dashboard')}>Campaign</Link>
               <Link to="/leaderboard" style={navLinkStyle('/leaderboard')}>Leaderboard</Link>
+              <Link to="/guild" style={navLinkStyle('/guild')}>Guilds</Link>
               <Link to="/mentor" style={navLinkStyle('/mentor')}>AI Mentor</Link>
               <Link to="/profile" style={navLinkStyle('/profile')}>Profile</Link>
             </>
