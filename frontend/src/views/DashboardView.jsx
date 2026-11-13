@@ -117,19 +117,19 @@ export function DashboardView() {
 
         {activeLevel && (
           <Link
-            to="/playground"
+            to={`/playground?level=${activeLevel.id}`}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.6rem',
               padding: '0.75rem 1.5rem',
               backgroundColor: 'var(--accent-cyan)',
-              color: '#0b0f19',
+              color: '#050a0f',
               fontWeight: 700,
               borderRadius: 'var(--radius-md)',
               textDecoration: 'none',
               fontSize: '0.95rem',
-              boxShadow: '0 0 20px rgba(6, 182, 212, 0.35)',
+              boxShadow: '0 0 20px rgba(66, 227, 198, 0.35)',
               transition: 'transform 0.15s ease'
             }}
           >
@@ -142,7 +142,7 @@ export function DashboardView() {
       {/* Dynamic Telemetry Metrics Cards */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
         gap: '1rem'
       }}>
         <div style={{
@@ -193,7 +193,7 @@ export function DashboardView() {
           <div style={{
             fontSize: '2rem',
             fontWeight: 800,
-            color: '#facc15',
+            color: 'var(--accent-gold)',
             fontFamily: 'var(--font-mono)',
             marginTop: '0.25rem'
           }}>
@@ -216,7 +216,7 @@ export function DashboardView() {
           <div style={{
             fontSize: '2rem',
             fontWeight: 800,
-            color: 'var(--accent-emerald)',
+            color: 'var(--accent-cyan)',
             fontFamily: 'var(--font-mono)',
             marginTop: '0.25rem'
           }}>
@@ -239,14 +239,37 @@ export function DashboardView() {
           <div style={{
             fontSize: '2rem',
             fontWeight: 800,
-            color: 'var(--accent-blue)',
+            color: 'var(--accent-gold)',
             fontFamily: 'var(--font-mono)',
             marginTop: '0.25rem'
           }}>
             {user?.coins || 0} <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>CR</span>
           </div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-            Spendable in upgrade hanger
+            Available balance
+          </div>
+        </div>
+
+        <div style={{
+          backgroundColor: 'var(--bg-card)',
+          padding: '1.25rem 1.5rem',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border-subtle)'
+        }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+            FLIGHT STREAK
+          </div>
+          <div style={{
+            fontSize: '2rem',
+            fontWeight: 800,
+            color: '#fb923c',
+            fontFamily: 'var(--font-mono)',
+            marginTop: '0.25rem'
+          }}>
+            🔥 {user?.streak || 0}
+          </div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+            Daily mission sequence
           </div>
         </div>
       </div>

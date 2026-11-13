@@ -44,3 +44,21 @@ export async function runLevel(req, res, next) {
     next(err);
   }
 }
+
+/**
+ * GET /api/game/history
+ * Retrieves the authenticated player's recent flight attempts.
+ *
+ * @type {import('express').RequestHandler}
+ */
+export async function getRunHistory(req, res, next) {
+  try {
+    const history = await campaignService.getPlayerRunHistory(req.user.id, req.query.limit);
+    res.status(200).json({
+      success: true,
+      data: history
+    });
+  } catch (err) {
+    next(err);
+  }
+}

@@ -338,3 +338,31 @@ export async function runCampaignLevel({ userId, levelId, program }) {
     user: updatedUser ? updatedUser.toSafeObject() : null
   };
 }
+
+/**
+ * Retrieves the authenticated player's recent campaign run attempts.
+ * Bounded query strictly scoped to the requesting player's userId.
+ *
+ * @param {string} userId - Authenticated user identifier
+ * @param {number} [limit=10] - Number of recent records to retrieve (1..50)
+ * @returns {Promise<Array<object>>}
+ */
+export async function getPlayerRunHistory(userId, limit = 10) {
+  const boundedLimit = Math.min(Math.max(1, parseInt(limit, 10) || 10), 50);
+
+  const history = await CampaignAttempt.find({ user: userId })
+    .sort({ createdAt: -1 })
+    .limit(boundedLimit)
+    .lean();
+
+  return history.map((h) => ({
+    id: h._id.toString(),
+    levelId: h.levelId,
+    passed: h.passed,
+    stars: h.stars,
+    steps: h.steps,
+    programBlocks: h.programBlocks,
+    reason: h.reason,
+    createdAt: h.createdAt
+  }));
+}

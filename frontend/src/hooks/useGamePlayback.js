@@ -113,6 +113,24 @@ export function useGamePlayback({
         return;
       }
 
+      // Respect prefers-reduced-motion: jump immediately to final state without stepping delay
+      const prefersReducedMotion =
+        typeof window !== 'undefined' &&
+        window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+
+      if (prefersReducedMotion) {
+        if (generationRef.current === runGen) {
+          const finalFrame = frames[frames.length - 1];
+          if (finalFrame) setWorldState(finalFrame);
+          setIsBusy(false);
+          setResult(finalOutcome);
+          if (typeof onRunFinished === 'function') {
+            onRunFinished(finalOutcome);
+          }
+        }
+        return;
+      }
+
       let frameIdx = 0;
       const baseDelay = speed === 2 ? 160 : 320;
 

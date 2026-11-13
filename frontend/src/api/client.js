@@ -86,7 +86,11 @@ export const api = {
   campaign: {
     getLevels: () => request('/game/levels'),
     runLevel: (id, { program }) =>
-      request(`/game/levels/${id}/run`, { method: 'POST', body: { program } })
+      request(`/game/levels/${id}/run`, { method: 'POST', body: { program } }),
+    getHistory: (limit = 20) => request(`/game/history?limit=${limit}`)
+  },
+  leaderboard: {
+    get: (range = 'all', limit = 20) => request(`/leaderboard?range=${range}&limit=${limit}`)
   },
   health: {
     check: () => request('/health')

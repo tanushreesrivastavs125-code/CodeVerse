@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { Navbar } from './components/Navbar.jsx';
 import { ProtectedRoute } from './components/ProtectedRoute.jsx';
+import { CodeFlow } from './components/common/CodeFlow.jsx';
 
 import { HomeView } from './views/HomeView.jsx';
 import { LoginView } from './views/LoginView.jsx';
@@ -9,6 +10,7 @@ import { SignupView } from './views/SignupView.jsx';
 import { PlayView } from './views/PlayView.jsx';
 import { PlaygroundView } from './views/PlaygroundView.jsx';
 import { DashboardView } from './views/DashboardView.jsx';
+import { LeaderboardView } from './views/LeaderboardView.jsx';
 import { ProfileView } from './views/ProfileView.jsx';
 import { NotFoundView } from './views/NotFoundView.jsx';
 
@@ -21,8 +23,10 @@ export function App() {
           display: 'flex',
           flexDirection: 'column',
           backgroundColor: 'var(--bg-primary)',
-          color: 'var(--text-primary)'
+          color: 'var(--text-primary)',
+          position: 'relative'
         }}>
+          <CodeFlow />
           <Navbar />
 
           <main style={{ flex: 1 }}>
@@ -31,6 +35,7 @@ export function App() {
               <Route path="/login" element={<LoginView />} />
               <Route path="/signup" element={<SignupView />} />
               <Route path="/play" element={<PlayView />} />
+              <Route path="/leaderboard" element={<LeaderboardView />} />
 
               {/* Protected Routes */}
               <Route
@@ -72,8 +77,8 @@ export function App() {
             backgroundColor: 'var(--bg-secondary)'
           }}>
             <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-              <span>CodeVerse Platform • Stage 3 Campaign Operations & Browser Shell</span>
-              <span>Autonomous Drone Flight Programming Simulation</span>
+              <span>CodeVerse Platform • Autonomous Drone Navigation & Campaign Engine</span>
+              <span style={{ fontFamily: 'var(--font-mono)' }}>6 Districts • 24 Sectors • Deterministic Grid Simulation</span>
             </div>
           </footer>
         </div>
