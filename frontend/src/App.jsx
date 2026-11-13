@@ -13,6 +13,7 @@ import { DashboardView } from './views/DashboardView.jsx';
 import { LeaderboardView } from './views/LeaderboardView.jsx';
 import { ProfileView } from './views/ProfileView.jsx';
 import { MentorView } from './views/MentorView.jsx';
+import { GuildView } from './views/GuildView.jsx';
 import { NotFoundView } from './views/NotFoundView.jsx';
 
 export function App() {
@@ -68,6 +69,22 @@ export function App() {
                 element={(
                   <ProtectedRoute>
                     <MentorView />
+                  </ProtectedRoute>
+                )}
+              />
+              <Route
+                path="/guild"
+                element={(
+                  <ProtectedRoute>
+                    <GuildView />
+                  </ProtectedRoute>
+                )}
+              />
+              <Route
+                path="/guilds"
+                element={(
+                  <ProtectedRoute>
+                    <GuildView />
                   </ProtectedRoute>
                 )}
               />

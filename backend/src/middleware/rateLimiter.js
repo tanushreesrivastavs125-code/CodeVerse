@@ -2,12 +2,16 @@ import { AppError } from './errorHandler.js';
 
 const ipAttempts = new Map();
 const mentorAttempts = new Map();
+const guildAttempts = new Map();
 
 export const GUEST_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 export const GUEST_RATE_LIMIT_MAX = 10; // Max 10 guest creations per window per IP
 
 export const MENTOR_RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 export const MENTOR_RATE_LIMIT_MAX = 20; // Max 20 mentor consultations per minute per player/IP
+
+export const GUILD_RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+export const GUILD_RATE_LIMIT_MAX = 20; // Max 20 guild operations per minute per player/IP
 
 /**
  * In-memory sliding-window rate limiter for the guest creation endpoint.
@@ -66,6 +70,34 @@ export function mentorRateLimiter(req, _res, next) {
 }
 
 /**
+ * In-memory sliding-window rate limiter for guild mutation endpoints.
+ * Keyed by authenticated user ID when available, falling back to client IP.
+ *
+ * @type {import('express').RequestHandler}
+ */
+export function guildRateLimiter(req, _res, next) {
+  const key = req.user?.id || req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+  const now = Date.now();
+
+  const attempts = guildAttempts.get(key) || [];
+  const recentAttempts = attempts.filter((ts) => now - ts < GUILD_RATE_LIMIT_WINDOW_MS);
+
+  if (recentAttempts.length >= GUILD_RATE_LIMIT_MAX) {
+    return next(
+      new AppError(
+        'Too many guild requests. Please wait a moment before trying again.',
+        429,
+        'TOO_MANY_REQUESTS'
+      )
+    );
+  }
+
+  recentAttempts.push(now);
+  guildAttempts.set(key, recentAttempts);
+  next();
+}
+
+/**
  * Resets the in-memory rate limiter states. Intended for automated test isolation.
  */
 export function _resetGuestRateLimiter() {
@@ -74,5 +106,9 @@ export function _resetGuestRateLimiter() {
 
 export function _resetMentorRateLimiter() {
   mentorAttempts.clear();
+}
+
+export function _resetGuildRateLimiter() {
+  guildAttempts.clear();
 }
 

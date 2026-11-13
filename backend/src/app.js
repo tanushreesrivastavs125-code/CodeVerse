@@ -11,6 +11,7 @@ import topicRoutes from './routes/topic.routes.js';
 import campaignRoutes from './routes/campaign.routes.js';
 import leaderboardRoutes from './routes/leaderboard.routes.js';
 import mentorRoutes from './routes/mentor.routes.js';
+import guildRoutes from './routes/guild.routes.js';
 
 const app = express();
 
@@ -59,6 +60,9 @@ app.use('/api/leaderboard', leaderboardRoutes);
 
 // AI Flight Mentor routes
 app.use('/api/ai', mentorRoutes);
+
+// Persistent Guilds routes
+app.use('/api/guilds', guildRoutes);
 
 // Fallback for unmapped routes
 app.use(notFoundHandler);
