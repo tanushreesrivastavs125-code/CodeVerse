@@ -15,6 +15,15 @@ build/
 .env.test.local
 .env.production.local
 .env.local
+backend/.env
+frontend/.env
+
+# Local managed database & launcher state
+.local-db*/
+.local-data*/
+.codeverse-launcher.pid*
+.codeverse-launcher.json*
+*.pid
 
 # Logs
 npm-debug.log*
@@ -22,6 +31,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+*.log
 
 # Editor & OS files
 .vscode/
@@ -34,9 +44,11 @@ lerna-debug.log*
 .DS_Store
 Thumbs.db
 
-# Testing & Coverage
+# Testing, Coverage & Browser QA Profiles
 coverage/
 .nyc_output/
+chrome_qa_*
+chrome_user_*
 
 # Temporary / scratch directories
 tmp/

@@ -280,14 +280,25 @@ Stage 8: Startup, CI & Production Readiness
   - Rate-limited mutating operations (20 operations/min per user/IP) to protect transaction health.
   - Interactive `/guild` game shell UI featuring active squadron command HUD, public squadron directory with search, creation wizard with character counters, and honest guest session disclosures.
 
-#### Stage 8: Reliable Startup, CI & Release Readiness
+#### Stage 8: Reliable Startup, CI & Release Readiness (Completed)
 - **Branch:** `chore/game-release-readiness`
-- **Goal:** Developer ergonomics, automated CI pipelines, and production deployment scripts.
+- **Goal:** Developer ergonomics, automated CI pipelines, process lifecycle management, persistence guarantees, and production release readiness.
 - **Deliverables:**
-  - Root `start.mjs` launcher waiting for backend readiness before launching browser.
-  - Cross-platform Windows launcher (`Start-CodeVerse.cmd`).
-  - GitHub Actions CI matrix testing lint, unit tests, integration tests, and Vite build.
-  - Complete documentation covering local setup, environment variables, seeding, and production deployment.
+  - Runtime requirement aligned to Node `>=20.19.0` (Active LTS required by Mongoose 9 and MongoDB 7 driver).
+  - Automated environment setup helper (`scripts/setup-env.mjs`) generating a cryptographically secure 64-hex `JWT_SECRET` via `node:crypto` without overwriting existing files or leaking secrets.
+  - Managed local development mode with persistent on-disk storage (`.local-db/`) supporting full replica-set transactions across process restarts.
+  - Strict external database mode requiring `MONGODB_URI` and verifying cluster connectivity without silent fallback to local mode, leaving external databases untouched during shutdown.
+  - Strict port policy (5000 API, 5173 Frontend, 27017 DB): fails fast with clear collision diagnostics; never shifts ports or terminates unrelated processes.
+  - Readiness probe on `/api/health` verifying both server liveness and transaction capability (`transactions: true`).
+  - Cryptographically verified launcher process lifecycle coordinator (`scripts/launcher.mjs` and `scripts/lib/process-manager.mjs`):
+    - Authenticated loopback HTTP control channel with a per-instance 32-byte cryptographically random bearer secret.
+    - Strict process ownership verification: asks the live launcher to gracefully stop its owned child processes; strictly refuses to terminate any process if control channel verification fails or PID ownership cannot be proven.
+    - Double-launch prevention: detects live running instances via control channel probe and exits cleanly with diagnostic code.
+    - Graceful shutdown (`npm run stop` / `SIGINT`).
+  - Windows convenience batch launcher (`Start-CodeVerse.cmd`) executable via double-click or CLI without PowerShell execution policy restrictions.
+  - Route-level code splitting via `React.lazy()` and Rollup manual chunking: initial landing page payload is ~292.75 kB uncompressed (entry chunk 27.30 kB, eager vendor chunk 263.23 kB, CSS 2.22 kB), deferring heavy Blockly libraries (788.05 kB) until the `/playground` route is loaded.
+  - GitHub Actions CI workflow (`.github/workflows/ci.yml`) validating linting, testing, and building across Ubuntu and Windows on Node 20 and 22.
+  - Complete operational documentation in `README.md`, automated release readiness test suite (`release-readiness.test.js`), managed DB persistence suite (`managed-db-persistence.test.js`), and launcher safety lifecycle suite (`launcher-safety.test.js`).
 
 ---
 

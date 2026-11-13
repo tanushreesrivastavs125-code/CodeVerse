@@ -126,11 +126,20 @@ export function canUseTransactions() {
  */
 export function isTransientTransactionError(err) {
   if (!err) return false;
-  if (typeof err.hasErrorLabel === 'function') {
-    return err.hasErrorLabel('TransientTransactionError');
+  if (typeof err.hasErrorLabel === 'function' && err.hasErrorLabel('TransientTransactionError')) {
+    return true;
   }
-  if (Array.isArray(err.errorLabels)) {
-    return err.errorLabels.includes('TransientTransactionError');
+  if (err.errorLabelSet && typeof err.errorLabelSet.has === 'function' && err.errorLabelSet.has('TransientTransactionError')) {
+    return true;
+  }
+  if (Array.isArray(err.errorLabels) && err.errorLabels.includes('TransientTransactionError')) {
+    return true;
+  }
+  if (Array.isArray(err.errorResponse?.errorLabels) && err.errorResponse.errorLabels.includes('TransientTransactionError')) {
+    return true;
+  }
+  if (err.code === 112 || err.codeName === 'WriteConflict') {
+    return true;
   }
   return false;
 }
@@ -143,11 +152,17 @@ export function isTransientTransactionError(err) {
  */
 export function hasUnknownCommitResultLabel(err) {
   if (!err) return false;
-  if (typeof err.hasErrorLabel === 'function') {
-    return err.hasErrorLabel('UnknownTransactionCommitResult');
+  if (typeof err.hasErrorLabel === 'function' && err.hasErrorLabel('UnknownTransactionCommitResult')) {
+    return true;
   }
-  if (Array.isArray(err.errorLabels)) {
-    return err.errorLabels.includes('UnknownTransactionCommitResult');
+  if (err.errorLabelSet && typeof err.errorLabelSet.has === 'function' && err.errorLabelSet.has('UnknownTransactionCommitResult')) {
+    return true;
+  }
+  if (Array.isArray(err.errorLabels) && err.errorLabels.includes('UnknownTransactionCommitResult')) {
+    return true;
+  }
+  if (Array.isArray(err.errorResponse?.errorLabels) && err.errorResponse.errorLabels.includes('UnknownTransactionCommitResult')) {
+    return true;
   }
   return false;
 }
@@ -217,6 +232,7 @@ export async function withTransaction(callback, maxRetries = 3) {
 
       // Retry transient transaction errors (such as WriteConflict under high concurrency)
       if (attempt < maxRetries && isTransientTransactionError(err)) {
+        await new Promise((resolve) => setTimeout(resolve, 50 * attempt));
         continue;
       }
 

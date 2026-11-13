@@ -5,7 +5,7 @@
 
 ---
 
-[![Node.js Version](https://img.shields.io/badge/Node.js-v18%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Node.js Version](https://img.shields.io/badge/Node.js-%3E%3D20.19.0-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Express Version](https://img.shields.io/badge/Express-v5.2.1-000000?logo=express&logoColor=white)](https://expressjs.com/)
 [![React Version](https://img.shields.io/badge/React-v19.2.8-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![Vite Version](https://img.shields.io/badge/Vite-v6.2.0-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
@@ -678,47 +678,98 @@ CodeVerse/
 ## ⚙️ Getting Started & Setup
 
 ### Prerequisites
-- **Node.js:** `v18.0.0` or higher (tested on Node.js `v24`)
-- **npm:** `v9.0.0` or higher
-- **MongoDB:** (Optional for foundation health check; required for upcoming MVP features)
+- **Node.js:** `>=20.19.0` (Active LTS required by Mongoose 9 and MongoDB 7; natively supporting ESM, `--test`, `node:crypto`, and `AbortSignal.timeout`)
+- **npm:** `>=10.0.0`
+- **MongoDB:**
+  - **Local Managed Mode (Zero-Config):** Automatically provisions an isolated persistent MongoDB replica set (`rs0`) in `.local-db/`—no pre-installed MongoDB service or database setup required!
+  - **External Database Mode:** Any MongoDB 6.0+ cluster configured as a replica set (`?replicaSet=rs0`) to support multi-document ACID transactions for campaign rewards and guild mutations.
 
-### 1. Clone & Install Workspace Dependencies
+### 1. Clean Installation
 ```bash
 # Clone the CodeVerse repository
 git clone https://github.com/tanushreesrivastavs125-code/CodeVerse.git
 cd CodeVerse
 
-# Install dependencies across all workspaces
-npm install
+# Clean install all root and workspace dependencies from lockfile
+npm ci
 ```
 
-### 2. Configure Environment Files
+### 2. Environment Initialization
+CodeVerse includes an idempotent environment generator that provisions missing `.env` files with a cryptographically secure 64-hex JWT secret using `node:crypto`:
 ```bash
-# Copy example environment templates
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
+npm run setup:env
 ```
+> *Note:* If `.env` files already exist, `setup:env` leaves them strictly untouched. Secrets are never printed to the console or logs.
 
-### 3. Launch Development Servers
+---
+
+### 3. Launching CodeVerse
+
+#### Option A: Windows Double-Click Convenience Launcher
+On Windows, double-click or run from Command Prompt:
+```cmd
+Start-CodeVerse.cmd
+```
+*Features:*
+- Native `.cmd` batch launcher—completely immune to PowerShell script execution policies.
+- Automatically initializes environment files if missing.
+- Starts managed local replica set on port 27017 with persistent storage in `.local-db/`.
+- Starts backend on port 5000 and frontend on port 5173.
+- Waits for health & transaction verification before opening your default web browser to `http://localhost:5173/`.
+
+#### Option B: Cross-Platform Managed Local Mode (Default)
 ```bash
-# Start backend Express server (port 5000)
-npm run dev:backend
-
-# In a separate terminal, start frontend Vite dev server (port 5173)
-npm run dev:frontend
+# Starts managed local replica set + backend + frontend
+npm start
+# or explicitly:
+npm run start:local
 ```
+- Development data (accounts, progress, stars, coins, guilds) persists across process restarts in `.local-db/`.
+- Strict ports: Backend on `5000`, Frontend on `5173`, DB on `27017`.
+- Strict port conflict handling: if any required port is occupied, the launcher aborts immediately with a clear error and never kills unrelated processes or silently shifts ports.
 
-### 4. Run Verification Suites
+#### Option C: External Database Mode
+To connect to your own existing MongoDB cluster or staging replica set:
 ```bash
-# Execute backend smoke tests
-npm run test:backend
-
-# Verify frontend production build
-npm run build:frontend
-
-# Run ESLint across entire workspace
-npm run lint
+npm run start:external
 ```
+- Strictly requires `MONGODB_URI` to be set in `backend/.env`.
+- Pre-flights connection to the external cluster before launching.
+- Strict policy: **never** silently falls back to local database if external connection fails.
+
+#### Stopping Running Processes
+Press `Ctrl+C` in the terminal where the launcher is running, or run from another terminal:
+```bash
+npm run stop
+```
+Gracefully asks the running launcher instance to stop its owned child processes via an authenticated loopback control channel (using a per-launch random bearer secret). If no launcher is active, or if ownership cannot be cryptographically verified, it safely refuses to terminate any process to prevent PID collision damage. In external database mode, it stops backend and frontend processes while leaving the external database untouched.
+
+---
+
+### 4. Verification & Health Probes
+
+#### Root Verification Pipeline
+Run all linters, unit tests, integration suites, and production build in a single authoritative command:
+```bash
+npm run verify
+```
+
+#### Readiness & Health Probe
+The backend provides a comprehensive health probe at:
+```http
+GET http://localhost:5000/api/health
+```
+```json
+{
+  "status": "ok",
+  "service": "CodeVerse API Gateway",
+  "uptime": 42.15,
+  "timestamp": "2026-11-13T16:20:00.000Z",
+  "database": "connected",
+  "transactions": true
+}
+```
+*Note:* The health check explicitly verifies multi-document ACID transaction capability (`transactions: true`) required for campaign reward progression and guild operations.
 
 ---
 
@@ -729,15 +780,33 @@ The application enforces strict separation of code and configuration via `.env`:
 | Variable Name | Environment | Required | Description | Example / Default |
 |:---|:---|:---:|:---|:---|
 | `PORT` | Backend | Optional | Port for Express HTTP server | `5000` |
-| `MONGODB_URI` | Backend | **Yes** | Connection string for MongoDB database | `mongodb://localhost:27017/codeverse` |
-| `JWT_SECRET` | Backend | **Yes** | Cryptographic secret used to sign and verify JWTs | `dev_secret_replace_in_prod` |
-| `VITE_API_BASE_URL` | Frontend | Optional | Base URL for backend API calls | `http://localhost:5000/api` |
+| `MONGODB_URI` | Backend | **Yes** | MongoDB replica set URI with replicaSet query param | `mongodb://127.0.0.1:27017/codeverse?replicaSet=rs0` |
+| `JWT_SECRET` | Backend | **Yes** | Cryptographic secret (minimum 32 chars) for JWT tokens & cookies | Auto-generated 64-hex string via `npm run setup:env` |
+| `CORS_ORIGIN` | Backend | Optional | Allowed CORS origin for web client | `http://localhost:5173` |
+| `LLM_API_KEY` | Backend | Optional | Optional API key for external AI Mentor (Gemini/OpenAI) | `AIzaSy...` (falls back to autonomous guidance if absent) |
+| `VITE_API_BASE_URL` | Frontend | Optional | Base URL for backend API calls | `/api` |
 
-> **Security Rule:** Never commit real secrets or `.env` files to source control. `.env` is explicitly declared in `.gitignore`.
+> **Security Rule:** Never commit real secrets or `.env` files to source control. `.env` and `.local-db/` are strictly ignored in `.gitignore`.
 
 ---
 
 ## 🧪 Testing Strategy
+
+CodeVerse maintains a comprehensive multi-tier automated test suite:
+
+| Test Scope | Command | Description |
+|:---|:---|:---|
+| **All Linters** | `npm run lint` | Runs ESLint flat config across backend, frontend, and shared modules |
+| **All Tests** | `npm test` | Runs backend unit/integration tests, frontend tests, and frontend build |
+| **Backend Suite** | `npm run test:backend` | 308 automated tests covering auth, campaign, mentor, guilds, and lifecycle |
+| **Frontend Suite** | `npm run test:frontend` | 22 tests covering Blockly AST compilation, API client, and playback lifecycle |
+| **Campaign Integration** | `npm run test:campaign:integration` | 15 end-to-end tests validating all 24 levels and transactional rewards against a real MongoDB replica set |
+| **Full Release Verification** | `npm run verify` | Single command executing linting, unit tests, campaign integration, and production build |
+
+### Production Bundle Optimization & Code Splitting
+The frontend employs Route-based code splitting via `React.lazy()` and Rollup `manualChunks`:
+- **Landing Page (`/`):** **27.34 kB (gzip: 8.58 kB)** initial bundle footprint!
+- **Blockly Editor (`/playground`):** Isolated into a deferred chunk (~788 kB) loaded only when entering a flight mission.
 
 ### Current Status: ✅ Automated Infrastructure Test Suite (node --test)
 The backend `package.json` executes native unit and smoke tests:
