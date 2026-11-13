@@ -12,6 +12,7 @@ import { PlaygroundView } from './views/PlaygroundView.jsx';
 import { DashboardView } from './views/DashboardView.jsx';
 import { LeaderboardView } from './views/LeaderboardView.jsx';
 import { ProfileView } from './views/ProfileView.jsx';
+import { MentorView } from './views/MentorView.jsx';
 import { NotFoundView } from './views/NotFoundView.jsx';
 
 export function App() {
@@ -59,6 +60,14 @@ export function App() {
                 element={(
                   <ProtectedRoute>
                     <ProfileView />
+                  </ProtectedRoute>
+                )}
+              />
+              <Route
+                path="/mentor"
+                element={(
+                  <ProtectedRoute>
+                    <MentorView />
                   </ProtectedRoute>
                 )}
               />

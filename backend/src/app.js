@@ -10,6 +10,7 @@ import authRoutes from './routes/auth.routes.js';
 import topicRoutes from './routes/topic.routes.js';
 import campaignRoutes from './routes/campaign.routes.js';
 import leaderboardRoutes from './routes/leaderboard.routes.js';
+import mentorRoutes from './routes/mentor.routes.js';
 
 const app = express();
 
@@ -55,6 +56,9 @@ app.use('/api/game', campaignRoutes);
 
 // Global Leaderboard routes
 app.use('/api/leaderboard', leaderboardRoutes);
+
+// AI Flight Mentor routes
+app.use('/api/ai', mentorRoutes);
 
 // Fallback for unmapped routes
 app.use(notFoundHandler);
