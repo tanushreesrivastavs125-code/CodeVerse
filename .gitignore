@@ -21,7 +21,8 @@ frontend/.env
 # Local managed database & launcher state
 .local-db*/
 .local-data*/
-.codeverse-launcher.pid
+.codeverse-launcher.pid*
+.codeverse-launcher.json*
 *.pid
 
 # Logs

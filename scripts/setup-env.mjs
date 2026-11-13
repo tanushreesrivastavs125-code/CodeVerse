@@ -52,6 +52,8 @@ export function setupEnvironment() {
   return { backendCreated, frontendCreated };
 }
 
+export const ensureEnvFiles = setupEnvironment;
+
 // Allow direct CLI invocation
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(import.meta.filename || '')) {
   setupEnvironment();

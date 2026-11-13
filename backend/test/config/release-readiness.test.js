@@ -4,7 +4,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import net from 'node:net';
 import { isPortAvailable, assertPortsAvailable } from '../../../scripts/lib/port-utils.mjs';
-import { savePidFile, readPidFile, removePidFile } from '../../../scripts/lib/process-manager.mjs';
+import {
+  writeTrackingFile,
+  readTrackingFile,
+  removeTrackingFile,
+  TRACKING_FILE_PATH
+} from '../../../scripts/lib/process-manager.mjs';
 
 describe('Release Readiness & Launcher Utilities Suite', () => {
   describe('Port Conflict Detection', () => {
@@ -44,33 +49,39 @@ describe('Release Readiness & Launcher Utilities Suite', () => {
     });
   });
 
-  describe('Launcher PID Management', () => {
-    const pidFilePath = path.resolve('.codeverse-launcher.pid');
-
-    it('safely saves, retrieves, and clears process tracking information', () => {
+  describe('Launcher Tracking File Management', () => {
+    it('safely writes, reads, and clears verified launcher tracking information', () => {
       // Clean start
-      removePidFile();
-      assert.strictEqual(readPidFile(), null);
+      removeTrackingFile();
+      assert.strictEqual(readTrackingFile(), null);
 
-      savePidFile({
+      writeTrackingFile({
         mode: 'local',
-        mongodPid: 11111,
-        backendPid: 22222,
-        frontendPid: 33333
+        launcherPid: 99999,
+        controlPort: 54321,
+        controlToken: 'a'.repeat(64),
+        children: {
+          mongodPid: 11111,
+          backendPid: 22222,
+          frontendPid: 33333
+        }
       });
 
-      assert.strictEqual(fs.existsSync(pidFilePath), true);
-      const data = readPidFile();
+      assert.strictEqual(fs.existsSync(TRACKING_FILE_PATH), true);
+      const data = readTrackingFile();
       assert.ok(data);
       assert.strictEqual(data.mode, 'local');
-      assert.strictEqual(data.mongodPid, 11111);
-      assert.strictEqual(data.backendPid, 22222);
-      assert.strictEqual(data.frontendPid, 33333);
+      assert.strictEqual(data.launcherPid, 99999);
+      assert.strictEqual(data.controlPort, 54321);
+      assert.strictEqual(data.controlToken, 'a'.repeat(64));
+      assert.strictEqual(data.children.mongodPid, 11111);
+      assert.strictEqual(data.children.backendPid, 22222);
+      assert.strictEqual(data.children.frontendPid, 33333);
       assert.ok(data.createdAt);
 
-      removePidFile();
-      assert.strictEqual(readPidFile(), null);
-      assert.strictEqual(fs.existsSync(pidFilePath), false);
+      removeTrackingFile();
+      assert.strictEqual(readTrackingFile(), null);
+      assert.strictEqual(fs.existsSync(TRACKING_FILE_PATH), false);
     });
   });
 
@@ -79,14 +90,14 @@ describe('Release Readiness & Launcher Utilities Suite', () => {
       ? path.resolve('.')
       : path.resolve('..');
 
-    it('verifies root, backend, and frontend packages specify Node >=20.12.0', () => {
+    it('verifies root, backend, and frontend packages specify Node >=20.19.0', () => {
       const rootPkg = JSON.parse(fs.readFileSync(path.join(projectRoot, 'package.json'), 'utf8'));
       const backendPkg = JSON.parse(fs.readFileSync(path.join(projectRoot, 'backend/package.json'), 'utf8'));
       const frontendPkg = JSON.parse(fs.readFileSync(path.join(projectRoot, 'frontend/package.json'), 'utf8'));
 
-      assert.strictEqual(rootPkg.engines?.node, '>=20.12.0');
-      assert.strictEqual(backendPkg.engines?.node, '>=20.12.0');
-      assert.strictEqual(frontendPkg.engines?.node, '>=20.12.0');
+      assert.strictEqual(rootPkg.engines?.node, '>=20.19.0');
+      assert.strictEqual(backendPkg.engines?.node, '>=20.19.0');
+      assert.strictEqual(frontendPkg.engines?.node, '>=20.19.0');
     });
 
     it('verifies root package.json provides start, start:local, start:external, stop, and verify scripts', () => {

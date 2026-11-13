@@ -6,7 +6,14 @@ import { ensureEnvFiles } from './setup-env.mjs';
 import { assertPortsAvailable } from './lib/port-utils.mjs';
 import { startManagedDb } from './lib/managed-db.mjs';
 import { waitForBackendHealth, waitForFrontendReadiness } from './lib/readiness.mjs';
-import { savePidFile, removePidFile, stopTrackedProcesses } from './lib/process-manager.mjs';
+import {
+  createControlServer,
+  writeTrackingFile,
+  readTrackingFile,
+  removeTrackingFile,
+  probeLiveLauncher,
+  safeStopInstances
+} from './lib/process-manager.mjs';
 
 const ROOT_DIR = process.cwd();
 const BACKEND_DIR = path.join(ROOT_DIR, 'backend');
@@ -47,7 +54,7 @@ function openBrowser(url) {
     } else {
       spawn('xdg-open', [url], { detached: true, stdio: 'ignore' });
     }
-  } catch {}
+  } catch { /* ignore */ }
 }
 
 async function main() {
@@ -55,14 +62,10 @@ async function main() {
 
   // Command: --stop
   if (args.includes('--stop')) {
-    console.log('[CodeVerse] Stopping running instances...');
-    const result = stopTrackedProcesses();
-    if (result.stopped) {
-      console.log(`[CodeVerse] Successfully stopped processes (PIDs: ${result.pids.join(', ')}).`);
-    } else {
-      console.log('[CodeVerse] No running instances tracked in .codeverse-launcher.pid.');
-    }
-    process.exit(0);
+    console.log('[CodeVerse] Verifying launcher ownership and stopping running instances...');
+    const result = await safeStopInstances();
+    console.log(`[CodeVerse] ${result.message}`);
+    process.exit(result.status === 'stopped' || result.status === 'not_running' || result.status === 'stale_cleaned' || result.status === 'malformed_cleaned' ? 0 : 1);
   }
 
   const isExternal = args.includes('--external');
@@ -73,11 +76,26 @@ async function main() {
   console.log(`  CodeVerse Launch Coordinator [Mode: ${mode.toUpperCase()}]`);
   console.log('============================================================');
 
-  // Step 1: Environment files initialization
+  // Step 1: Double-launch prevention check
+  const existingTracking = readTrackingFile();
+  if (existingTracking) {
+    const isLive = await probeLiveLauncher(existingTracking, 1500);
+    if (isLive) {
+      console.error(`[Launcher] Error: Another CodeVerse instance is already active (PID: ${existingTracking.launcherPid}, mode: ${existingTracking.mode}).`);
+      console.error('[Launcher] Double-launch rejected to prevent port collisions, corrupted state, or process disruption.');
+      console.error('[Launcher] Run "npm run stop" first if you wish to shut down the existing instance.');
+      process.exit(1);
+    } else {
+      console.log('[Launcher] Detected unverified or stale tracking file from previous session. Clearing safely.');
+      removeTrackingFile();
+    }
+  }
+
+  // Step 2: Environment files initialization
   ensureEnvFiles();
   const backendEnv = parseEnvFile(path.join(BACKEND_DIR, '.env'));
 
-  // Step 2: Port conflict detection
+  // Step 3: Strict port conflict detection
   console.log('[Launcher] Checking port availability (strict assignments)...');
   const portsToCheck = [
     { port: 5000, name: 'Backend API Gateway' },
@@ -97,12 +115,88 @@ async function main() {
 
   let dbHandle = null;
   let mongoUri = '';
+  let backendProcess = null;
+  let frontendProcess = null;
+  let controlServerHandle = null;
 
-  // Step 3: Database setup
+  // Graceful shutdown coordinator
+  let isShuttingDown = false;
+  const cleanup = async () => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+    console.log('\n[Launcher] Initiating graceful shutdown of CodeVerse stack...');
+
+    if (controlServerHandle) {
+      try { await controlServerHandle.close(); } catch { /* ignore */ }
+    }
+
+    const isWindows = process.platform === 'win32';
+
+    if (frontendProcess && frontendProcess.pid) {
+      try {
+        if (isWindows) {
+          spawn('taskkill', ['/pid', String(frontendProcess.pid), '/T', '/F'], { stdio: 'ignore' });
+        } else {
+          frontendProcess.kill('SIGTERM');
+        }
+      } catch { /* ignore */ }
+    }
+
+    if (backendProcess && backendProcess.pid) {
+      try {
+        if (isWindows) {
+          spawn('taskkill', ['/pid', String(backendProcess.pid), '/T', '/F'], { stdio: 'ignore' });
+        } else {
+          backendProcess.kill('SIGTERM');
+        }
+      } catch { /* ignore */ }
+    }
+
+    // Only shut down managed MongoDB instance belonging to this launcher
+    if (dbHandle) {
+      console.log('[Launcher] Cleanly stopping managed MongoDB...');
+      try {
+        await dbHandle.stop();
+      } catch { /* ignore */ }
+    }
+
+    removeTrackingFile();
+    console.log('[Launcher] All owned services stopped cleanly. Exiting.');
+    process.exit(0);
+  };
+
+  process.on('SIGINT', cleanup);
+  process.on('SIGTERM', cleanup);
+  if (process.platform !== 'win32') {
+    process.on('SIGHUP', cleanup);
+  }
+
+  // Step 4: Start local authenticated control channel
+  try {
+    controlServerHandle = await createControlServer({
+      mode,
+      onStop: async () => {
+        await cleanup();
+      }
+    });
+
+    writeTrackingFile({
+      launcherPid: process.pid,
+      controlPort: controlServerHandle.port,
+      controlToken: controlServerHandle.token,
+      mode
+    });
+  } catch (err) {
+    console.error(`[Launcher] Failed to initialize control channel: ${err.message}`);
+    process.exit(1);
+  }
+
+  // Step 5: Database setup
   if (isExternal) {
     mongoUri = process.env.MONGODB_URI || backendEnv.MONGODB_URI;
     if (!mongoUri) {
       console.error('[Launcher] Error: External mode specified, but MONGODB_URI is not set in backend/.env or environment.');
+      await cleanup();
       process.exit(1);
     }
     console.log(`[Launcher] Verifying external MongoDB connectivity: ${mongoUri.replace(/:([^:@]{3,})@/, ':****@')}`);
@@ -115,6 +209,7 @@ async function main() {
     } catch (err) {
       console.error(`[Launcher] Error: Failed to connect to external MongoDB: ${err.message}`);
       console.error('[Launcher] Strict policy: Refusing to fall back to local managed database.');
+      await cleanup();
       process.exit(1);
     }
   } else {
@@ -125,11 +220,12 @@ async function main() {
       console.log('[Launcher] Managed replica set ready on port 27017 (rs0).');
     } catch (err) {
       console.error(`[Launcher] Failed to start managed database: ${err.message}`);
+      await cleanup();
       process.exit(1);
     }
   }
 
-  // Step 4: Launch Backend
+  // Step 6: Launch Backend
   console.log('[Launcher] Starting backend server (port 5000)...');
   const backendMergedEnv = {
     ...process.env,
@@ -138,75 +234,25 @@ async function main() {
     MONGODB_URI: mongoUri
   };
 
-  const isWindows = process.platform === 'win32';
-  const npmCmd = isWindows ? 'npm.cmd' : 'npm';
-
-  const backendProcess = spawn(npmCmd, ['run', 'dev'], {
+  backendProcess = spawn(process.execPath, ['src/server.js'], {
     cwd: BACKEND_DIR,
     env: backendMergedEnv,
     stdio: ['ignore', 'inherit', 'inherit']
   });
 
-  // Step 5: Launch Frontend
+  // Step 7: Launch Frontend
   console.log('[Launcher] Starting frontend dev server (port 5173)...');
-  const frontendProcess = spawn(npmCmd, ['run', 'dev'], {
+  const viteBin = fs.existsSync(path.resolve(ROOT_DIR, 'node_modules/vite/bin/vite.js'))
+    ? path.resolve(ROOT_DIR, 'node_modules/vite/bin/vite.js')
+    : path.resolve(FRONTEND_DIR, 'node_modules/vite/bin/vite.js');
+
+  frontendProcess = spawn(process.execPath, [viteBin], {
     cwd: FRONTEND_DIR,
     env: { ...process.env, PORT: '5173' },
     stdio: ['ignore', 'inherit', 'inherit']
   });
 
-  // Save tracked PIDs
-  savePidFile({
-    mode,
-    mongodPid: dbHandle?.child?.pid,
-    backendPid: backendProcess.pid,
-    frontendPid: frontendProcess.pid
-  });
-
-  // Graceful shutdown coordinator
-  let isShuttingDown = false;
-  const cleanup = async () => {
-    if (isShuttingDown) return;
-    isShuttingDown = true;
-    console.log('\n[Launcher] Initiating graceful shutdown of CodeVerse stack...');
-
-    try {
-      if (frontendProcess.pid) {
-        if (isWindows) {
-          spawn('taskkill', ['/pid', String(frontendProcess.pid), '/T', '/F'], { stdio: 'ignore' });
-        } else {
-          frontendProcess.kill('SIGTERM');
-        }
-      }
-    } catch {}
-
-    try {
-      if (backendProcess.pid) {
-        if (isWindows) {
-          spawn('taskkill', ['/pid', String(backendProcess.pid), '/T', '/F'], { stdio: 'ignore' });
-        } else {
-          backendProcess.kill('SIGTERM');
-        }
-      }
-    } catch {}
-
-    if (dbHandle) {
-      console.log('[Launcher] Cleanly stopping managed MongoDB...');
-      await dbHandle.stop();
-    }
-
-    removePidFile();
-    console.log('[Launcher] All services stopped cleanly. Exiting.');
-    process.exit(0);
-  };
-
-  process.on('SIGINT', cleanup);
-  process.on('SIGTERM', cleanup);
-  if (process.platform !== 'win32') {
-    process.on('SIGHUP', cleanup);
-  }
-
-  // Step 6: Readiness probing
+  // Step 8: Readiness probing
   console.log('[Launcher] Awaiting system readiness and transaction verification...');
   try {
     const health = await waitForBackendHealth({

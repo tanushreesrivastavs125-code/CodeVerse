@@ -5,7 +5,7 @@
 
 ---
 
-[![Node.js Version](https://img.shields.io/badge/Node.js-v18%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Node.js Version](https://img.shields.io/badge/Node.js-%3E%3D20.19.0-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Express Version](https://img.shields.io/badge/Express-v5.2.1-000000?logo=express&logoColor=white)](https://expressjs.com/)
 [![React Version](https://img.shields.io/badge/React-v19.2.8-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![Vite Version](https://img.shields.io/badge/Vite-v6.2.0-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
@@ -678,7 +678,7 @@ CodeVerse/
 ## ⚙️ Getting Started & Setup
 
 ### Prerequisites
-- **Node.js:** `>=20.12.0` (Active LTS; natively supporting ESM, `--test`, `node:crypto`, and `AbortSignal.timeout`)
+- **Node.js:** `>=20.19.0` (Active LTS required by Mongoose 9 and MongoDB 7; natively supporting ESM, `--test`, `node:crypto`, and `AbortSignal.timeout`)
 - **npm:** `>=10.0.0`
 - **MongoDB:**
   - **Local Managed Mode (Zero-Config):** Automatically provisions an isolated persistent MongoDB replica set (`rs0`) in `.local-db/`—no pre-installed MongoDB service or database setup required!
@@ -742,7 +742,7 @@ Press `Ctrl+C` in the terminal where the launcher is running, or run from anothe
 ```bash
 npm run stop
 ```
-Gracefully terminates frontend, backend, and database processes recorded in `.codeverse-launcher.pid` without leaving orphaned background services.
+Gracefully asks the running launcher instance to stop its owned child processes via an authenticated loopback control channel (using a per-launch random bearer secret). If no launcher is active, or if ownership cannot be cryptographically verified, it safely refuses to terminate any process to prevent PID collision damage. In external database mode, it stops backend and frontend processes while leaving the external database untouched.
 
 ---
 
