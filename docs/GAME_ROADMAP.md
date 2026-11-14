@@ -329,10 +329,10 @@ Stage A: Fix Gameplay Results, Progression, and Authentication (Complete)
 Stage B: Calm UI and Theme Settings (Complete)
    │  └─ Focused workspace, Dark/Light/Soft Contrast/System themes, reduced motion, mobile layout
    ▼
-Stage C: Teach Before Testing (NEXT)
+Stage C: Teach Before Testing (Complete)
    │  └─ Structured pedagogical lessons, progressive toolbox, contextual demonstrations, multi-tier hints
    ▼
-Stage D: Real Multilanguage Code Preview
+Stage D: Real Multilanguage Code Preview (NEXT)
    │  └─ Deterministic code generation for JS, Python, Java, C++, C, line-highlight sync, copy tools
    ▼
 Stage E: Expand the Actual Learning Game

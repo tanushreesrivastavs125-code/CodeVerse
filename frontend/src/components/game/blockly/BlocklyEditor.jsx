@@ -3,7 +3,7 @@ import * as Blockly from 'blockly';
 import {
   registerCodeVerseBlocks,
   getBlocklyTheme,
-  gameToolbox
+  getToolboxForLevel
 } from './blocklyConfig.js';
 import {
   compileWorkspaceToAST,
@@ -21,7 +21,8 @@ export function BlocklyEditor({
   isBusy = false,
   highlightedBlockId = null,
   initialXml = null,
-  isVisible = true
+  isVisible = true,
+  level = null
 }) {
   const editorRef = useRef(null);
   const workspaceRef = useRef(null);
@@ -29,14 +30,22 @@ export function BlocklyEditor({
   const [activeTab, setActiveTab] = useState('blocks'); // 'blocks' | 'code'
   const [previewCode, setPreviewCode] = useState('');
   const [compilationError, setCompilationError] = useState(null);
+  const [disconnectedWarning, setDisconnectedWarning] = useState(null);
+  const [showAllBlocks, setShowAllBlocks] = useState(false);
 
   const onProgramChangeRef = useRef(onProgramChange);
   const initialXmlRef = useRef(initialXml);
   const resolvedThemeRef = useRef(resolvedTheme);
+  const levelRef = useRef(level);
+  const showAllBlocksRef = useRef(showAllBlocks);
+  const prevLevelIdRef = useRef(level?.id);
+  const prevShowAllRef = useRef(showAllBlocks);
 
   useEffect(() => {
     onProgramChangeRef.current = onProgramChange;
     resolvedThemeRef.current = resolvedTheme;
+    levelRef.current = level;
+    showAllBlocksRef.current = showAllBlocks;
   });
 
   // Dynamic theme update for active Blockly workspace
@@ -50,6 +59,25 @@ export function BlocklyEditor({
       }
     }
   }, [resolvedTheme]);
+
+  // Dynamic toolbox update when level or showAllBlocks toggle changes (only after initial mount)
+  const levelId = level?.id;
+  useEffect(() => {
+    if (prevLevelIdRef.current === levelId && prevShowAllRef.current === showAllBlocks) {
+      return;
+    }
+    prevLevelIdRef.current = levelId;
+    prevShowAllRef.current = showAllBlocks;
+
+    if (workspaceRef.current) {
+      try {
+        const nextToolbox = getToolboxForLevel(levelId ? { id: levelId } : null, showAllBlocks);
+        workspaceRef.current.updateToolbox(nextToolbox);
+      } catch {
+        // Fallback safely
+      }
+    }
+  }, [levelId, showAllBlocks]);
 
   // Handle visibility changes (e.g. mobile tab switch to 'code')
   useEffect(() => {
@@ -85,9 +113,10 @@ export function BlocklyEditor({
     }
 
     const currentTheme = getBlocklyTheme(resolvedThemeRef.current);
+    const initialToolbox = getToolboxForLevel(levelRef.current, showAllBlocksRef.current);
 
     const ws = Blockly.inject(editorRef.current, {
-      toolbox: gameToolbox,
+      toolbox: initialToolbox,
       theme: currentTheme,
       renderer: 'geras',
       grid: {
@@ -127,8 +156,23 @@ export function BlocklyEditor({
       try {
         const ast = compileWorkspaceToAST(ws);
         const code = programToPreviewCode(ast);
-        setPreviewCode(code);
-        setCompilationError(null);
+        setPreviewCode((prev) => (prev === code ? prev : code));
+        setCompilationError((prev) => (prev === null ? prev : null));
+
+        // Check for disconnected blocks
+        const topBlocks = ws.getTopBlocks(false);
+        const statementStacks = topBlocks.filter((b) => !b.outputConnection);
+        const looseSensors = topBlocks.filter((b) => b.outputConnection && !b.getParent());
+
+        let nextWarning = null;
+        if (statementStacks.length > 1) {
+          nextWarning = 'Multiple separate block stacks detected. Only the primary stack runs in sequence; connect loose blocks together.';
+        } else if (looseSensors.length > 0) {
+          nextWarning = 'Unattached sensor block detected. Snap it into the condition slot of an If block.';
+        }
+
+        setDisconnectedWarning((prev) => (prev === nextWarning ? prev : nextWarning));
+
         if (typeof onProgramChangeRef.current === 'function') {
           onProgramChangeRef.current(ast, code);
         }
@@ -252,24 +296,45 @@ export function BlocklyEditor({
           </button>
         </div>
 
-        <button
-          type="button"
-          onClick={handleClearWorkspace}
-          disabled={isBusy}
-          title="Clear all blocks"
-          style={{
-            padding: '0.3rem 0.65rem',
-            borderRadius: 'var(--radius-sm)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            backgroundColor: 'transparent',
-            color: 'var(--accent-red)',
-            fontSize: '0.75rem',
-            cursor: isBusy ? 'not-allowed' : 'pointer',
-            opacity: isBusy ? 0.5 : 1
-          }}
-        >
-          🗑️ Clear
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button
+            type="button"
+            onClick={() => setShowAllBlocks((prev) => !prev)}
+            title={showAllBlocks ? 'Showing all available blocks. Click to show only staged blocks for this lesson.' : 'Showing staged blocks for this lesson. Click to reveal all blocks.'}
+            style={{
+              padding: '0.3rem 0.65rem',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid',
+              borderColor: showAllBlocks ? 'var(--accent-cyan)' : 'var(--border-subtle)',
+              backgroundColor: showAllBlocks ? 'rgba(56, 189, 248, 0.12)' : 'transparent',
+              color: showAllBlocks ? 'var(--accent-cyan)' : 'var(--text-muted)',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+          >
+            {showAllBlocks ? '📦 All Blocks Active' : '📦 Show All Blocks'}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleClearWorkspace}
+            disabled={isBusy}
+            title="Clear all blocks"
+            style={{
+              padding: '0.3rem 0.65rem',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              backgroundColor: 'transparent',
+              color: 'var(--accent-red)',
+              fontSize: '0.75rem',
+              cursor: isBusy ? 'not-allowed' : 'pointer',
+              opacity: isBusy ? 0.5 : 1
+            }}
+          >
+            🗑️ Clear
+          </button>
+        </div>
       </div>
 
       {/* Main Workspace Mount Target */}
@@ -325,6 +390,26 @@ export function BlocklyEditor({
           </div>
         )}
       </div>
+
+      {/* Disconnected Stack Notice Banner */}
+      {disconnectedWarning && (
+        <div
+          role="status"
+          style={{
+            padding: '0.55rem 1rem',
+            backgroundColor: 'rgba(234, 179, 8, 0.12)',
+            borderTop: '1px solid rgba(234, 179, 8, 0.3)',
+            color: 'var(--accent-gold)',
+            fontSize: '0.8rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}
+        >
+          <span>⚠️</span>
+          <span>{disconnectedWarning}</span>
+        </div>
+      )}
 
       {/* Compilation Notice or Helper Banner */}
       {compilationError && (

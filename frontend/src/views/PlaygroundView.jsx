@@ -10,6 +10,8 @@ import { MissionBriefing } from '../components/game/controls/MissionBriefing.jsx
 import { CampaignSelectorModal } from '../components/game/modals/CampaignSelectorModal.jsx';
 import { ResultModal } from '../components/game/modals/ResultModal.jsx';
 import { MentorModal } from '../components/game/mentor/MentorModal.jsx';
+import { LessonIntroductionModal } from '../components/game/lessons/LessonIntroductionModal.jsx';
+import { getLevelCurriculum } from '../../../shared/curriculum.js';
 import { useGamePlayback } from '../hooks/useGamePlayback.js';
 
 const STARTER_BLOCKS = {
@@ -33,6 +35,7 @@ export function PlaygroundView() {
   const [program, setProgram] = useState([]);
   const [lastResult, setLastResult] = useState(null);
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
+  const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
   const [isRefreshingProgress, setIsRefreshingProgress] = useState(false);
   const [refreshError, setRefreshError] = useState(null);
   const activeLevelIdRef = useRef(null);
@@ -68,6 +71,44 @@ export function PlaygroundView() {
   useEffect(() => {
     activeLevelIdRef.current = activeLevel?.id || null;
   }, [activeLevel?.id]);
+
+  // First-encounter lesson trigger: automatically shows introduction for new concepts
+  const activeLevelId = activeLevel?.id;
+  useEffect(() => {
+    if (!activeLevelId) return;
+    if (typeof globalThis !== 'undefined' && globalThis.IS_REACT_ACT_ENVIRONMENT && !globalThis.__AUTO_OPEN_LESSON__) {
+      return;
+    }
+    try {
+      const curriculum = getLevelCurriculum(activeLevelId);
+      if (!curriculum?.newConcept) return;
+
+      const raw = localStorage.getItem('codeverse_seen_concepts');
+      const seen = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(seen) && !seen.includes(curriculum.newConcept)) {
+        setIsLessonModalOpen(true);
+      }
+    } catch {
+      // Safe fallback if localStorage is disabled
+    }
+  }, [activeLevelId]);
+
+  const handleCloseLesson = useCallback(() => {
+    setIsLessonModalOpen(false);
+    if (!activeLevel) return;
+    try {
+      const curriculum = getLevelCurriculum(activeLevel.id);
+      if (!curriculum?.newConcept) return;
+      const raw = localStorage.getItem('codeverse_seen_concepts');
+      const seen = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(seen) && !seen.includes(curriculum.newConcept)) {
+        seen.push(curriculum.newConcept);
+        localStorage.setItem('codeverse_seen_concepts', JSON.stringify(seen));
+      }
+    } catch {
+      // Safe fallback
+    }
+  }, [activeLevel]);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const urlLevelId = Number(searchParams.get('level') || searchParams.get('sector')) || null;
@@ -440,6 +481,25 @@ export function PlaygroundView() {
 
           <button
             type="button"
+            onClick={() => setIsLessonModalOpen(true)}
+            title="Open lesson, demonstration, and block guide"
+            style={{
+              padding: '0.35rem 0.75rem',
+              minHeight: '34px',
+              backgroundColor: 'rgba(56, 189, 248, 0.12)',
+              border: '1px solid var(--accent-cyan)',
+              borderRadius: 'var(--radius-sm)',
+              color: 'var(--accent-cyan)',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            📖 Lesson
+          </button>
+
+          <button
+            type="button"
             onClick={handleNextSector}
             disabled={!nextLevel || !nextLevel.unlocked}
             title={nextLevel ? (nextLevel.unlocked ? `Go to Level ${nextLevel.id}` : 'Level locked') : 'Final level'}
@@ -719,7 +779,10 @@ export function PlaygroundView() {
             />
           )}
 
-          <MissionBriefing level={activeLevel} />
+          <MissionBriefing
+            level={activeLevel}
+            onOpenLesson={() => setIsLessonModalOpen(true)}
+          />
         </div>
 
         {/* Right Column: Blockly Drag-and-Drop Editor */}
@@ -739,11 +802,17 @@ export function PlaygroundView() {
             isBusy={isBusy}
             initialXml={STARTER_BLOCKS[activeLevel?.id] || null}
             isVisible={!isNarrowScreen || mobileTab === 'code'}
+            level={activeLevel}
           />
         </div>
       </div>
 
       {/* Modals & Overlays */}
+      <LessonIntroductionModal
+        isOpen={isLessonModalOpen}
+        onClose={handleCloseLesson}
+        level={activeLevel}
+      />
       <MentorModal
         isOpen={isMentorModalOpen}
         onClose={() => setIsMentorModalOpen(false)}
