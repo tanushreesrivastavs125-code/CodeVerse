@@ -1,16 +1,22 @@
 import { useEffect, useRef } from 'react';
+import { useTheme } from '../../context/ThemeContext.jsx';
 
 const CHARS = '01CODEVERSEλπ<>{}[]/*+-=~!#$_;';
 
 /**
  * CodeFlow renders a subtle, restrained falling matrix stream in the background.
- * Respects prefers-reduced-motion by halting animation, pauses when the document is hidden,
- * and maintains low CPU/GPU footprint via throttled frame rate.
+ * Respects user preferences (reduced motion, animation toggle) and halts rendering in light theme.
  */
 export function CodeFlow() {
   const canvasRef = useRef(null);
+  const { isReducedMotion, backgroundAnimation, resolvedTheme } = useTheme();
 
   useEffect(() => {
+    // Disable completely if motion is reduced, background animations disabled, or in light theme
+    if (isReducedMotion || !backgroundAnimation || resolvedTheme === 'light') {
+      return;
+    }
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -103,7 +109,11 @@ export function CodeFlow() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       mediaQuery.removeEventListener('change', handleMotionChange);
     };
-  }, []);
+  }, [isReducedMotion, backgroundAnimation, resolvedTheme]);
+
+  if (isReducedMotion || !backgroundAnimation || resolvedTheme === 'light') {
+    return null;
+  }
 
   return (
     <canvas

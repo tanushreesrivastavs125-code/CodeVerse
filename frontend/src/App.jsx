@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
+import { ThemeProvider } from './context/ThemeContext.jsx';
 import { Navbar } from './components/Navbar.jsx';
 import { ProtectedRoute } from './components/ProtectedRoute.jsx';
 import { CodeFlow } from './components/common/CodeFlow.jsx';
@@ -44,19 +45,20 @@ function RouteLoadingFallback() {
 export function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <div style={{
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          backgroundColor: 'var(--bg-primary)',
-          color: 'var(--text-primary)',
-          position: 'relative'
-        }}>
-          <CodeFlow />
-          <Navbar />
+      <ThemeProvider>
+        <AuthProvider>
+          <div style={{
+            minHeight: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            backgroundColor: 'var(--bg-primary)',
+            color: 'var(--text-primary)',
+            position: 'relative'
+          }}>
+            <CodeFlow />
+            <Navbar />
 
-          <main style={{ flex: 1 }}>
+            <main style={{ flex: 1 }}>
             <Suspense fallback={<RouteLoadingFallback />}>
               <Routes>
                 <Route path="/" element={<HomeView />} />
@@ -135,7 +137,8 @@ export function App() {
             </div>
           </footer>
         </div>
-      </AuthProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

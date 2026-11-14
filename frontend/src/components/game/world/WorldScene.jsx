@@ -41,11 +41,11 @@ export function WorldScene({
   return (
     <div
       style={{
-        backgroundColor: '#071018',
+        backgroundColor: 'var(--bg-card)',
         borderRadius: 'var(--radius-lg)',
         border: '1px solid var(--border-subtle)',
         overflow: 'hidden',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.45)',
+        boxShadow: 'var(--shadow-md)',
         position: 'relative',
         display: 'flex',
         flexDirection: 'column'
@@ -59,21 +59,21 @@ export function WorldScene({
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: '0.75rem',
-          padding: '0.85rem 1.25rem',
-          backgroundColor: '#0c1824',
-          borderBottom: '1px solid rgba(75, 85, 99, 0.3)',
+          padding: '0.75rem 1.25rem',
+          backgroundColor: 'var(--bg-secondary)',
+          borderBottom: '1px solid var(--border-subtle)',
           fontFamily: 'var(--font-mono)',
           fontSize: '0.8rem'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <div>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>SECTOR: </span>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>LEVEL: </span>
             <strong style={{ color: 'var(--accent-cyan)' }}>{level?.id || 1}</strong>
             <span style={{ color: 'var(--text-secondary)', marginLeft: '0.35rem' }}>{level?.title}</span>
           </div>
           <div>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>ZONE: </span>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>DISTRICT: </span>
             <span style={{ color: 'var(--text-secondary)' }}>{level?.zone || 'Neon Outskirts'}</span>
           </div>
         </div>
@@ -81,9 +81,9 @@ export function WorldScene({
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
           {totalEnergy > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <span style={{ color: '#fbbf24' }}>◈</span>
+              <span style={{ color: 'var(--accent-gold)' }}>◈</span>
               <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>ENERGY:</span>
-              <strong style={{ color: collectedCount === totalEnergy ? 'var(--accent-emerald)' : '#fbbf24' }}>
+              <strong style={{ color: collectedCount === totalEnergy ? 'var(--accent-emerald)' : 'var(--accent-gold)' }}>
                 {collectedCount}/{totalEnergy}
               </strong>
             </div>
@@ -91,25 +91,25 @@ export function WorldScene({
 
           {maxBossHP > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <span style={{ color: '#d946ef' }}>⚡</span>
+              <span style={{ color: 'var(--accent-purple)' }}>⚡</span>
               <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>GUARDIAN:</span>
-              <strong style={{ color: (state?.bossHP ?? maxBossHP) === 0 ? 'var(--accent-emerald)' : '#d946ef' }}>
+              <strong style={{ color: (state?.bossHP ?? maxBossHP) === 0 ? 'var(--accent-emerald)' : 'var(--accent-purple)' }}>
                 {state?.bossHP ?? maxBossHP}/{maxBossHP}
               </strong>
             </div>
           )}
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>ACTIONS:</span>
-            <strong style={{ color: state?.steps <= (level?.par || 10) ? 'var(--accent-cyan)' : '#f97316' }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>STEPS:</span>
+            <strong style={{ color: state?.steps <= (level?.par || 10) ? 'var(--accent-cyan)' : 'var(--accent-gold)' }}>
               {state?.steps || 0}
             </strong>
-            <span style={{ color: 'var(--text-muted)' }}>/ par {level?.par || 10}</span>
+            <span style={{ color: 'var(--text-muted)' }}>/ goal {level?.par || 10}</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <span style={{ color: '#ef4444' }}>♥</span>
-            <strong style={{ color: (state?.health ?? 3) > 1 ? 'var(--accent-emerald)' : '#ef4444' }}>
+            <span style={{ color: 'var(--accent-red)' }}>♥</span>
+            <strong style={{ color: (state?.health ?? 3) > 1 ? 'var(--accent-emerald)' : 'var(--accent-red)' }}>
               {state?.health ?? 3}
             </strong>
           </div>
@@ -120,12 +120,12 @@ export function WorldScene({
       <div
         style={{
           minHeight: '340px',
-          padding: '2.5rem 1rem',
+          padding: '2rem 1rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           position: 'relative',
-          background: 'radial-gradient(ellipse at 50% 60%, rgba(6, 182, 212, 0.08), transparent 70%), linear-gradient(to bottom, #070d14, #0b1522)',
+          backgroundColor: 'var(--board-bg)',
           overflow: 'auto',
           maxWidth: '100%'
         }}
@@ -135,9 +135,9 @@ export function WorldScene({
           style={{
             position: 'absolute',
             inset: 0,
-            backgroundImage: 'radial-gradient(rgba(6, 182, 212, 0.15) 1px, transparent 1px)',
-            backgroundSize: '32px 32px',
-            opacity: 0.35,
+            backgroundImage: 'radial-gradient(var(--board-grid-dot) 1px, transparent 1px)',
+            backgroundSize: '28px 28px',
+            opacity: 0.5,
             pointerEvents: 'none'
           }}
         />
@@ -148,7 +148,7 @@ export function WorldScene({
             position: 'relative',
             width: `${boardWidth}px`,
             height: `${boardHeight}px`,
-            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)'
+            boxShadow: 'var(--shadow-md)'
           }}
         >
           {/* Tiles Layer */}
@@ -188,27 +188,27 @@ export function WorldScene({
                       inset: '2px',
                       borderRadius: '6px',
                       backgroundColor: isWall
-                        ? '#0b111a'
+                        ? 'var(--board-tile-wall)'
                         : isHazard
-                          ? '#1c0e15'
+                          ? 'rgba(239, 68, 68, 0.2)'
                           : isBridge && bridgeActive
-                            ? '#0c2423'
+                            ? 'rgba(16, 185, 129, 0.2)'
                             : isBridge
-                              ? '#070f16'
-                              : '#131e2b',
+                              ? 'var(--board-tile-wall)'
+                              : 'var(--board-tile-floor)',
                       border: isWall
-                        ? '1px solid rgba(30, 41, 59, 0.5)'
+                        ? '1px solid var(--board-tile-border)'
                         : isHazard
                           ? '1px solid rgba(239, 68, 68, 0.5)'
                           : isBridge && bridgeActive
-                            ? '1px solid rgba(16, 185, 129, 0.7)'
+                            ? '1px solid var(--accent-emerald)'
                             : isBridge
-                              ? '1px dashed rgba(75, 85, 99, 0.4)'
-                              : '1px solid rgba(30, 58, 82, 0.5)',
+                              ? '1px dashed var(--border-subtle)'
+                              : '1px solid var(--board-tile-border)',
                       boxShadow: isHazard
-                        ? '0 0 10px rgba(239, 68, 68, 0.2)'
+                        ? '0 0 6px rgba(239, 68, 68, 0.2)'
                         : isBridge && bridgeActive
-                          ? '0 0 12px rgba(16, 185, 129, 0.3)'
+                          ? '0 0 6px rgba(16, 185, 129, 0.2)'
                           : 'none',
                       transition: 'all 0.3s ease'
                     }}

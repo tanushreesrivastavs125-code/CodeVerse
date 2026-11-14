@@ -1,27 +1,46 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
-:root {
-  /* CodeVerse Cyber Neon Palette */
-  --bg-primary: #050a0f;
-  --bg-secondary: #0b141d;
-  --bg-card: #08131b;
-  --bg-card-hover: #0e1e2c;
+/* ==========================================================================
+   CodeVerse Design System — Stage B (Calm UI & Accessible Themes)
+   Themes: Dark (Default), Light, Soft Contrast
+   ========================================================================== */
 
-  --accent-cyan: #42e3c6;
-  --accent-teal: #49ebc3;
-  --accent-blue: #38bdf8;
+:root,
+[data-theme="dark"] {
+  /* Dark Theme: Calm, focused deep navy/slate with restrained accents */
+  --bg-primary: #0a0f16;
+  --bg-secondary: #0f1722;
+  --bg-card: #131d2b;
+  --bg-card-hover: #192638;
+  --bg-elevated: #162232;
+  --bg-input: #0b121c;
+
+  --text-primary: #e6edf3;
+  --text-secondary: #9cb3c9;
+  --text-muted: #62788e;
+
+  --border-subtle: #1e2c3d;
+  --border-hover: #2a3e56;
+  --border-focus: #38bdf8;
+  --border-active: #38bdf8;
+
+  --accent-cyan: #38bdf8;
+  --accent-teal: #2dd4bf;
+  --accent-blue: #60a5fa;
   --accent-emerald: #34d399;
-  --accent-red: #ff4d6d;
-  --accent-gold: #f2cc66;
+  --accent-red: #f87171;
+  --accent-gold: #fbbf24;
   --accent-purple: #c084fc;
 
-  --text-primary: #e5f0f2;
-  --text-secondary: #9cb9c0;
-  --text-muted: #648690;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.45);
 
-  --border-subtle: #1b343e;
-  --border-glow: #244b56;
-  --border-active: #42e3c6;
+  --board-bg: #090e15;
+  --board-tile-floor: #111a26;
+  --board-tile-wall: #090e15;
+  --board-tile-border: #1a2736;
+  --board-grid-dot: rgba(56, 189, 248, 0.08);
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
@@ -29,6 +48,80 @@
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
+}
+
+[data-theme="light"] {
+  /* Light Theme: Crisp, gentle, high-readability on clean slate/white */
+  --bg-primary: #f8fafc;
+  --bg-secondary: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --bg-elevated: #ffffff;
+  --bg-input: #ffffff;
+
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+
+  --border-subtle: #e2e8f0;
+  --border-hover: #cbd5e1;
+  --border-focus: #0284c7;
+  --border-active: #0284c7;
+
+  --accent-cyan: #0284c7;
+  --accent-teal: #0d9488;
+  --accent-blue: #2563eb;
+  --accent-emerald: #059669;
+  --accent-red: #dc2626;
+  --accent-gold: #d97706;
+  --accent-purple: #7c3aed;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.12);
+
+  --board-bg: #e2e8f0;
+  --board-tile-floor: #ffffff;
+  --board-tile-wall: #cbd5e1;
+  --board-tile-border: #94a3b8;
+  --board-grid-dot: rgba(2, 132, 199, 0.1);
+}
+
+[data-theme="soft"] {
+  /* Soft Contrast: Warm charcoal, low eye fatigue, gentle contrast */
+  --bg-primary: #171b22;
+  --bg-secondary: #1d222b;
+  --bg-card: #232934;
+  --bg-card-hover: #2a313e;
+  --bg-elevated: #262c38;
+  --bg-input: #181d25;
+
+  --text-primary: #dbe3ed;
+  --text-secondary: #97a6b8;
+  --text-muted: #667688;
+
+  --border-subtle: #2d3644;
+  --border-hover: #3b4657;
+  --border-focus: #5eaad9;
+  --border-active: #5eaad9;
+
+  --accent-cyan: #5eaad9;
+  --accent-teal: #4ebaa8;
+  --accent-blue: #5b9bf8;
+  --accent-emerald: #48bb78;
+  --accent-red: #e06c75;
+  --accent-gold: #e5c07b;
+  --accent-purple: #b392f0;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.35);
+
+  --board-bg: #14171d;
+  --board-tile-floor: #1c212a;
+  --board-tile-wall: #14171d;
+  --board-tile-border: #272e3a;
+  --board-grid-dot: rgba(94, 170, 217, 0.06);
 }
 
 *, *::before, *::after {
@@ -48,17 +141,27 @@ body {
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Subtle background vignette */
+/* Subtle background vignette for dark/soft themes only */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: radial-gradient(ellipse at 85% 0%, rgba(6, 59, 70, 0.18), transparent 65%),
-              linear-gradient(90deg, rgba(5, 10, 15, 0.4), rgba(5, 10, 15, 0.64) 45%, rgba(5, 10, 15, 0.27));
+  background: radial-gradient(ellipse at 85% 0%, rgba(56, 189, 248, 0.08), transparent 65%),
+              linear-gradient(90deg, rgba(10, 15, 22, 0.4), rgba(10, 15, 22, 0.6) 45%, rgba(10, 15, 22, 0.25));
+  transition: opacity 0.25s ease;
+}
+
+[data-theme="light"] body::before {
+  display: none;
+}
+
+[data-theme="soft"] body::before {
+  opacity: 0.5;
 }
 
 code, pre {
@@ -82,11 +185,11 @@ button {
 
 /* Visible accessible keyboard focus */
 :focus-visible {
-  outline: 2px solid var(--accent-cyan);
+  outline: 2px solid var(--border-focus);
   outline-offset: 2px;
 }
 
-/* Custom scrollbars */
+/* Custom scrollbars themed */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -102,12 +205,53 @@ button {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--border-glow);
+  background: var(--border-hover);
 }
 
 /* Modal z-index above Blockly */
 .modal-backdrop, [role="dialog"] {
   z-index: 10000;
+}
+
+/* Card & container utilities */
+.calm-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Layout utilities for responsive desktop, tablet, and mobile */
+.workspace-container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .workspace-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .workspace-container {
+    padding: 0.75rem;
+  }
 }
 
 /* Keyframes */
@@ -116,14 +260,14 @@ button {
 }
 
 @keyframes pulseGlow {
-  0%, 100% { opacity: 0.8; }
+  0%, 100% { opacity: 0.85; }
   50% { opacity: 1; }
 }
 
 @keyframes scaleIn {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: scale(0.96);
   }
   to {
     opacity: 1;
@@ -136,16 +280,16 @@ button {
     transform: translateY(0) scale(1);
   }
   20% {
-    transform: translateY(-16px) scale(1.08);
+    transform: translateY(-14px) scale(1.06);
   }
   40% {
-    transform: translateY(0) scale(0.96);
+    transform: translateY(0) scale(0.97);
   }
   60% {
-    transform: translateY(-8px) scale(1.04);
+    transform: translateY(-6px) scale(1.03);
   }
   80% {
-    transform: translateY(0) scale(0.98);
+    transform: translateY(0) scale(0.99);
   }
 }
 
@@ -155,8 +299,8 @@ button {
 
 @keyframes robotVictoryBounce {
   0%, 100% { transform: translateY(0) rotate(0deg); }
-  25% { transform: translateY(-10px) rotate(-3deg); }
-  75% { transform: translateY(-5px) rotate(3deg); }
+  25% { transform: translateY(-8px) rotate(-2deg); }
+  75% { transform: translateY(-4px) rotate(2deg); }
 }
 
 .robot-victory-avatar {
@@ -164,7 +308,7 @@ button {
   animation: robotVictoryBounce 1.2s ease-in-out infinite;
 }
 
-/* Reduced motion preference */
+/* Reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -173,6 +317,19 @@ button {
     scroll-behavior: auto !important;
   }
   .code-flow {
-    opacity: 0.1 !important;
+    display: none !important;
   }
+}
+
+[data-motion="reduced"] *,
+[data-motion="reduced"] *::before,
+[data-motion="reduced"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+[data-motion="reduced"] .code-flow {
+  display: none !important;
 }

@@ -45,6 +45,12 @@ export function setupJsdom() {
     }
   }
 
+  try {
+    globalThis.localStorage = dom.window.localStorage;
+  } catch {
+    // ignore
+  }
+
   if (!globalThis.ResizeObserver) {
     globalThis.ResizeObserver = class {
       observe() {}

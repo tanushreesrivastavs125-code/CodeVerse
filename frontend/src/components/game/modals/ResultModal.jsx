@@ -207,7 +207,7 @@ export function ResultModal({
         {isVictory && (
           <div
             style={{
-              backgroundColor: 'rgba(17, 24, 39, 0.8)',
+              backgroundColor: 'var(--bg-secondary)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid rgba(16, 185, 129, 0.3)',
               padding: '1.25rem',
@@ -289,7 +289,7 @@ export function ResultModal({
         {!isVictory && (
           <div
             style={{
-              backgroundColor: 'rgba(17, 24, 39, 0.8)',
+              backgroundColor: 'var(--bg-secondary)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid rgba(239, 68, 68, 0.3)',
               padding: '1.25rem',
