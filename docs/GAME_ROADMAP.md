@@ -310,3 +310,92 @@ To uphold CodeVerse's engineering standards:
 3. **Idempotent Rewards:** Network disconnects, browser refreshes, or duplicate submissions can never double-grant rewards.
 4. **Test Coverage:** Every engine feature, API endpoint, and level definition must be accompanied by automated tests (`npm test` and `npm run lint` must pass with 0 errors at every stage).
 
+---
+
+## 8. Beginner-Friendly Coding Adventure Transformation (Milestone 2)
+
+This milestone transforms CodeVerse into a clear, beginner-friendly coding game centered on learners' core priorities:
+1. **Clearly understand success, failure, and what to do next.**
+2. **Learn programming step by step through interactive levels.**
+3. **See real code corresponding to blocks.**
+4. **Use a calm, uncluttered interface with selectable themes, including dark mode.**
+
+Preserving server-authoritative evaluation, transactional rewards, existing accounts, progress, guilds, and replay protection.
+
+```
+Stage A: Fix Gameplay Results, Progression, and Authentication (CURRENT)
+   │  └─ Run lifecycle state machine, persistent boards, next-level flow, multi-origin LAN auth
+   ▼
+Stage B: Calm UI and Theme Settings
+   │  └─ Focused workspace, Dark/Light/Soft Contrast/System themes, reduced motion, mobile layout
+   ▼
+Stage C: Teach Before Testing
+   │  └─ Structured pedagogical lessons, progressive toolbox, contextual demonstrations, multi-tier hints
+   ▼
+Stage D: Real Multilanguage Code Preview
+   │  └─ Deterministic code generation for JS, Python, Java, C++, C, line-highlight sync, copy tools
+   ▼
+Stage E: Expand the Actual Learning Game
+      └─ Variables, For/While loops, Arrays, Indexing, Search, Sorting (compare-and-swap), Recursion (call stacks)
+```
+
+### Stage A — Fix Gameplay Results, Progression, and Authentication (Current)
+- **Branch:** `feature/gameplay-progression-auth`
+- **Focus Areas:**
+  - **Run Lifecycle State Machine:** Replace raw boolean `isBusy` with explicit lifecycle states: `idle` → `submitting` → `playing` → `passed` / `failed`, with a separate recoverable `request-error` state.
+  - **Playback Hook (`useGamePlayback`):** Reset world state and results only upon actual level identity changes (`level?.id`), preserving the board and modal on metadata updates. Clean client cancellation that never claims server-committed rewards were undone. Consistent handling of empty frames and `prefers-reduced-motion`.
+  - **Submission Guarding:** Immediate disabling of the launch trigger upon click to prevent duplicate in-flight execution requests.
+  - **Success Flow:** Unmistakable "Level complete!" result modal with star rating, server-awarded XP/coins, celebratory robot bounce, persistent final board, and prominent Next Level, Replay, and Campaign buttons. Replay explicitly states rewards were already claimed.
+  - **Failure Flow:** Warm "Not quite yet—try again" modal with concrete failure reason, plain-language correction, board coordinates, Edit Program, Try Again, and Show Hint buttons. Block assembly preserved.
+  - **Persistent Result Summary:** A persistent status banner/pill displayed after dismissing the modal so learners never wonder if their run counted.
+  - **Action Count Normalization:** Standardize action count readings across API contracts (`steps` and `actionsCount`) and `ProfileView`.
+  - **Multi-Origin LAN Authentication & CSRF:** Support comma-separated `CORS_ORIGIN`, full origin validation (protocol, host, port), seamless access via localhost, 127.0.0.1, and configured LAN IP (e.g. mobile testing), with strict distinction between 403 `LEVEL_LOCKED` and 403 `CSRF_ORIGIN_INVALID`.
+
+### Stage B — Calm UI and Theme Settings
+- **Goal:** Replace visual clutter with a focused learning workspace.
+- **Deliverables:**
+  - Compact navigation; clear level title, objective, and lesson access; board and editor as primary content.
+  - Run/Stop/Reset controls adjacent to editor, accessible without excessive scrolling.
+  - Collapsible secondary metrics, hints, and technical details; removal of duplicate player badges and repeated mentor buttons.
+  - Plain-language wording replacing jargon (e.g., replacing "tactical par execution").
+  - Four selectable themes: Dark, Light, Soft Contrast, and Follow System, persisted to prevent flash-of-unstyled-content.
+  - Complete theming across Blockly toolbox/workspace, code preview, dialogs, forms, and board using shared design tokens.
+  - Optional background animations (defaulting to off in learning workspace), reduced-motion, and audio preferences.
+  - Responsive layouts across mobile, tablet, and desktop without horizontal overflow; accessible keyboard focus and touch alternatives.
+
+### Stage C — Teach Before Testing
+- **Goal:** Comprehensive pedagogical curriculum introducing concepts before evaluation.
+- **Deliverables:**
+  - Structured lesson data for every level: learning objective, prerequisites, concept introduced, plain-language explanation, worked example separate from solution, newly unlocked blocks, board effects, common mistakes, and post-success conceptual summaries.
+  - Cognitive pacing: at most one major new concept at a time, followed by guided practice, independent practice, and challenge.
+  - Progressive toolbox: show only blocks taught so far with contextual demonstrations and visual legends.
+  - Multi-tier progressive hints: Goal/Observation (Hint 1) → Relevant Block/Logic (Hint 2) → Partial Concrete Sequence (Hint 3), with full solutions gated behind explicit user confirmation.
+  - Fully offline, deterministic pedagogical guidance without external LLM requirement.
+
+### Stage D — Real Multilanguage Code Preview
+- **Goal:** Deterministic conversion of visual block ASTs to real-world programming languages.
+- **Deliverables:**
+  - Supported language targets: Plain-English steps, JavaScript, Python, Java, C++, C.
+  - Deterministic AST code generators with correct syntax, indentation, nesting, loops, branches, and helper declarations.
+  - Live synchronized update on block modification and active line-by-line highlighting synchronized with frame playback.
+  - Clear pedagogical distinction between CodeVerse helper APIs (`drone.move()`, etc.) and core language features.
+  - Copy to clipboard, syntax explanations, language selection persistence, and self-contained runnable wrappers for downloaded examples.
+
+### Stage E — Expand the Actual Learning Game
+- **Goal:** Broaden the curriculum beyond movement puzzles into full computational thinking.
+- **Curriculum Expansion Sequence:**
+  1. Sequencing and debugging.
+  2. Counted repetition and `for` loops.
+  3. Conditions and `if` / `else`.
+  4. Sensors and `while` loops.
+  5. Variables and counters (with visible value watches).
+  6. Functions and parameters.
+  7. Arrays and indexing (with visible memory cells and pointer indicators).
+  8. Searching algorithms.
+  9. Sorting algorithms (starting with concrete compare-and-swap interactive mechanics).
+  10. Recursion (with visible call stacks and base-case indicators).
+- **Execution Guardrails:**
+  - Full end-to-end implementation for each concept: lesson → Blockly blocks → AST validation → bounded authoritative interpreter → animation trace → code generators → hints → progression → tests.
+  - Server-side execution limits (ticks, loop bounds, recursion depth, memory), kind failure explanations, stable level IDs, and immutable historical rewards.
+
+

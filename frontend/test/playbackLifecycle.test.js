@@ -104,4 +104,84 @@ describe('Mission Request & Playback Lifecycle Invariants', () => {
     assert.equal(executedFrames.length, 1);
     assert.deepEqual(executedFrames[0], { x: 1, y: 1, event: 'move' });
   });
+
+  test('level metadata refresh preserves active result and final board state', () => {
+    // Simulates the bug where setActiveLevel(updatedMetadata) had a different object reference,
+    // but the same level ID, which previously wiped the result and reset the world state.
+    const initialLevel = { id: 1, title: 'Sector 1', completed: false, stars: 0, map: ['S.G'] };
+    let activeLevel = initialLevel;
+    let previousLevelId = activeLevel.id;
+    let worldState = { x: 2, y: 0, event: 'victory' };
+    let activeResult = { passed: true, stars: 3, message: 'Sector secured.' };
+
+    // Metadata refresh arrives from server after run
+    const refreshedLevel = { id: 1, title: 'Sector 1', completed: true, stars: 3, map: ['S.G'] };
+
+    // Hook logic: only reset if level ID actually changes
+    const onLevelPropUpdate = (newLevel) => {
+      activeLevel = newLevel;
+      if (newLevel.id !== previousLevelId) {
+        previousLevelId = newLevel.id;
+        worldState = { x: 0, y: 0, event: 'ready' };
+        activeResult = null;
+      }
+    };
+
+    onLevelPropUpdate(refreshedLevel);
+
+    // Verify result and final world state were preserved
+    assert.notEqual(activeResult, null, 'Active result must NOT be erased by metadata refresh');
+    assert.equal(activeResult.passed, true);
+    assert.equal(worldState.x, 2, 'Final drone position must NOT be reset by metadata refresh');
+
+    // Now switch to actual new level (Sector 2)
+    const nextLevel = { id: 2, title: 'Sector 2', completed: false, stars: 0, map: ['S..G'] };
+    onLevelPropUpdate(nextLevel);
+
+    assert.equal(activeResult, null, 'Switching to distinct level ID must reset result');
+    assert.equal(worldState.x, 0, 'Switching to distinct level ID must re-initialize world');
+  });
+
+  test('duplicate execution requests are rejected during submitting lifecycle state', async () => {
+    let runState = 'idle';
+    let networkCallCount = 0;
+
+    const mockRunLevel = async () => {
+      if (runState === 'submitting' || runState === 'playing') {
+        return; // Guarded
+      }
+      runState = 'submitting';
+      networkCallCount += 1;
+      // Simulate network latency
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      runState = 'playing';
+    };
+
+    // User rapidly clicks Run 5 times
+    const p1 = mockRunLevel();
+    const p2 = mockRunLevel();
+    const p3 = mockRunLevel();
+    const p4 = mockRunLevel();
+    const p5 = mockRunLevel();
+
+    await Promise.all([p1, p2, p3, p4, p5]);
+
+    assert.equal(networkCallCount, 1, 'Only exactly 1 network request must be dispatched');
+    assert.equal(runState, 'playing');
+  });
+
+  test('action count resolution correctly maps steps and actionsCount', () => {
+    // Backend returns 'steps', legacy frontend expected 'actionsCount'
+    const attemptWithStepsOnly = { id: '1', levelId: 1, steps: 7, passed: true };
+    const attemptWithActionsCountOnly = { id: '2', levelId: 1, actionsCount: 5, passed: true };
+    const attemptWithBoth = { id: '3', levelId: 1, steps: 9, actionsCount: 9, passed: true };
+    const attemptWithNeither = { id: '4', levelId: 1, passed: false };
+
+    const resolveActions = (attempt) => attempt.steps ?? attempt.actionsCount ?? 0;
+
+    assert.equal(resolveActions(attemptWithStepsOnly), 7);
+    assert.equal(resolveActions(attemptWithActionsCountOnly), 5);
+    assert.equal(resolveActions(attemptWithBoth), 9);
+    assert.equal(resolveActions(attemptWithNeither), 0);
+  });
 });

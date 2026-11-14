@@ -131,6 +131,39 @@ button {
   }
 }
 
+@keyframes celebratoryBounce {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  20% {
+    transform: translateY(-16px) scale(1.08);
+  }
+  40% {
+    transform: translateY(0) scale(0.96);
+  }
+  60% {
+    transform: translateY(-8px) scale(1.04);
+  }
+  80% {
+    transform: translateY(0) scale(0.98);
+  }
+}
+
+.drone-celebrating {
+  animation: celebratoryBounce 1s cubic-bezier(0.28, 0.84, 0.42, 1) 2;
+}
+
+@keyframes robotVictoryBounce {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-10px) rotate(-3deg); }
+  75% { transform: translateY(-5px) rotate(3deg); }
+}
+
+.robot-victory-avatar {
+  display: inline-block;
+  animation: robotVictoryBounce 1.2s ease-in-out infinite;
+}
+
 /* Reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

@@ -7,6 +7,7 @@ export function Drone({
   y,
   direction = 0,
   event = 'ready',
+  isCelebrating = false,
   tileSize = 64,
   boardOffsetX = 0,
   boardOffsetY = 0
@@ -15,10 +16,11 @@ export function Drone({
   const leftPx = boardOffsetX + x * tileSize + tileSize * 0.125;
   const topPx = boardOffsetY + y * tileSize + tileSize * 0.125;
   const sizePx = tileSize * 0.75;
+  const celebratingClass = (isCelebrating || event === 'victory') ? 'drone-celebrating' : '';
 
   return (
     <div
-      className={`drone-unit event-${event}`}
+      className={`drone-unit event-${event} ${celebratingClass}`.trim()}
       style={{
         position: 'absolute',
         left: `${leftPx}px`,

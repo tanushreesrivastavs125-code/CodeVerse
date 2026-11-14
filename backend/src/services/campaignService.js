@@ -361,6 +361,7 @@ export async function getPlayerRunHistory(userId, limit = 10) {
     passed: h.passed,
     stars: h.stars,
     steps: h.steps,
+    actionsCount: h.steps,
     programBlocks: h.programBlocks,
     reason: h.reason,
     createdAt: h.createdAt

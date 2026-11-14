@@ -39,6 +39,7 @@ describe('Application Lifecycle & Graceful Shutdown', () => {
   test('startServer starts successfully in degraded mode when MongoDB is unavailable', async () => {
     // Attempt database connection with very low timeout against unreachable port to simulate MongoDB outage
     activeServer = await startServer(0, {
+      mongoUri: 'mongodb://127.0.0.1:59999/unreachable_db',
       dbOptions: { serverSelectionTimeoutMS: 50 }
     });
 

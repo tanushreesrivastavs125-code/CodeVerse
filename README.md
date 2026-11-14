@@ -782,11 +782,25 @@ The application enforces strict separation of code and configuration via `.env`:
 | `PORT` | Backend | Optional | Port for Express HTTP server | `5000` |
 | `MONGODB_URI` | Backend | **Yes** | MongoDB replica set URI with replicaSet query param | `mongodb://127.0.0.1:27017/codeverse?replicaSet=rs0` |
 | `JWT_SECRET` | Backend | **Yes** | Cryptographic secret (minimum 32 chars) for JWT tokens & cookies | Auto-generated 64-hex string via `npm run setup:env` |
-| `CORS_ORIGIN` | Backend | Optional | Allowed CORS origin for web client | `http://localhost:5173` |
+| `CORS_ORIGIN` | Backend | Optional | Allowed CORS origin(s) for web client (comma-separated for multi-origin/LAN) | `http://localhost:5173` |
 | `LLM_API_KEY` | Backend | Optional | Optional API key for external AI Mentor (Gemini/OpenAI) | `AIzaSy...` (falls back to autonomous guidance if absent) |
 | `VITE_API_BASE_URL` | Frontend | Optional | Base URL for backend API calls | `/api` |
 
 > **Security Rule:** Never commit real secrets or `.env` files to source control. `.env` and `.local-db/` are strictly ignored in `.gitignore`.
+
+### 📱 Local Network & Mobile Device Access (LAN Configuration)
+
+When accessing CodeVerse from a mobile device or secondary machine on your local Wi-Fi:
+1. Identify your host computer's local IP address (e.g. run `ipconfig` on Windows or `ip a` on Linux to find `192.168.x.x`).
+2. Add your LAN origin to `CORS_ORIGIN` in `backend/.env` using a comma-separated list:
+   ```env
+   CORS_ORIGIN=http://localhost:5173,http://192.168.1.8:5173
+   ```
+3. Restart CodeVerse (`npm run stop` then `npm run start:local` or `Start-CodeVerse.cmd`).
+4. On your mobile device browser, navigate to `http://<YOUR_LAN_IP>:5173` (e.g. `http://192.168.1.8:5173`).
+5. **Security Guarantee:** Wildcard `*` origins are strictly rejected with credentialed authentication to prevent CSRF and session hijacking. Localhost and `127.0.0.1` on the matching port remain automatically supported in development.
+
+---
 
 ---
 

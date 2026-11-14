@@ -131,8 +131,9 @@ export async function startServer(port = config.port, options = {}) {
 
   // Step 3: Attempt database connection before opening the HTTP port
   if (!skipDatabase) {
+    const mongoUri = options.mongoUri || config.mongoUri;
     try {
-      await connectDatabase(config.mongoUri, dbOptions);
+      await connectDatabase(mongoUri, dbOptions);
       console.log('[Server] MongoDB connected successfully.');
       try {
         await ensureCampaignProgressIndexes();

@@ -4,8 +4,8 @@ import cookieParser from 'cookie-parser';
 import { config } from './config/env.js';
 import { getDatabaseStatus } from './config/database.js';
 import { canUseTransactions } from './services/rewardService.js';
-import { csrfProtection } from './middleware/csrfProtection.js';
-import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { csrfProtection, isAllowedOrigin } from './middleware/csrfProtection.js';
+import { errorHandler, notFoundHandler, AppError } from './middleware/errorHandler.js';
 import authRoutes from './routes/auth.routes.js';
 import topicRoutes from './routes/topic.routes.js';
 import campaignRoutes from './routes/campaign.routes.js';
@@ -17,7 +17,16 @@ const app = express();
 
 // Security and CORS middleware
 app.use(cors({
-  origin: config.corsOrigin,
+  origin: (requestOrigin, callback) => {
+    // If no origin header (e.g. server-to-server, curl, same-origin), allow
+    if (!requestOrigin) {
+      return callback(null, true);
+    }
+    if (isAllowedOrigin(requestOrigin, config.corsOrigins, config.nodeEnv)) {
+      return callback(null, true);
+    }
+    return callback(new AppError(`CORS origin denied for "${requestOrigin}".`, 403, 'CORS_ORIGIN_DENIED'));
+  },
   credentials: true
 }));
 
