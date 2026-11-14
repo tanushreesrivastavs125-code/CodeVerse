@@ -66,11 +66,15 @@ export function Navbar() {
     function handleKeyDown(event) {
       if (event.key === 'Escape') {
         if (isMobileMenuOpen) {
+          event.preventDefault();
           event.stopPropagation();
+          event.stopImmediatePropagation?.();
           setIsMobileMenuOpen(false);
         }
         if (isThemeMenuOpen) {
+          event.preventDefault();
           event.stopPropagation();
+          event.stopImmediatePropagation?.();
           setIsThemeMenuOpen(false);
         }
       }
