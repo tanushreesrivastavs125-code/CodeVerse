@@ -131,5 +131,67 @@ describe('CSRF Protection Middleware', () => {
     assert.equal(calledNextWith.statusCode, 403);
     assert.equal(calledNextWith.errorCode, 'CSRF_ORIGIN_INVALID');
   });
+
+  test('allows requests from explicitly configured LAN origin', () => {
+    const lanOrigin = 'http://192.168.1.8:5173';
+    const req = {
+      method: 'POST',
+      headers: { origin: lanOrigin },
+      get: () => 'localhost:5000'
+    };
+    let calledNext = false;
+    let error = null;
+
+    // Temporarily verify with LAN origin in allowed list
+    const originalOrigins = config.corsOrigins;
+    config.corsOrigins = ['http://localhost:5173', lanOrigin];
+
+    try {
+      csrfProtection(req, {}, (err) => {
+        calledNext = true;
+        error = err;
+      });
+
+      assert.equal(calledNext, true);
+      assert.equal(error, undefined);
+    } finally {
+      config.corsOrigins = originalOrigins;
+    }
+  });
+
+  test('allows 127.0.0.1 when localhost is configured in development/test', () => {
+    const req = {
+      method: 'POST',
+      headers: { origin: 'http://127.0.0.1:5173' },
+      get: () => 'localhost:5000'
+    };
+    let calledNext = false;
+    let error = null;
+
+    csrfProtection(req, {}, (err) => {
+      calledNext = true;
+      error = err;
+    });
+
+    assert.equal(calledNext, true);
+    assert.equal(error, undefined);
+  });
+
+  test('rejects port mismatch even on localhost', () => {
+    const req = {
+      method: 'POST',
+      headers: { origin: 'http://localhost:3000' },
+      get: () => 'localhost:5000'
+    };
+    let calledNextWith = null;
+
+    csrfProtection(req, {}, (err) => {
+      calledNextWith = err;
+    });
+
+    assert.ok(calledNextWith instanceof AppError);
+    assert.equal(calledNextWith.statusCode, 403);
+    assert.equal(calledNextWith.errorCode, 'CSRF_ORIGIN_INVALID');
+  });
 });
 

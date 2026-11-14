@@ -630,7 +630,7 @@ export function ProfileView() {
                       </td>
 
                       <td style={{ padding: '0.85rem 1.25rem', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
-                        {attempt.actionsCount ?? 0}
+                        {attempt.steps ?? attempt.actionsCount ?? 0}
                       </td>
 
                       <td style={{ padding: '0.85rem 1.25rem', fontFamily: 'var(--font-mono)', color: 'var(--accent-gold)' }}>

@@ -6,13 +6,17 @@ import { initialState } from '../../../shared/game.js';
  * useGamePlayback Hook manages mission simulation animation frames,
  * frame-by-frame timer lifecycle, speed factor, procedural audio,
  * and robust cancellation / stale response protection.
+ *
+ * Implements explicit run lifecycle state machine:
+ * 'idle' -> 'submitting' -> 'playing' -> 'passed' | 'failed'
+ * with a recoverable 'request-error' state.
  */
 export function useGamePlayback({
   level,
   onRunFinished
 }) {
   const [worldState, setWorldState] = useState(null);
-  const [isBusy, setIsBusy] = useState(false);
+  const [runState, setRunState] = useState('idle'); // 'idle' | 'submitting' | 'playing' | 'passed' | 'failed' | 'request-error'
   const [speed, setSpeed] = useState(1); // 1 or 2
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [result, setResult] = useState(null);
@@ -21,7 +25,8 @@ export function useGamePlayback({
   const generationRef = useRef(0);
   const timerRef = useRef(null);
   const audioRef = useRef(null);
-  const abortControllerRef = useRef(null);
+  const previousLevelIdRef = useRef(null);
+  const previousLevelVersionRef = useRef(null);
 
   // Initialize audio synthesizer once
   useEffect(() => {
@@ -41,24 +46,31 @@ export function useGamePlayback({
     }
   }, [soundEnabled]);
 
-  // Reset world state whenever active level changes
+  // Reset world state ONLY when active level identity or version actually changes.
+  // Metadata / profile refreshes preserving the same level id must not erase results or the board.
   useEffect(() => {
-    // Invalidate any ongoing run from previous level
-    generationRef.current += 1;
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
+    const currentId = level?.id ?? null;
+    const currentVersion = level?.version ?? null;
 
-    if (level) {
-      setWorldState(initialState(level));
-      setResult(null);
-      setError(null);
-      setIsBusy(false);
+    if (
+      currentId !== previousLevelIdRef.current ||
+      currentVersion !== previousLevelVersionRef.current
+    ) {
+      previousLevelIdRef.current = currentId;
+      previousLevelVersionRef.current = currentVersion;
+      generationRef.current += 1;
+
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+
+      if (level) {
+        setWorldState(initialState(level));
+        setResult(null);
+        setError(null);
+        setRunState('idle');
+      }
     }
   }, [level]);
 
@@ -70,15 +82,44 @@ export function useGamePlayback({
         clearTimeout(timerRef.current);
         timerRef.current = null;
       }
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
-      }
     };
   }, []);
 
   /**
+   * Explicitly starts a run submission, guarding against duplicate requests.
+   * Increments generation counter and transitions to 'submitting' state.
+   */
+  const startSubmission = useCallback(() => {
+    const runGen = ++generationRef.current;
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+
+    setRunState('submitting');
+    setError(null);
+    return runGen;
+  }, []);
+
+  /**
+   * Transitions to a recoverable request error state.
+   */
+  const setRequestError = useCallback((errMsg) => {
+    setRunState('request-error');
+    setError(errMsg);
+  }, []);
+
+  /**
+   * Checks whether a generation index remains authoritative.
+   */
+  const isCurrentGeneration = useCallback((gen) => {
+    return generationRef.current === gen;
+  }, []);
+
+  /**
    * Immediately stops playback and resets the world to its initial state.
+   * Note: Client playback reset only resets visual representation;
+   * it never uncommits or reverts server-authoritative rewards or progress.
    */
   const resetWorld = useCallback(() => {
     generationRef.current += 1;
@@ -86,12 +127,8 @@ export function useGamePlayback({
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
 
-    setIsBusy(false);
+    setRunState('idle');
     setResult(null);
     setError(null);
 
@@ -105,10 +142,28 @@ export function useGamePlayback({
    */
   const playFrames = useCallback(
     (frames, finalOutcome, runGen) => {
+      const finishRun = () => {
+        if (generationRef.current !== runGen) return;
+        timerRef.current = null;
+        setRunState(finalOutcome.passed ? 'passed' : 'failed');
+        setResult(finalOutcome);
+
+        if (audioRef.current) {
+          audioRef.current.play(finalOutcome.passed ? 'victory' : 'fail');
+        }
+
+        if (typeof onRunFinished === 'function') {
+          onRunFinished(finalOutcome);
+        }
+      };
+
+      // Handle empty frames response safely
       if (!frames || frames.length === 0) {
         if (generationRef.current === runGen) {
-          setIsBusy(false);
-          setResult(finalOutcome);
+          if (finalOutcome.state) {
+            setWorldState(finalOutcome.state);
+          }
+          finishRun();
         }
         return;
       }
@@ -122,11 +177,7 @@ export function useGamePlayback({
         if (generationRef.current === runGen) {
           const finalFrame = frames[frames.length - 1];
           if (finalFrame) setWorldState(finalFrame);
-          setIsBusy(false);
-          setResult(finalOutcome);
-          if (typeof onRunFinished === 'function') {
-            onRunFinished(finalOutcome);
-          }
+          finishRun();
         }
         return;
       }
@@ -153,20 +204,7 @@ export function useGamePlayback({
         if (frameIdx < frames.length) {
           timerRef.current = setTimeout(step, baseDelay);
         } else {
-          // Playback complete
-          timerRef.current = null;
-          if (generationRef.current === runGen) {
-            setIsBusy(false);
-            setResult(finalOutcome);
-
-            if (audioRef.current) {
-              audioRef.current.play(finalOutcome.passed ? 'victory' : 'fail');
-            }
-
-            if (typeof onRunFinished === 'function') {
-              onRunFinished(finalOutcome);
-            }
-          }
+          finishRun();
         }
       }
 
@@ -179,15 +217,18 @@ export function useGamePlayback({
    * Starts playback of a mission run result.
    */
   const startPlayback = useCallback(
-    (runResponse) => {
-      const runGen = ++generationRef.current;
+    (runResponse, expectedGen = null) => {
+      if (expectedGen !== null && generationRef.current !== expectedGen) {
+        return;
+      }
+
+      const runGen = expectedGen !== null ? expectedGen : ++generationRef.current;
       if (timerRef.current) {
         clearTimeout(timerRef.current);
         timerRef.current = null;
       }
 
-      setIsBusy(true);
-      setResult(null);
+      setRunState('playing');
       setError(null);
 
       const frames = runResponse.frames || [];
@@ -204,8 +245,11 @@ export function useGamePlayback({
     setSoundEnabled((s) => !s);
   }, []);
 
+  const isBusy = runState === 'submitting' || runState === 'playing';
+
   return {
     worldState,
+    runState,
     isBusy,
     speed,
     soundEnabled,
@@ -213,8 +257,12 @@ export function useGamePlayback({
     error,
     setError,
     setResult,
+    setRunState,
     resetWorld,
+    startSubmission,
     startPlayback,
+    setRequestError,
+    isCurrentGeneration,
     toggleSpeed,
     toggleSound,
     generationRef

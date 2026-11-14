@@ -23,6 +23,7 @@ const VALID_NODE_ENVS = ['development', 'production', 'test'];
  *   port: number,
  *   nodeEnv: 'development' | 'production' | 'test',
  *   corsOrigin: string,
+ *   corsOrigins: string[],
  *   mongoUri: string,
  *   jwtSecret: string | undefined,
  *   jwtExpiresIn: string
@@ -54,13 +55,46 @@ export function validateConfig(rawEnv = process.env) {
   }
 
   // 3. CORS_ORIGIN validation
+  let corsOrigins = ['http://localhost:5173'];
   let corsOrigin = 'http://localhost:5173';
   if (rawEnv.CORS_ORIGIN !== undefined) {
     const trimmed = rawEnv.CORS_ORIGIN.trim();
     if (trimmed.length === 0) {
       errors.push('Invalid CORS_ORIGIN: cannot be an empty string.');
     } else {
-      corsOrigin = trimmed;
+      const parts = trimmed.split(',').map((p) => p.trim()).filter(Boolean);
+      if (parts.length === 0) {
+        errors.push('Invalid CORS_ORIGIN: no valid origins provided.');
+      } else {
+        const validatedOrigins = [];
+        for (const part of parts) {
+          if (part === '*') {
+            errors.push('Invalid CORS_ORIGIN: wildcard "*" is not permitted with credentialed authentication.');
+            continue;
+          }
+          try {
+            const parsedUrl = new URL(part);
+            if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+              errors.push(`Invalid CORS_ORIGIN "${part}": protocol must be http or https.`);
+              continue;
+            }
+            if (!parsedUrl.hostname) {
+              errors.push(`Invalid CORS_ORIGIN "${part}": hostname is required.`);
+              continue;
+            }
+            const normalized = `${parsedUrl.protocol}//${parsedUrl.host}`;
+            if (!validatedOrigins.includes(normalized)) {
+              validatedOrigins.push(normalized);
+            }
+          } catch {
+            errors.push(`Invalid CORS_ORIGIN "${part}": must be a valid absolute URL (e.g., http://localhost:5173).`);
+          }
+        }
+        if (validatedOrigins.length > 0) {
+          corsOrigins = validatedOrigins;
+          corsOrigin = validatedOrigins[0];
+        }
+      }
     }
   }
 
@@ -102,6 +136,7 @@ export function validateConfig(rawEnv = process.env) {
     port,
     nodeEnv,
     corsOrigin,
+    corsOrigins,
     mongoUri,
     jwtSecret,
     jwtExpiresIn

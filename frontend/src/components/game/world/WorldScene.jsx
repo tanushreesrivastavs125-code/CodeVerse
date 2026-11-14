@@ -8,7 +8,8 @@ import { Drone } from './Drone.jsx';
 export function WorldScene({
   level,
   state,
-  tileSize = 56
+  tileSize = 56,
+  isCelebrating = false
 }) {
   const map = useMemo(() => level?.map || [], [level?.map]);
   const rows = map.length;
@@ -344,6 +345,7 @@ export function WorldScene({
               y={state.y}
               direction={state.direction}
               event={state.event}
+              isCelebrating={isCelebrating}
               tileSize={effectiveTileSize}
             />
           )}

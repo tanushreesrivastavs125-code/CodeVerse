@@ -4,18 +4,65 @@ import { AUTH_COOKIE_NAME } from '../config/jwt.js';
 
 const STATE_CHANGING_METHODS = new Set(['POST', 'PUT', 'DELETE', 'PATCH']);
 
-function isAllowedTarget(targetHost, allowedHost, reqHost) {
-  if (!targetHost) return false;
-  if (targetHost === allowedHost || targetHost === reqHost) {
-    return true;
+/**
+ * Normalizes an origin or referer string into standard protocol + host (lowercase).
+ * Returns null if malformed.
+ */
+export function normalizeOrigin(originStr) {
+  if (!originStr || typeof originStr !== 'string') return null;
+  try {
+    const u = new URL(originStr);
+    return `${u.protocol}//${u.host}`.toLowerCase();
+  } catch {
+    return null;
   }
-  // In non-production environments, treat localhost and 127.0.0.1 interchangeably on matching port
-  if (config.nodeEnv !== 'production') {
-    const normalizeLoopback = (h) => (h ? h.replace(/^127\.0\.0\.1/, 'localhost') : h);
-    if (normalizeLoopback(targetHost) === normalizeLoopback(allowedHost)) {
+}
+
+/**
+ * Validates whether an incoming origin is permitted by the configured CORS origins.
+ * In non-production environments, permits loopback interchangeability (localhost <-> 127.0.0.1 on identical port).
+ * Rejects arbitrary origins, credentialed wildcards, or mismatched protocols/ports.
+ */
+export function isAllowedOrigin(incomingOrigin, allowedOrigins = config.corsOrigins, nodeEnv = config.nodeEnv) {
+  if (!incomingOrigin) return false;
+  const normalizedIncoming = normalizeOrigin(incomingOrigin);
+  if (!normalizedIncoming) return false;
+
+  let incomingUrl;
+  try {
+    incomingUrl = new URL(normalizedIncoming);
+  } catch {
+    return false;
+  }
+
+  for (const allowed of (allowedOrigins || [])) {
+    const normalizedAllowed = normalizeOrigin(allowed);
+    if (!normalizedAllowed) continue;
+
+    // Strict protocol and host match
+    if (normalizedIncoming === normalizedAllowed) {
       return true;
     }
+
+    // In development / test, allow localhost and 127.0.0.1 interchangeability on identical port
+    if (nodeEnv !== 'production') {
+      try {
+        const allowedUrl = new URL(normalizedAllowed);
+        if (
+          incomingUrl.protocol === allowedUrl.protocol &&
+          incomingUrl.port === allowedUrl.port
+        ) {
+          const isLoopback = (hostname) => hostname === 'localhost' || hostname === '127.0.0.1';
+          if (isLoopback(incomingUrl.hostname) && isLoopback(allowedUrl.hostname)) {
+            return true;
+          }
+        }
+      } catch {
+        // Continue checking other origins
+      }
+    }
   }
+
   return false;
 }
 
@@ -39,38 +86,42 @@ export function csrfProtection(req, _res, next) {
   const referer = req.headers.referer;
   const host = req.get('host');
 
-  let allowedHost;
-  try {
-    allowedHost = new URL(config.corsOrigin).host;
-  } catch {
-    allowedHost = config.corsOrigin;
-  }
-
   if (origin) {
-    let originHost;
-    try {
-      originHost = new URL(origin).host;
-    } catch {
+    const normalizedOrigin = normalizeOrigin(origin);
+    if (!normalizedOrigin) {
       return next(new AppError('Forbidden: malformed Origin header.', 403, 'CSRF_ORIGIN_INVALID'));
     }
 
-    if (!isAllowedTarget(originHost, allowedHost, host) && origin !== config.corsOrigin) {
+    // Check if origin is allowed or is exact same-host as the requested server
+    const isSameHost = host && normalizeOrigin(`http://${host}`)?.endsWith(`//${host}`);
+    const matchesReqHost = isSameHost && new URL(normalizedOrigin).host === host;
+
+    if (!isAllowedOrigin(normalizedOrigin, config.corsOrigins, config.nodeEnv) && !matchesReqHost) {
       return next(
-        new AppError('Cross-site request forgery protection: untrusted origin.', 403, 'CSRF_ORIGIN_INVALID')
+        new AppError(
+          `Cross-site request forgery protection: untrusted origin "${origin}".`,
+          403,
+          'CSRF_ORIGIN_INVALID'
+        )
       );
     }
   } else if (hasCookieAuth && !hasAuthHeader) {
     // If request has cookie credentials but lacks origin header, check referer
     if (referer) {
-      try {
-        const refUrl = new URL(referer);
-        if (!isAllowedTarget(refUrl.host, allowedHost, host) && refUrl.origin !== config.corsOrigin) {
-          return next(
-            new AppError('Cross-site request forgery protection: untrusted referer.', 403, 'CSRF_ORIGIN_INVALID')
-          );
-        }
-      } catch {
+      const normalizedReferer = normalizeOrigin(referer);
+      if (!normalizedReferer) {
         return next(new AppError('Forbidden: malformed Referer header.', 403, 'CSRF_ORIGIN_INVALID'));
+      }
+
+      const matchesReqHost = host && new URL(normalizedReferer).host === host;
+      if (!isAllowedOrigin(normalizedReferer, config.corsOrigins, config.nodeEnv) && !matchesReqHost) {
+        return next(
+          new AppError(
+            `Cross-site request forgery protection: untrusted referer "${referer}".`,
+            403,
+            'CSRF_ORIGIN_INVALID'
+          )
+        );
       }
     }
   }
@@ -78,3 +129,4 @@ export function csrfProtection(req, _res, next) {
   next();
 }
 
+export default csrfProtection;

@@ -126,4 +126,31 @@ describe('Environment Configuration Validation', () => {
       (err) => err instanceof ConfigurationError && err.message.includes('Invalid CORS_ORIGIN')
     );
   });
+
+  test('parses and normalizes multiple comma-separated CORS_ORIGIN values', () => {
+    const rawEnv = {
+      CORS_ORIGIN: 'http://localhost:5173, http://192.168.1.8:5173/, https://game.codeverse.dev'
+    };
+    const parsed = validateConfig(rawEnv);
+    assert.equal(parsed.corsOrigin, 'http://localhost:5173');
+    assert.deepEqual(parsed.corsOrigins, [
+      'http://localhost:5173',
+      'http://192.168.1.8:5173',
+      'https://game.codeverse.dev'
+    ]);
+  });
+
+  test('throws ConfigurationError if CORS_ORIGIN contains wildcard "*"', () => {
+    assert.throws(
+      () => validateConfig({ CORS_ORIGIN: 'http://localhost:5173, *' }),
+      (err) => err instanceof ConfigurationError && err.message.includes('wildcard "*" is not permitted')
+    );
+  });
+
+  test('throws ConfigurationError if CORS_ORIGIN contains invalid protocol', () => {
+    assert.throws(
+      () => validateConfig({ CORS_ORIGIN: 'ftp://localhost:5173' }),
+      (err) => err instanceof ConfigurationError && err.message.includes('protocol must be http or https')
+    );
+  });
 });
