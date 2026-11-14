@@ -58,6 +58,8 @@ export function ResultModal({
   onReplay,
   onOpenCampaign,
   onEditProgram,
+  onResetToEdit,
+  onRerun,
   onTryAgain,
   onShowHint,
   level
@@ -235,19 +237,29 @@ export function ResultModal({
             </div>
 
             {/* Currency rewards */}
-            <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.95rem', fontFamily: 'var(--font-mono)' }}>
-              <span style={{ color: 'var(--accent-emerald)', fontWeight: 700 }}>
-                +{xpEarned} Flight XP
-              </span>
-              <span style={{ color: '#fbbf24', fontWeight: 700 }}>
-                +{coinsEarned} Drone Credits 🪙
-              </span>
-            </div>
-
-            {isReplay && (
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                ★ Replay cleared: Sector rewards (XP and Coins) were already collected on your first clear.
-              </span>
+            {isReplay ? (
+              <div
+                style={{
+                  backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                  border: '1px solid rgba(59, 130, 246, 0.3)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '0.6rem 1rem',
+                  fontSize: '0.82rem',
+                  color: '#93c5fd',
+                  fontFamily: 'var(--font-mono)'
+                }}
+              >
+                ★ Replay Cleared // First-clear XP and Credits were already collected.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.95rem', fontFamily: 'var(--font-mono)' }}>
+                <span style={{ color: 'var(--accent-emerald)', fontWeight: 700 }}>
+                  +{xpEarned} Flight XP
+                </span>
+                <span style={{ color: '#fbbf24', fontWeight: 700 }}>
+                  +{coinsEarned} Drone Credits 🪙
+                </span>
+              </div>
             )}
 
             {/* Final campaign level completion banner */}
@@ -388,7 +400,7 @@ export function ResultModal({
             <>
               <button
                 type="button"
-                onClick={onEditProgram || onClose}
+                onClick={onRerun || onTryAgain || onClose}
                 style={{
                   padding: '0.75rem 1.4rem',
                   backgroundColor: 'var(--accent-cyan)',
@@ -401,12 +413,12 @@ export function ResultModal({
                   boxShadow: '0 0 15px rgba(6, 182, 212, 0.4)'
                 }}
               >
-                Edit Program
+                Rerun Program
               </button>
 
               <button
                 type="button"
-                onClick={onTryAgain || onClose}
+                onClick={onResetToEdit || onTryAgain || onClose}
                 style={{
                   padding: '0.75rem 1.3rem',
                   backgroundColor: 'rgba(31, 41, 55, 0.8)',
@@ -418,7 +430,24 @@ export function ResultModal({
                   fontSize: '0.9rem'
                 }}
               >
-                Try Again
+                Reset to Edit
+              </button>
+
+              <button
+                type="button"
+                onClick={onEditProgram || onClose}
+                style={{
+                  padding: '0.75rem 1.3rem',
+                  backgroundColor: 'rgba(31, 41, 55, 0.8)',
+                  color: 'var(--text-primary)',
+                  fontWeight: 600,
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-subtle)',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem'
+                }}
+              >
+                Edit Program
               </button>
 
               <button

@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { spawn } from 'node:child_process';
 
 /**
@@ -57,7 +58,13 @@ if (!process.env.MONGOMS_DOWNLOAD_DIR) {
   }
 }
 
-const child = spawn(process.execPath, ['--test', '--test-concurrency=1', ...relativeFiles], {
+const nodeArgs = ['--test', '--test-concurrency=1'];
+const jsxRegister = path.join(process.cwd(), 'test/helpers/jsx-register.mjs');
+if (fs.existsSync(jsxRegister)) {
+  nodeArgs.push('--import', pathToFileURL(jsxRegister).href);
+}
+
+const child = spawn(process.execPath, [...nodeArgs, ...relativeFiles], {
   stdio: 'inherit',
   env: process.env
 });
