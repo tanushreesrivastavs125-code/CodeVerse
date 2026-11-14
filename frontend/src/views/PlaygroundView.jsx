@@ -42,41 +42,59 @@ export function PlaygroundView() {
     activeLevelIdRef.current = activeLevel?.id || null;
   }, [activeLevel?.id]);
 
-  // Load levels on initial mount or level selector param
-  const loadLevels = useCallback(async (selectId = null) => {
-    try {
-      setLoadingLevels(true);
-      const data = await api.campaign.getLevels();
-      setLevels(data || []);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlLevelId = Number(searchParams.get('level') || searchParams.get('sector')) || null;
 
-      if (data && data.length > 0) {
-        if (selectId) {
-          const match = data.find((l) => l.id === selectId);
-          if (match && match.unlocked) {
-            setActiveLevel(match);
-            return;
+  // Helper to sync level change with URL search parameters (?level=N)
+  const selectLevelWithUrlSync = useCallback(
+    (lvl, replace = false) => {
+      if (!lvl) return;
+      setActiveLevel(lvl);
+      const currentParam = searchParams.get('level');
+      if (currentParam !== String(lvl.id)) {
+        setSearchParams({ level: String(lvl.id) }, { replace });
+      }
+    },
+    [searchParams, setSearchParams]
+  );
+
+  // Load levels on initial mount or level selector param
+  const loadLevels = useCallback(
+    async (selectId = null) => {
+      try {
+        setLoadingLevels(true);
+        const data = await api.campaign.getLevels();
+        setLevels(data || []);
+
+        if (data && data.length > 0) {
+          if (selectId) {
+            const match = data.find((l) => l.id === selectId);
+            if (match && match.unlocked) {
+              selectLevelWithUrlSync(match, true);
+              return;
+            }
+          }
+
+          // Default to current level if already set and still unlocked
+          let target = null;
+          if (activeLevelIdRef.current) {
+            target = data.find((l) => l.id === activeLevelIdRef.current && l.unlocked);
+          }
+          if (!target) {
+            target = data.find((l) => l.unlocked && !l.completed) || data[0];
+          }
+          if (target) {
+            selectLevelWithUrlSync(target, true);
           }
         }
-
-        // Default to current level if already set and still unlocked
-        setActiveLevel((current) => {
-          if (current) {
-            const updated = data.find((l) => l.id === current.id);
-            if (updated && updated.unlocked) return updated;
-          }
-          // Otherwise first incomplete unlocked level, or first level
-          return data.find((l) => l.unlocked && !l.completed) || data[0];
-        });
+      } catch {
+        // Gracefully handled by UI
+      } finally {
+        setLoadingLevels(false);
       }
-    } catch {
-      // Gracefully handled by UI
-    } finally {
-      setLoadingLevels(false);
-    }
-  }, []);
-
-  const [searchParams] = useSearchParams();
-  const urlLevelId = Number(searchParams.get('level') || searchParams.get('sector')) || null;
+    },
+    [selectLevelWithUrlSync]
+  );
 
   useEffect(() => {
     loadLevels(urlLevelId);
@@ -127,6 +145,7 @@ export function PlaygroundView() {
     error,
     setError,
     resetWorld,
+    releaseSubmissionLock,
     startSubmission,
     startPlayback,
     setRequestError,
@@ -151,12 +170,9 @@ export function PlaygroundView() {
     setProgram(newAst);
   }, []);
 
-  // Launch program with complete submitting guard
+  // Launch program with immediate synchronous ownership lock
   const handleLaunch = async () => {
-    if (isBusy || runState === 'submitting' || runState === 'playing' || !activeLevel) return;
-
-    setError(null);
-    setRefreshError(null);
+    if (!activeLevel) return;
 
     // 1. Client-side AST validation
     const validation = validateProgramAST(program);
@@ -165,8 +181,17 @@ export function PlaygroundView() {
       return;
     }
 
-    const currentLevelId = activeLevel.id;
+    // Synchronous lock acquisition: immediately blocks duplicate calls in the same tick
     const runGen = startSubmission();
+    if (runGen === null) {
+      return;
+    }
+
+    setError(null);
+    setRefreshError(null);
+    setLastResult(null);
+
+    const currentLevelId = activeLevel.id;
 
     try {
       // 2. Transmit to authoritative campaign API
@@ -174,6 +199,7 @@ export function PlaygroundView() {
 
       // 3. Stale response guard: verify player did not switch levels or trigger reset
       if (activeLevelIdRef.current !== currentLevelId || !isCurrentGeneration(runGen)) {
+        releaseSubmissionLock();
         return;
       }
 
@@ -181,6 +207,7 @@ export function PlaygroundView() {
       startPlayback(runOutcome, runGen);
     } catch (err) {
       if (activeLevelIdRef.current !== currentLevelId || !isCurrentGeneration(runGen)) {
+        releaseSubmissionLock();
         return;
       }
 
@@ -219,7 +246,7 @@ export function PlaygroundView() {
       setIsResultModalOpen(false);
       setLastResult(null);
       resetWorld();
-      setActiveLevel(nextLevel);
+      selectLevelWithUrlSync(nextLevel);
     }
   };
 
@@ -610,7 +637,7 @@ export function PlaygroundView() {
         onSelectLevel={(lvl) => {
           resetWorld();
           setLastResult(null);
-          setActiveLevel(lvl);
+          selectLevelWithUrlSync(lvl);
         }}
         isBusy={isBusy}
       />
@@ -623,6 +650,7 @@ export function PlaygroundView() {
         hasNextSector={hasNextSector}
         onReplay={() => {
           setIsResultModalOpen(false);
+          setLastResult(null);
           resetWorld();
         }}
         onOpenCampaign={() => {
@@ -632,8 +660,22 @@ export function PlaygroundView() {
         onEditProgram={() => {
           setIsResultModalOpen(false);
         }}
+        onResetToEdit={() => {
+          setIsResultModalOpen(false);
+          setLastResult(null);
+          resetWorld();
+        }}
+        onRerun={() => {
+          setIsResultModalOpen(false);
+          setLastResult(null);
+          resetWorld();
+          setTimeout(() => {
+            handleLaunch();
+          }, 0);
+        }}
         onTryAgain={() => {
           setIsResultModalOpen(false);
+          setLastResult(null);
           resetWorld();
         }}
         onShowHint={() => {

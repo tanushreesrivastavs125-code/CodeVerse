@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import app from '../../src/app.js';
 import User from '../../src/models/User.js';
+import { config } from '../../src/config/env.js';
 import { signToken, getJwtSecret, JWT_ALGORITHM, JWT_ISSUER, JWT_AUDIENCE } from '../../src/config/jwt.js';
 
 describe('Authentication API Endpoint Contract (/api/auth)', () => {
@@ -697,6 +698,127 @@ describe('Authentication API Endpoint Contract (/api/auth)', () => {
         const body = await response.json();
         assert.equal(body.success, false);
         assert.equal(body.error.code, 'VALIDATION_ERROR');
+      }
+    });
+  });
+
+  describe('Multi-Origin & LAN CSRF Protection on Auth Endpoints', () => {
+    const lanOrigin = 'http://192.168.1.50:5173';
+    let originalOrigins;
+
+    beforeEach(() => {
+      originalOrigins = config.corsOrigins;
+      config.corsOrigins = ['http://localhost:5173', lanOrigin];
+    });
+
+    afterEach(() => {
+      config.corsOrigins = originalOrigins;
+    });
+
+    test('accepts guest entry with configured LAN Origin', async () => {
+      let createdDoc = null;
+      mock.method(User, 'create', async (data) => {
+        createdDoc = {
+          _id: '507f1f77bcf86cd799439099',
+          ...data,
+          totalXp: 0,
+          level: 1,
+          role: 'user',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          toSafeObject() {
+            return {
+              id: this._id,
+              username: this.username,
+              role: this.role,
+              totalXp: this.totalXp,
+              level: this.level,
+              isGuest: true
+            };
+          }
+        };
+        return createdDoc;
+      });
+
+      const response = await fetch(`${baseUrl}/api/auth/guest`, {
+        method: 'POST',
+        headers: {
+          'Origin': lanOrigin,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      assert.equal(response.status, 201);
+      const body = await response.json();
+      assert.equal(body.success, true);
+      assert.equal(body.data.user.isGuest, true);
+    });
+
+    test('accepts user login with configured LAN Origin', async () => {
+      const mockPasswordHash = await bcrypt.hash('PilotSecret123!', 10);
+      const existingUser = {
+        _id: '507f1f77bcf86cd799439088',
+        id: '507f1f77bcf86cd799439088',
+        username: 'LanPilot',
+        email: 'lanpilot@codeverse.local',
+        password: mockPasswordHash,
+        role: 'user',
+        totalXp: 200,
+        level: 2,
+        coins: 80,
+        isGuest: false,
+        toSafeObject() {
+          return {
+            id: this.id,
+            username: this.username,
+            email: this.email,
+            role: this.role,
+            totalXp: this.totalXp,
+            level: this.level,
+            coins: this.coins,
+            isGuest: false
+          };
+        }
+      };
+
+      mock.method(User, 'findOne', async () => existingUser);
+
+      const response = await fetch(`${baseUrl}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Origin': lanOrigin,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: 'lanpilot@codeverse.local',
+          password: 'PilotSecret123!'
+        })
+      });
+
+      assert.equal(response.status, 200);
+      const body = await response.json();
+      assert.equal(body.success, true);
+      assert.equal(body.data.user.username, 'LanPilot');
+    });
+
+    test('rejects auth requests from untrusted Origin with 403', async () => {
+      for (const endpoint of ['/api/auth/guest', '/api/auth/login', '/api/auth/register']) {
+        const response = await fetch(`${baseUrl}${endpoint}`, {
+          method: 'POST',
+          headers: {
+            'Origin': 'http://evil-untrusted-origin.com',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ username: 'hacker', email: 'hacker@evil.com', password: 'password123' })
+        });
+
+        assert.equal(response.status, 403, `${endpoint} must reject untrusted origin`);
+        const body = await response.json();
+        assert.equal(body.success, false);
+        assert.ok(
+          body.error.code === 'CORS_ORIGIN_DENIED' || body.error.code === 'CSRF_ORIGIN_INVALID',
+          'Must reject with origin security violation'
+        );
       }
     });
   });

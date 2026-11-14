@@ -27,6 +27,7 @@ export function useGamePlayback({
   const audioRef = useRef(null);
   const previousLevelIdRef = useRef(null);
   const previousLevelVersionRef = useRef(null);
+  const submissionLockRef = useRef(false);
 
   // Initialize audio synthesizer once
   useEffect(() => {
@@ -58,6 +59,7 @@ export function useGamePlayback({
     ) {
       previousLevelIdRef.current = currentId;
       previousLevelVersionRef.current = currentVersion;
+      submissionLockRef.current = false;
       generationRef.current += 1;
 
       if (timerRef.current) {
@@ -77,6 +79,7 @@ export function useGamePlayback({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      submissionLockRef.current = false;
       generationRef.current += 1;
       if (timerRef.current) {
         clearTimeout(timerRef.current);
@@ -86,10 +89,15 @@ export function useGamePlayback({
   }, []);
 
   /**
-   * Explicitly starts a run submission, guarding against duplicate requests.
-   * Increments generation counter and transitions to 'submitting' state.
+   * Synchronously acquires the submission ownership lock.
+   * If a submission is already active, returns null immediately without queuing duplicate requests.
+   * If available, locks immediately, increments generation counter, transitions to 'submitting', and returns the new generation.
    */
-  const startSubmission = useCallback(() => {
+  const acquireSubmissionLock = useCallback(() => {
+    if (submissionLockRef.current) {
+      return null;
+    }
+    submissionLockRef.current = true;
     const runGen = ++generationRef.current;
     if (timerRef.current) {
       clearTimeout(timerRef.current);
@@ -102,9 +110,25 @@ export function useGamePlayback({
   }, []);
 
   /**
-   * Transitions to a recoverable request error state.
+   * Releases the synchronous submission ownership lock.
+   */
+  const releaseSubmissionLock = useCallback(() => {
+    submissionLockRef.current = false;
+  }, []);
+
+  /**
+   * Explicitly starts a run submission, guarding against duplicate requests via synchronous lock.
+   * Returns generation index if acquired, or null if locked.
+   */
+  const startSubmission = useCallback(() => {
+    return acquireSubmissionLock();
+  }, [acquireSubmissionLock]);
+
+  /**
+   * Transitions to a recoverable request error state and releases the submission lock.
    */
   const setRequestError = useCallback((errMsg) => {
+    submissionLockRef.current = false;
     setRunState('request-error');
     setError(errMsg);
   }, []);
@@ -117,11 +141,13 @@ export function useGamePlayback({
   }, []);
 
   /**
-   * Immediately stops playback and resets the world to its initial state.
+   * Immediately stops playback, resets the world to its initial state,
+   * and releases any active submission locks.
    * Note: Client playback reset only resets visual representation;
    * it never uncommits or reverts server-authoritative rewards or progress.
    */
   const resetWorld = useCallback(() => {
+    submissionLockRef.current = false;
     generationRef.current += 1;
     if (timerRef.current) {
       clearTimeout(timerRef.current);
@@ -144,6 +170,7 @@ export function useGamePlayback({
     (frames, finalOutcome, runGen) => {
       const finishRun = () => {
         if (generationRef.current !== runGen) return;
+        submissionLockRef.current = false;
         timerRef.current = null;
         setRunState(finalOutcome.passed ? 'passed' : 'failed');
         setResult(finalOutcome);
@@ -164,6 +191,8 @@ export function useGamePlayback({
             setWorldState(finalOutcome.state);
           }
           finishRun();
+        } else {
+          submissionLockRef.current = false;
         }
         return;
       }
@@ -178,6 +207,8 @@ export function useGamePlayback({
           const finalFrame = frames[frames.length - 1];
           if (finalFrame) setWorldState(finalFrame);
           finishRun();
+        } else {
+          submissionLockRef.current = false;
         }
         return;
       }
@@ -219,10 +250,12 @@ export function useGamePlayback({
   const startPlayback = useCallback(
     (runResponse, expectedGen = null) => {
       if (expectedGen !== null && generationRef.current !== expectedGen) {
+        submissionLockRef.current = false;
         return;
       }
 
       const runGen = expectedGen !== null ? expectedGen : ++generationRef.current;
+      submissionLockRef.current = true;
       if (timerRef.current) {
         clearTimeout(timerRef.current);
         timerRef.current = null;
@@ -245,7 +278,7 @@ export function useGamePlayback({
     setSoundEnabled((s) => !s);
   }, []);
 
-  const isBusy = runState === 'submitting' || runState === 'playing';
+  const isBusy = submissionLockRef.current || runState === 'submitting' || runState === 'playing';
 
   return {
     worldState,
@@ -259,6 +292,9 @@ export function useGamePlayback({
     setResult,
     setRunState,
     resetWorld,
+    acquireSubmissionLock,
+    releaseSubmissionLock,
+    submissionLockRef,
     startSubmission,
     startPlayback,
     setRequestError,
