@@ -1,14 +1,24 @@
 import { useState } from 'react';
+import { getLevelCurriculum } from '../../../../../shared/curriculum.js';
 
 /**
  * MissionBriefing Component renders the current sector objectives,
- * educational concepts, and collapsible hint drawer with calm UI tokens.
+ * educational concepts, interactive lesson trigger, and collapsible 3-tier
+ * graduated hints drawer with calm UI tokens.
  */
-export function MissionBriefing({ level }) {
+export function MissionBriefing({ level, onOpenLesson }) {
   const [showHint, setShowHint] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [revealedTier, setRevealedTier] = useState(1); // 1, 2, or 3
 
   if (!level) return null;
+
+  const curriculum = getLevelCurriculum(level.id);
+  const hints = curriculum?.hints || [
+    { level: 1, label: 'Notice the Goal', text: level.hint || 'Review the grid path to the goal.' },
+    { level: 2, label: 'Helpful Concept', text: `Apply the "${level.concept}" concept to solve this level.` },
+    { level: 3, label: 'Step-by-Step Suggestion', text: 'Break down your movement step-by-step.' }
+  ];
 
   const hasConstraints = Boolean(
     level.requireLoops ||
@@ -67,6 +77,30 @@ export function MissionBriefing({ level }) {
               >
                 Difficulty {level.difficulty}
               </span>
+            )}
+
+            {typeof onOpenLesson === 'function' && (
+              <button
+                type="button"
+                onClick={onOpenLesson}
+                title="Open interactive lesson, demonstration, and visual legend"
+                style={{
+                  padding: '0.15rem 0.55rem',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'rgba(56, 189, 248, 0.15)',
+                  border: '1px solid var(--accent-cyan)',
+                  color: 'var(--accent-cyan)',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.3rem'
+                }}
+              >
+                <span>📖</span>
+                <span>Learn</span>
+              </button>
             )}
           </div>
 
@@ -145,33 +179,40 @@ export function MissionBriefing({ level }) {
         </div>
       )}
 
-      {/* Hint Accordion */}
-      {level.hint && (
-        <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '0.4rem' }}>
-          <button
-            type="button"
-            onClick={() => setShowHint((prev) => !prev)}
+      {/* Graduated 3-Tier Hints Accordion */}
+      <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '0.4rem' }}>
+        <button
+          type="button"
+          onClick={() => setShowHint((prev) => !prev)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--accent-cyan)',
+            fontSize: '0.78rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            padding: 0
+          }}
+        >
+          <span>💡</span>
+          <span>{showHint ? 'Hide Hints' : 'Need a Hint?'}</span>
+        </button>
+
+        {showHint && (
+          <div
             style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--accent-cyan)',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-              padding: 0
+              marginTop: '0.5rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem'
             }}
           >
-            <span>💡</span>
-            <span>{showHint ? 'Hide Hint' : 'Need a Hint?'}</span>
-          </button>
-
-          {showHint && (
+            {/* Tier 1: Notice the Goal */}
             <div
               style={{
-                marginTop: '0.4rem',
                 padding: '0.65rem 0.85rem',
                 backgroundColor: 'var(--bg-secondary)',
                 border: '1px solid var(--border-subtle)',
@@ -181,11 +222,90 @@ export function MissionBriefing({ level }) {
                 lineHeight: 1.5
               }}
             >
-              {level.hint}
+              <div style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--accent-cyan)', textTransform: 'uppercase', marginBottom: '0.2rem' }}>
+                Hint 1 // Notice the Goal
+              </div>
+              {hints[0]?.text || level.hint}
             </div>
-          )}
-        </div>
-      )}
+
+            {/* Tier 2: Helpful Concept */}
+            {revealedTier >= 2 ? (
+              <div
+                style={{
+                  padding: '0.65rem 0.85rem',
+                  backgroundColor: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.82rem',
+                  lineHeight: 1.5
+                }}
+              >
+                <div style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--accent-purple)', textTransform: 'uppercase', marginBottom: '0.2rem' }}>
+                  Hint 2 // Helpful Concept
+                </div>
+                {hints[1]?.text}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setRevealedTier(2)}
+                style={{
+                  padding: '0.4rem 0.75rem',
+                  backgroundColor: 'rgba(192, 132, 252, 0.12)',
+                  border: '1px solid rgba(192, 132, 252, 0.3)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--accent-purple)',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+              >
+                🔍 Reveal Hint 2: Helpful Concept →
+              </button>
+            )}
+
+            {/* Tier 3: Step-by-Step Suggestion */}
+            {revealedTier >= 3 ? (
+              <div
+                style={{
+                  padding: '0.65rem 0.85rem',
+                  backgroundColor: 'rgba(52, 211, 153, 0.08)',
+                  border: '1px solid rgba(52, 211, 153, 0.3)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.82rem',
+                  lineHeight: 1.5
+                }}
+              >
+                <div style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--accent-emerald)', textTransform: 'uppercase', marginBottom: '0.2rem' }}>
+                  Hint 3 // Step-by-Step Suggestion
+                </div>
+                {hints[2]?.text}
+              </div>
+            ) : revealedTier >= 2 ? (
+              <button
+                type="button"
+                onClick={() => setRevealedTier(3)}
+                style={{
+                  padding: '0.4rem 0.75rem',
+                  backgroundColor: 'rgba(52, 211, 153, 0.12)',
+                  border: '1px solid rgba(52, 211, 153, 0.3)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--accent-emerald)',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+              >
+                📝 Reveal Hint 3: Step-by-Step Suggestion →
+              </button>
+            ) : null}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

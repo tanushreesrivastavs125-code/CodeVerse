@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { getLevelCurriculum, diagnoseFailure } from '../../../../../shared/curriculum.js';
 
 /**
  * Returns plain-language pedagogical correction advice based on simulation result and level mechanics.
@@ -88,6 +89,10 @@ export function ResultModal({
   const isReplay = isVictory && xpEarned === 0 && coinsEarned === 0;
   const finalX = result.state?.x;
   const finalY = result.state?.y;
+  const curriculum = level ? getLevelCurriculum(level.id) : null;
+  const diagnosisResult = (!isVictory && level)
+    ? diagnoseFailure(level, result.state || result, null)
+    : null;
 
   return (
     <div
@@ -285,6 +290,27 @@ export function ResultModal({
                 </p>
               </div>
             )}
+
+            {/* Post-Success Concept Explanation */}
+            {curriculum?.postSuccessExplanation && (
+              <div
+                style={{
+                  marginTop: '0.5rem',
+                  padding: '0.75rem 1rem',
+                  backgroundColor: 'rgba(56, 189, 248, 0.08)',
+                  border: '1px solid rgba(56, 189, 248, 0.25)',
+                  borderRadius: 'var(--radius-sm)',
+                  textAlign: 'left'
+                }}
+              >
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--accent-cyan)', textTransform: 'uppercase', marginBottom: '0.2rem' }}>
+                  💡 Why This Concept Matters
+                </div>
+                <div style={{ fontSize: '0.84rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
+                  {curriculum.postSuccessExplanation}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -313,6 +339,22 @@ export function ResultModal({
                 }}
               >
                 📍 Drone stopped at board position: <code style={{ color: 'var(--accent-cyan)' }}>({finalX}, {finalY})</code>
+              </div>
+            )}
+
+            {/* Observed Mistake vs Suggested Correction */}
+            {diagnosisResult?.diagnosis && (
+              <div
+                style={{
+                  fontSize: '0.82rem',
+                  color: '#fca5a5',
+                  fontFamily: 'var(--font-mono)',
+                  padding: '0.35rem 0.5rem',
+                  backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                  borderRadius: 'var(--radius-sm)'
+                }}
+              >
+                {diagnosisResult.diagnosis}
               </div>
             )}
 

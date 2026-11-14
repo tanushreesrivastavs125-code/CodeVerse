@@ -1,4 +1,5 @@
 import { levels, DISTRICTS, simulate } from '../../../shared/game.js';
+import { getLevelCurriculum, diagnoseFailure } from '../../../shared/curriculum.js';
 import CampaignProgress from '../models/CampaignProgress.js';
 import CampaignAttempt from '../models/CampaignAttempt.js';
 import { CAMPAIGN_VERSION } from './campaignService.js';
@@ -232,6 +233,16 @@ export function generateFallbackGuidance({
       sections.push(`**Diagnostic Clues:**\n${clues.join('\n')}`);
     }
 
+    const curriculum = getLevelCurriculum(level.id);
+    if (curriculum?.hints) {
+      sections.push(
+        `**3-Tier Graduated Guidance:**\n` +
+        `- **Tier 1 (Notice the Goal):** ${curriculum.hints[0].text}\n` +
+        `- **Tier 2 (Helpful Concept):** ${curriculum.hints[1].text}\n` +
+        `- **Tier 3 (Step-by-Step Suggestion):** ${curriculum.hints[2].text}`
+      );
+    }
+
     // Telemetry from recent failed flight
     if (recentAttempt && !recentAttempt.passed && recentAttempt.reason) {
       sections.push(
@@ -325,12 +336,15 @@ export function generateFallbackGuidance({
           tacticalNudge = 'The firewall guardian blocked the extraction path. Face the guardian from within 3 tiles and fire pulse charges to deplete its shield before attempting to enter.';
         }
 
+        const diag = diagnoseFailure(level, outcome.finalState || { event: 'crash', message: reason, x: lastFrame.x, y: lastFrame.y }, program);
+
         return (
           `### Simulation Diagnostic: FAILURE DETECTED ❌\n\n` +
           `**Failure at Step ${stepNum}:**\n` +
           `- **Diagnostic Telemetry:** *"${failureDescription}"*\n` +
           `- **Drone Coordinate:** (${lastFrame.x ?? '?'}, ${lastFrame.y ?? '?'})\n\n` +
-          `**Tactical Diagnostic:**\n${tacticalNudge}`
+          `**Tactical Diagnostic:**\n${tacticalNudge}\n\n` +
+          `**Next Step Guidance:**\n${diag.suggestion}`
         );
       } catch (simErr) {
         return (
