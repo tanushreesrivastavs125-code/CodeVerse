@@ -109,7 +109,7 @@ export function HomeView() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1.15fr) minmax(380px, 1fr)',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))',
           gap: '3.5rem',
           alignItems: 'center'
         }}
@@ -434,7 +434,7 @@ export function HomeView() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))',
             gap: '1.25rem'
           }}
         >

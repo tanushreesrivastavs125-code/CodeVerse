@@ -26,6 +26,7 @@ export function CampaignSelectorModal({
     if (!isOpen) return;
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
+        e.stopPropagation();
         onClose();
       }
     };
@@ -196,7 +197,7 @@ export function CampaignSelectorModal({
                 </span>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '0.75rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(260px, 100%), 1fr))', gap: '0.75rem' }}>
                 {d.levels.map((lvl) => {
                   const isCurrent = lvl.id === currentLevelId;
                   const isLocked = !lvl.unlocked;

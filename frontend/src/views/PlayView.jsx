@@ -43,8 +43,10 @@ export function PlayView() {
   return (
     <div style={{
       maxWidth: '480px',
-      margin: '4rem auto',
-      padding: '2.5rem',
+      width: 'calc(100% - 2rem)',
+      margin: '2.5rem auto',
+      padding: '2rem 1.5rem',
+      boxSizing: 'border-box',
       backgroundColor: 'var(--bg-card)',
       borderRadius: 'var(--radius-lg)',
       border: '1px solid var(--border-subtle)',

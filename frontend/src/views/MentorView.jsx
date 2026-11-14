@@ -176,7 +176,7 @@ export function MentorView() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'minmax(320px, 1fr) minmax(0, 1.8fr)',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))',
           gap: '1.5rem',
           alignItems: 'start'
         }}

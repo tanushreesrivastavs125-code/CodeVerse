@@ -140,7 +140,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
   position: relative;
-  overflow-x: hidden;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
@@ -236,12 +235,14 @@ button {
 
 .workspace-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 1fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
   gap: 1.25rem;
   align-items: start;
+  width: 100%;
+  min-width: 0;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 900px) {
   .workspace-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
@@ -250,8 +251,110 @@ button {
 
 @media (max-width: 640px) {
   .workspace-container {
-    padding: 0.75rem;
+    padding: 0.5rem;
   }
+}
+
+/* Mobile Workspace Tab Bar */
+.mobile-workspace-tabs {
+  display: none;
+  width: 100%;
+  gap: 0.5rem;
+}
+
+@media (max-width: 900px) {
+  .mobile-workspace-tabs {
+    display: flex;
+  }
+}
+
+.mobile-workspace-tabs .tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.65rem 0.75rem;
+  min-height: 44px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mobile-workspace-tabs .tab-btn.active {
+  border-color: var(--accent-cyan);
+  background-color: rgba(56, 189, 248, 0.12);
+  color: var(--accent-cyan);
+  font-weight: 700;
+}
+
+/* Navigation Responsive Styling */
+.desktop-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.desktop-controls-cluster {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.mobile-nav-toggle {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .desktop-nav-links {
+    display: none !important;
+  }
+  .desktop-controls-cluster {
+    display: none !important;
+  }
+  .mobile-nav-toggle {
+    display: inline-flex !important;
+  }
+}
+
+/* Blockly Touch Ergonomics and Accessibility */
+.blocklyTreeRow {
+  min-height: 42px !important;
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 10px !important;
+  cursor: pointer !important;
+  touch-action: manipulation !important;
+}
+
+.blocklyTreeLabel {
+  font-size: 0.92rem !important;
+  font-weight: 600 !important;
+}
+
+.blocklyToolboxDiv {
+  touch-action: pan-y !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+.blocklyFlyout {
+  touch-action: pan-y manipulation !important;
+}
+
+.blocklySvg {
+  touch-action: none !important;
+}
+
+.blocklyZoom > image {
+  width: 32px !important;
+  height: 32px !important;
+  cursor: pointer !important;
 }
 
 /* Keyframes */
