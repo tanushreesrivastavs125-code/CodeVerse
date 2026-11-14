@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import { Drone } from './Drone.jsx';
 
 /**
@@ -17,6 +17,27 @@ export function WorldScene({
     return map.reduce((max, row) => Math.max(max, row.length), 0);
   }, [map]);
 
+  const arenaRef = useRef(null);
+  const [arenaWidth, setArenaWidth] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return Math.min(600, Math.max(260, window.innerWidth - 48));
+    }
+    return 480;
+  });
+
+  useEffect(() => {
+    if (!arenaRef.current) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0) {
+          setArenaWidth(Math.floor(entry.contentRect.width));
+        }
+      }
+    });
+    ro.observe(arenaRef.current);
+    return () => ro.disconnect();
+  }, []);
+
   const totalEnergy = useMemo(() => {
     if (!map) return 0;
     return map.join('').split('C').length - 1;
@@ -25,11 +46,19 @@ export function WorldScene({
   const collectedCount = state?.collected?.length || 0;
 
   const effectiveTileSize = useMemo(() => {
-    if (cols > 10 || rows > 8) {
-      return Math.max(38, Math.min(tileSize, Math.floor(460 / Math.max(cols, rows))));
+    let size = tileSize;
+    if (arenaWidth > 0 && cols > 0) {
+      // Leave 24px safety margin for padding and borders
+      const maxFit = Math.floor((arenaWidth - 24) / cols);
+      if (maxFit < size) {
+        size = Math.max(26, maxFit);
+      }
     }
-    return tileSize;
-  }, [cols, rows, tileSize]);
+    if (cols > 10 || rows > 8) {
+      size = Math.max(26, Math.min(size, Math.floor(460 / Math.max(cols, rows))));
+    }
+    return size;
+  }, [cols, rows, tileSize, arenaWidth]);
 
   const maxBossHP = useMemo(() => {
     return level?.bossHealth || (level?.map?.some((r) => r.includes('X')) ? 3 : 0);
@@ -118,9 +147,10 @@ export function WorldScene({
 
       {/* Arena Viewport with Grid Perspective */}
       <div
+        ref={arenaRef}
         style={{
           minHeight: '340px',
-          padding: '2rem 1rem',
+          padding: '1.5rem 0.75rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -355,12 +385,14 @@ export function WorldScene({
       {/* Flight Controller Event Status Footer */}
       <div
         style={{
-          padding: '0.75rem 1.25rem',
-          backgroundColor: '#08121c',
-          borderTop: '1px solid rgba(75, 85, 99, 0.25)',
+          padding: '0.65rem 1rem',
+          backgroundColor: 'var(--bg-secondary)',
+          borderTop: '1px solid var(--border-subtle)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
           fontSize: '0.82rem',
           fontFamily: 'var(--font-mono)'
         }}
@@ -371,8 +403,7 @@ export function WorldScene({
               width: '8px',
               height: '8px',
               borderRadius: '50%',
-              backgroundColor: state?.event === 'fail' ? '#ef4444' : state?.event === 'extract' ? '#10b981' : '#06b6d4',
-              boxShadow: `0 0 8px ${state?.event === 'fail' ? '#ef4444' : '#06b6d4'}`
+              backgroundColor: state?.event === 'fail' ? 'var(--accent-red)' : state?.event === 'extract' ? 'var(--accent-emerald)' : 'var(--accent-cyan)'
             }}
           />
           <span style={{ color: 'var(--text-secondary)' }}>

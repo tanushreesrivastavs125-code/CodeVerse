@@ -379,4 +379,254 @@ describe('Stage B: Calm UI and Theme Settings Suite', () => {
       assert.equal(reset, true);
     });
   });
+
+  describe('Mobile Navigation & Drawer Accessibility', () => {
+    test('renders mobile hamburger toggle, opens drawer with nav links & theme selector, and closes on Escape', () => {
+      const mockUser = { id: 'u_mob', username: 'MobilePilot', level: 3, totalXp: 300, coins: 50 };
+
+      act(() => {
+        root.render(
+          React.createElement(
+            MemoryRouter,
+            null,
+            React.createElement(
+              ThemeProvider,
+              null,
+              React.createElement(
+                AuthContext.Provider,
+                { value: { user: mockUser, isAuthenticated: true, logout: async () => {} } },
+                React.createElement(Navbar, null)
+              )
+            )
+          )
+        );
+      });
+
+      // Find mobile hamburger button
+      const toggleBtn = rootElement.querySelector('button[aria-label="Toggle navigation menu"]');
+      assert.ok(toggleBtn, 'Mobile hamburger toggle button must exist');
+      assert.equal(toggleBtn.getAttribute('aria-expanded'), 'false');
+
+      // Click to open mobile drawer
+      act(() => {
+        toggleBtn.click();
+      });
+      assert.equal(toggleBtn.getAttribute('aria-expanded'), 'true');
+
+      // Check drawer contents: links, profile info, theme options
+      const text = rootElement.textContent;
+      assert.ok(text.includes('MobilePilot'), 'Mobile user profile username should be visible');
+      assert.ok(text.includes('300 XP'), 'XP should be visible in mobile drawer');
+      assert.ok(text.includes('Playground'), 'Playground navigation link should be in mobile drawer');
+      assert.ok(text.includes('Campaign Dossier'), 'Campaign Dossier link should be in mobile drawer');
+      assert.ok(text.includes('Appearance Theme'), 'Theme selector should be in mobile drawer');
+
+      // Press Escape to close mobile menu
+      act(() => {
+        const escEvent = new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
+        window.dispatchEvent(escEvent);
+      });
+
+      assert.equal(toggleBtn.getAttribute('aria-expanded'), 'false');
+    });
+  });
+
+  describe('Mobile Board and Code Tabs & Interaction Ergonomics', () => {
+    test('renders Board and Code tabs and preserves workspace across switches', async () => {
+      // Mock window.matchMedia to simulate mobile width (e.g. 390px)
+      const originalMatchMedia = window.matchMedia;
+      window.matchMedia = (query) => ({
+        matches: query.includes('max-width'),
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false
+      });
+
+      const mockLevels = [
+        { id: 1, title: 'Boot Sequence', zone: 'Neon Outskirts', concept: 'Sequence', unlocked: true, completed: false, map: ['S..G'], par: 3 }
+      ];
+
+      mock.method(api.campaign, 'getLevels', async () => mockLevels);
+      const mockUser = { id: 'usr_tab', username: 'TabPilot' };
+
+      await act(async () => {
+        root.render(
+          React.createElement(
+            MemoryRouter,
+            { initialEntries: ['/playground?level=1'] },
+            React.createElement(
+              ThemeProvider,
+              null,
+              React.createElement(
+                AuthContext.Provider,
+                { value: { user: mockUser, refreshProfile: async () => mockUser } },
+                React.createElement(PlaygroundView, null)
+              )
+            )
+          )
+        );
+      });
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 20));
+      });
+
+      const buttons = Array.from(rootElement.querySelectorAll('button'));
+      const boardTab = buttons.find((b) => b.textContent.includes('Simulation Board'));
+      const codeTab = buttons.find((b) => b.textContent.includes('Block Editor'));
+
+      assert.ok(boardTab, 'Simulation Board mobile tab button must exist');
+      assert.ok(codeTab, 'Block Editor mobile tab button must exist');
+      assert.equal(boardTab.getAttribute('aria-selected'), 'true');
+      assert.equal(codeTab.getAttribute('aria-selected'), 'false');
+
+      // Switch to Code Tab
+      await act(async () => {
+        codeTab.click();
+        await new Promise((r) => setTimeout(r, 60));
+      });
+
+      assert.equal(codeTab.getAttribute('aria-selected'), 'true');
+      assert.equal(boardTab.getAttribute('aria-selected'), 'false');
+
+      // Ensure PlaybackControls are accessible in the code tab
+      const launchBtn = Array.from(rootElement.querySelectorAll('button')).find((b) =>
+        b.textContent.includes('Launch Program')
+      );
+      assert.ok(launchBtn, 'Launch Program button must remain accessible in the code tab');
+
+      window.matchMedia = originalMatchMedia;
+    });
+
+    test('Escape closes open result modal without resetting the board behind it', async () => {
+      const mockLevels = [
+        { id: 1, title: 'Boot Sequence', zone: 'Neon Outskirts', concept: 'Sequence', unlocked: true, completed: false, map: ['S..G'], par: 3 }
+      ];
+
+      mock.method(api.campaign, 'getLevels', async () => mockLevels);
+      mock.method(api.campaign, 'runLevel', async () => ({
+        passed: true,
+        stars: 3,
+        earned: { xp: 100, coins: 25 },
+        message: 'Level complete!',
+        state: { x: 3, y: 0 },
+        frames: []
+      }));
+
+      const mockUser = { id: 'usr_esc', username: 'EscPilot' };
+
+      await act(async () => {
+        root.render(
+          React.createElement(
+            MemoryRouter,
+            { initialEntries: ['/playground?level=1'] },
+            React.createElement(
+              ThemeProvider,
+              null,
+              React.createElement(
+                AuthContext.Provider,
+                { value: { user: mockUser, refreshProfile: async () => mockUser } },
+                React.createElement(PlaygroundView, null)
+              )
+            )
+          )
+        );
+      });
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 20));
+      });
+
+      // Run program to trigger result modal
+      const launchBtn = Array.from(rootElement.querySelectorAll('button')).find((b) =>
+        b.textContent.includes('Launch Program')
+      );
+      await act(async () => {
+        launchBtn.click();
+      });
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 30));
+      });
+
+      // Verify modal is open
+      assert.ok(rootElement.querySelector('[role="dialog"]'), 'Result dialog should be open after run');
+
+      // Press Escape
+      await act(async () => {
+        const escEvent = new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
+        window.dispatchEvent(escEvent);
+      });
+
+      // Verify modal is closed, BUT the result summary banner is still preserved!
+      assert.equal(rootElement.querySelector('[role="dialog"]'), null, 'Modal should be closed by Escape');
+      const text = rootElement.textContent;
+      assert.ok(text.includes('Level complete!'), 'Completed outcome summary banner must be preserved after closing modal');
+    });
+
+    test('Ctrl+Enter does not trigger launch when an input field is focused', async () => {
+      const mockLevels = [
+        { id: 1, title: 'Boot Sequence', zone: 'Neon Outskirts', concept: 'Sequence', unlocked: true, completed: false, map: ['S..G'], par: 3 }
+      ];
+
+      let runTriggered = false;
+      mock.method(api.campaign, 'getLevels', async () => mockLevels);
+      mock.method(api.campaign, 'runLevel', async () => {
+        runTriggered = true;
+        return { passed: true, message: 'Done' };
+      });
+
+      const mockUser = { id: 'usr_inp', username: 'InputPilot' };
+
+      await act(async () => {
+        root.render(
+          React.createElement(
+            MemoryRouter,
+            { initialEntries: ['/playground?level=1'] },
+            React.createElement(
+              ThemeProvider,
+              null,
+              React.createElement(
+                AuthContext.Provider,
+                { value: { user: mockUser, refreshProfile: async () => mockUser } },
+                React.createElement(
+                  'div',
+                  null,
+                  React.createElement('input', { id: 'test-chat-input' }),
+                  React.createElement(PlaygroundView, null)
+                )
+              )
+            )
+          )
+        );
+      });
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 20));
+      });
+
+      const input = rootElement.querySelector('#test-chat-input');
+      input.focus();
+
+      // Trigger Ctrl+Enter targeted at the input
+      await act(async () => {
+        const event = new window.KeyboardEvent('keydown', {
+          key: 'Enter',
+          ctrlKey: true,
+          bubbles: true
+        });
+        input.dispatchEvent(event);
+      });
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 30));
+      });
+
+      assert.equal(runTriggered, false, 'Ctrl+Enter must not fire when typing inside an input');
+    });
+  });
 });

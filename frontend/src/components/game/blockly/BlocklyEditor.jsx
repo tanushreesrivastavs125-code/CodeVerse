@@ -20,7 +20,8 @@ export function BlocklyEditor({
   onProgramChange,
   isBusy = false,
   highlightedBlockId = null,
-  initialXml = null
+  initialXml = null,
+  isVisible = true
 }) {
   const editorRef = useRef(null);
   const workspaceRef = useRef(null);
@@ -49,6 +50,27 @@ export function BlocklyEditor({
       }
     }
   }, [resolvedTheme]);
+
+  // Handle visibility changes (e.g. mobile tab switch to 'code')
+  useEffect(() => {
+    if (isVisible && workspaceRef.current) {
+      const timer = setTimeout(() => {
+        Blockly.svgResize(workspaceRef.current);
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible]);
+
+  // Window resize listener
+  useEffect(() => {
+    function handleWindowResize() {
+      if (workspaceRef.current) {
+        Blockly.svgResize(workspaceRef.current);
+      }
+    }
+    window.addEventListener('resize', handleWindowResize);
+    return () => window.removeEventListener('resize', handleWindowResize);
+  }, []);
 
   // Initialize workspace
   useEffect(() => {

@@ -20,7 +20,9 @@ export function Navbar() {
   const navigate = useNavigate();
   const [backendHealth, setBackendHealth] = useState({ online: false, transactions: false });
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const themeMenuRef = useRef(null);
+  const navRef = useRef(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -51,17 +53,40 @@ export function Navbar() {
       if (themeMenuRef.current && !themeMenuRef.current.contains(event.target)) {
         setIsThemeMenuOpen(false);
       }
+      if (navRef.current && !navRef.current.contains(event.target)) {
+        setIsMobileMenuOpen(false);
+      }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Close theme menu on route change
+  // Close menus on Escape key without resetting game
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        if (isMobileMenuOpen) {
+          event.stopPropagation();
+          setIsMobileMenuOpen(false);
+        }
+        if (isThemeMenuOpen) {
+          event.stopPropagation();
+          setIsThemeMenuOpen(false);
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMobileMenuOpen, isThemeMenuOpen]);
+
+  // Close menus on route change
   useEffect(() => {
     setIsThemeMenuOpen(false);
+    setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
   const handleLogout = async () => {
+    setIsMobileMenuOpen(false);
     await logout();
     navigate('/');
   };
@@ -78,6 +103,21 @@ export function Navbar() {
     whiteSpace: 'nowrap'
   });
 
+  const mobileNavLinkStyle = (path) => ({
+    color: location.pathname === path ? 'var(--accent-cyan)' : 'var(--text-primary)',
+    fontWeight: location.pathname === path ? 700 : 500,
+    padding: '0.65rem 0.85rem',
+    minHeight: '42px',
+    borderRadius: 'var(--radius-sm)',
+    backgroundColor: location.pathname === path ? 'rgba(56, 189, 248, 0.12)' : 'var(--bg-secondary)',
+    border: location.pathname === path ? '1px solid var(--accent-cyan)' : '1px solid var(--border-subtle)',
+    fontSize: '0.92rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    textDecoration: 'none'
+  });
+
   const themeIcon = {
     dark: '🌙',
     light: '☀️',
@@ -87,6 +127,7 @@ export function Navbar() {
 
   return (
     <nav
+      ref={navRef}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -103,7 +144,11 @@ export function Navbar() {
     >
       {/* Brand & Desktop Navigation */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', textDecoration: 'none' }}>
+        <Link
+          to="/"
+          onClick={() => setIsMobileMenuOpen(false)}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', textDecoration: 'none' }}
+        >
           <div
             style={{
               width: '28px',
@@ -133,14 +178,7 @@ export function Navbar() {
         </Link>
 
         {/* Desktop Nav Links */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '0.35rem',
-            alignItems: 'center'
-          }}
-          className="desktop-nav-links"
-        >
+        <div className="desktop-nav-links">
           {isAuthenticated ? (
             <>
               <Link to="/playground" style={navLinkStyle('/playground')}>Playground</Link>
@@ -158,8 +196,8 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Right Controls: Health, Theme/Settings, Auth */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+      {/* Desktop Controls Cluster */}
+      <div className="desktop-controls-cluster">
         {/* Backend health status indicator */}
         <div
           style={{
@@ -193,7 +231,7 @@ export function Navbar() {
                 : '#ef4444'
             }}
           />
-          <span style={{ display: 'none', md: 'inline' }}>
+          <span>
             {backendHealth.online ? (backendHealth.transactions ? 'ONLINE' : 'STANDALONE') : 'OFFLINE'}
           </span>
         </div>
@@ -441,6 +479,238 @@ export function Navbar() {
           </div>
         )}
       </div>
+
+      {/* Mobile Controls: Compact Health Dot + Hamburger Button */}
+      <div className="mobile-nav-toggle" style={{ alignItems: 'center', gap: '0.5rem' }}>
+        <div
+          style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            backgroundColor: backendHealth.online
+              ? backendHealth.transactions
+                ? '#10b981'
+                : '#f59e0b'
+              : '#ef4444'
+          }}
+          title={backendHealth.online ? 'Online' : 'Offline'}
+        />
+        <button
+          type="button"
+          onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+          aria-label="Toggle navigation menu"
+          aria-expanded={isMobileMenuOpen}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minWidth: '42px',
+            minHeight: '42px',
+            padding: '0.35rem',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--border-subtle)',
+            backgroundColor: 'var(--bg-secondary)',
+            color: 'var(--text-primary)',
+            fontSize: '1.2rem',
+            cursor: 'pointer'
+          }}
+        >
+          {isMobileMenuOpen ? '✕' : '☰'}
+        </button>
+      </div>
+
+      {/* Mobile Drawer Panel */}
+      {isMobileMenuOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            backgroundColor: 'var(--bg-card)',
+            borderBottom: '1px solid var(--border-subtle)',
+            boxShadow: 'var(--shadow-lg)',
+            padding: '1rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.85rem',
+            zIndex: 1000,
+            maxHeight: 'calc(100vh - 65px)',
+            overflowY: 'auto'
+          }}
+        >
+          {/* User Profile Summary (Mobile) */}
+          {isAuthenticated && (
+            <div
+              style={{
+                padding: '0.65rem 0.85rem',
+                backgroundColor: 'var(--bg-secondary)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-subtle)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '0.5rem'
+              }}
+            >
+              <div>
+                <span style={{ fontWeight: 700, color: 'var(--accent-cyan)', fontSize: '0.9rem' }}>
+                  {user.username}
+                </span>
+                {user.isGuest && (
+                  <span
+                    style={{
+                      marginLeft: '0.4rem',
+                      fontSize: '0.65rem',
+                      padding: '0.1rem 0.3rem',
+                      borderRadius: '4px',
+                      backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                      color: '#f59e0b',
+                      fontWeight: 600
+                    }}
+                  >
+                    GUEST
+                  </span>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.78rem', fontFamily: 'var(--font-mono)' }}>
+                <span style={{ color: 'var(--accent-emerald)' }}>{user.totalXp ?? 0} XP</span>
+                <span style={{ color: 'var(--accent-gold)' }}>🪙 {user.coins ?? 0}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Navigation Links (Mobile) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            {isAuthenticated ? (
+              <>
+                <Link to="/playground" style={mobileNavLinkStyle('/playground')}>🎮 Playground</Link>
+                <Link to="/dashboard" style={mobileNavLinkStyle('/dashboard')}>🗺️ Campaign Dossier</Link>
+                <Link to="/leaderboard" style={mobileNavLinkStyle('/leaderboard')}>🏆 Leaderboard</Link>
+                <Link to="/guild" style={mobileNavLinkStyle('/guild')}>🛡️ Guilds</Link>
+                <Link to="/mentor" style={mobileNavLinkStyle('/mentor')}>🤖 AI Mentor</Link>
+                <Link to="/profile" style={mobileNavLinkStyle('/profile')}>👤 Profile</Link>
+              </>
+            ) : (
+              <>
+                <Link to="/play" style={mobileNavLinkStyle('/play')}>⚡ Quick Play</Link>
+                <Link to="/leaderboard" style={mobileNavLinkStyle('/leaderboard')}>🏆 Leaderboard</Link>
+                <Link to="/login" style={mobileNavLinkStyle('/login')}>🔑 Sign in</Link>
+                <Link to="/signup" style={mobileNavLinkStyle('/signup')}>✨ Sign up</Link>
+              </>
+            )}
+          </div>
+
+          {/* Appearance Themes (Mobile) */}
+          <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+              Appearance Theme
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
+              {[
+                { id: 'dark', label: 'Dark', icon: '🌙' },
+                { id: 'light', label: 'Light', icon: '☀️' },
+                { id: 'soft', label: 'Soft Contrast', icon: '☕' },
+                { id: 'system', label: 'Follow System', icon: '💻' }
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setTheme(item.id)}
+                  style={{
+                    padding: '0.5rem',
+                    minHeight: '42px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid',
+                    borderColor: theme === item.id ? 'var(--accent-cyan)' : 'var(--border-subtle)',
+                    backgroundColor: theme === item.id ? 'rgba(56, 189, 248, 0.12)' : 'var(--bg-secondary)',
+                    color: theme === item.id ? 'var(--accent-cyan)' : 'var(--text-primary)',
+                    fontSize: '0.8rem',
+                    fontWeight: theme === item.id ? 700 : 500,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem'
+                  }}
+                >
+                  <span>{item.icon}</span>
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Preferences (Mobile) */}
+          <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+              Preferences
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                style={{
+                  flex: 1,
+                  padding: '0.5rem',
+                  minHeight: '42px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-subtle)',
+                  backgroundColor: soundEnabled ? 'rgba(56, 189, 248, 0.15)' : 'var(--bg-secondary)',
+                  color: soundEnabled ? 'var(--accent-cyan)' : 'var(--text-muted)',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                {soundEnabled ? '🔊 Sound On' : '🔇 Muted'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMotionSetting(motionSetting === 'reduced' ? 'full' : 'reduced')}
+                style={{
+                  flex: 1,
+                  padding: '0.5rem',
+                  minHeight: '42px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-subtle)',
+                  backgroundColor: motionSetting === 'reduced' ? 'rgba(56, 189, 248, 0.15)' : 'var(--bg-secondary)',
+                  color: motionSetting === 'reduced' ? 'var(--accent-cyan)' : 'var(--text-secondary)',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                {motionSetting === 'reduced' ? 'Motion: Reduced' : 'Motion: Standard'}
+              </button>
+            </div>
+          </div>
+
+          {/* Sign Out (Mobile) */}
+          {isAuthenticated && (
+            <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={handleLogout}
+                style={{
+                  width: '100%',
+                  padding: '0.6rem',
+                  minHeight: '42px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--accent-red)',
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  color: 'var(--accent-red)',
+                  fontSize: '0.88rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Sign out
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </nav>
   );
 }

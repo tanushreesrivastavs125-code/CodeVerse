@@ -69,6 +69,7 @@ export function ResultModal({
     if (!result || !isOpen) return;
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
+        e.stopPropagation();
         onClose();
       }
     };

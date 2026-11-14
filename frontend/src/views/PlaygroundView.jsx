@@ -36,6 +36,33 @@ export function PlaygroundView() {
   const [isRefreshingProgress, setIsRefreshingProgress] = useState(false);
   const [refreshError, setRefreshError] = useState(null);
   const activeLevelIdRef = useRef(null);
+  const [mobileTab, setMobileTab] = useState('board'); // 'board' | 'code'
+  const [isNarrowScreen, setIsNarrowScreen] = useState(() => {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return window.matchMedia('(max-width: 900px)').matches;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mql = window.matchMedia('(max-width: 900px)');
+    const onChange = (e) => setIsNarrowScreen(e.matches);
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+
+  const handleMobileTabSwitch = (tab) => {
+    setMobileTab(tab);
+    if (tab === 'code' && typeof window !== 'undefined' && window.dispatchEvent) {
+      try {
+        const EventCtor = window.Event || globalThis.Event;
+        window.dispatchEvent(new EventCtor('resize'));
+      } catch {
+        // Safe fallback in restricted or test environments
+      }
+    }
+  };
 
   // Sync ref with active level id to guard against stale responses
   useEffect(() => {
@@ -236,15 +263,48 @@ export function PlaygroundView() {
     }
   }, [activeLevel, program, setError, setRequestError, startSubmission, releaseSubmissionLock, isCurrentGeneration, startPlayback]);
 
-  // Keyboard shortcuts (Ctrl+Enter to Run, Esc to Reset)
+  // Keyboard shortcuts (Ctrl+Enter to Run, Esc to Reset or Close Dialog)
   useEffect(() => {
     function handleKeyDown(e) {
+      const isEditingInput =
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target?.tagName) ||
+        Boolean(e.target?.isContentEditable);
+
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        if (isEditingInput || isResultModalOpen || isMapModalOpen || isMentorModalOpen) {
+          return;
+        }
         e.preventDefault();
         handleLaunch();
-      } else if (e.key === 'Escape' && !isResultModalOpen && !isMapModalOpen && !isMentorModalOpen) {
-        resetWorld();
-        setLastResult(null);
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        // Priority 1: Close active modal without resetting the board behind it
+        if (isResultModalOpen) {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsResultModalOpen(false);
+          return;
+        }
+        if (isMapModalOpen) {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsMapModalOpen(false);
+          return;
+        }
+        if (isMentorModalOpen) {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsMentorModalOpen(false);
+          return;
+        }
+
+        // Priority 2: Only reset world if no dialog is open and user is not in an input
+        if (!isEditingInput) {
+          resetWorld();
+          setLastResult(null);
+        }
       }
     }
     window.addEventListener('keydown', handleKeyDown);
@@ -572,43 +632,108 @@ export function PlaygroundView() {
         </div>
       )}
 
+      {/* Mobile Workspace Tabs (Board vs Code) */}
+      <div className="mobile-workspace-tabs" role="tablist" aria-label="Game Workspace Views">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mobileTab === 'board'}
+          onClick={() => handleMobileTabSwitch('board')}
+          className={`tab-btn ${mobileTab === 'board' ? 'active' : ''}`}
+        >
+          <span>🗺️</span>
+          <span>Simulation Board</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mobileTab === 'code'}
+          onClick={() => handleMobileTabSwitch('code')}
+          className={`tab-btn ${mobileTab === 'code' ? 'active' : ''}`}
+        >
+          <span>🧩</span>
+          <span>Block Editor {program.length > 0 ? `(${program.length})` : ''}</span>
+        </button>
+      </div>
+
+      {/* Flight Playback Controls on Narrow Screens (accessible in both Board and Code tabs) */}
+      {isNarrowScreen && (
+        <PlaybackControls
+          isBusy={isBusy}
+          onLaunch={handleLaunch}
+          onReset={() => {
+            resetWorld();
+            setLastResult(null);
+          }}
+          speed={speed}
+          onSpeedToggle={toggleSpeed}
+          sound={soundEnabled}
+          onSoundToggle={toggleSound}
+          onOpenMap={() => setIsMapModalOpen(true)}
+          onOpenMentor={() => setIsMentorModalOpen(true)}
+          programLength={program.length}
+          hasActiveLevel={Boolean(activeLevel)}
+        />
+      )}
+
       {/* Main Responsive Game Shell */}
       <div className="workspace-grid">
-        {/* Left Column: Board Simulation, Mission Objectives & Flight Controls */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {/* Left Column: Board Simulation, Mission Objectives & Desktop Controls */}
+        <div
+          className="board-panel"
+          style={{
+            display: isNarrowScreen && mobileTab !== 'board' ? 'none' : 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+            minWidth: 0,
+            maxWidth: '100%'
+          }}
+        >
           <WorldScene
             level={activeLevel}
             state={worldState}
             isCelebrating={isCelebrating}
           />
 
-          <PlaybackControls
-            isBusy={isBusy}
-            onLaunch={handleLaunch}
-            onReset={() => {
-              resetWorld();
-              setLastResult(null);
-            }}
-            speed={speed}
-            onSpeedToggle={toggleSpeed}
-            sound={soundEnabled}
-            onSoundToggle={toggleSound}
-            onOpenMap={() => setIsMapModalOpen(true)}
-            onOpenMentor={() => setIsMentorModalOpen(true)}
-            programLength={program.length}
-            hasActiveLevel={Boolean(activeLevel)}
-          />
+          {!isNarrowScreen && (
+            <PlaybackControls
+              isBusy={isBusy}
+              onLaunch={handleLaunch}
+              onReset={() => {
+                resetWorld();
+                setLastResult(null);
+              }}
+              speed={speed}
+              onSpeedToggle={toggleSpeed}
+              sound={soundEnabled}
+              onSoundToggle={toggleSound}
+              onOpenMap={() => setIsMapModalOpen(true)}
+              onOpenMentor={() => setIsMentorModalOpen(true)}
+              programLength={program.length}
+              hasActiveLevel={Boolean(activeLevel)}
+            />
+          )}
 
           <MissionBriefing level={activeLevel} />
         </div>
 
         {/* Right Column: Blockly Drag-and-Drop Editor */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div
+          className="code-panel"
+          style={{
+            display: isNarrowScreen && mobileTab !== 'code' ? 'none' : 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+            minWidth: 0,
+            maxWidth: '100%'
+          }}
+        >
           <BlocklyEditor
             key={`blockly-${activeLevel?.id}`}
             onProgramChange={handleProgramChange}
             isBusy={isBusy}
             initialXml={STARTER_BLOCKS[activeLevel?.id] || null}
+            isVisible={!isNarrowScreen || mobileTab === 'code'}
           />
         </div>
       </div>
