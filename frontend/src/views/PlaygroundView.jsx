@@ -171,7 +171,7 @@ export function PlaygroundView() {
   }, []);
 
   // Launch program with immediate synchronous ownership lock
-  const handleLaunch = async () => {
+  const handleLaunch = useCallback(async () => {
     if (!activeLevel) return;
 
     // 1. Client-side AST validation
@@ -217,7 +217,7 @@ export function PlaygroundView() {
           errorMsg = 'Your session has expired. Please refresh or sign in to continue.';
         } else if (err.status === 403) {
           if (err.code === 'LEVEL_LOCKED') {
-            errorMsg = 'This sector is currently locked. Complete earlier sectors to access.';
+            errorMsg = 'This level is currently locked. Complete earlier levels to access.';
           } else if (err.code === 'CSRF_ORIGIN_INVALID') {
             errorMsg = 'Request blocked by CSRF security policy. Your origin is not recognized in CORS_ORIGIN.';
           } else {
@@ -234,9 +234,25 @@ export function PlaygroundView() {
 
       setRequestError(errorMsg);
     }
-  };
+  }, [activeLevel, program, setError, setRequestError, startSubmission, releaseSubmissionLock, isCurrentGeneration, startPlayback]);
 
-  // Next Sector Action
+  // Keyboard shortcuts (Ctrl+Enter to Run, Esc to Reset)
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleLaunch();
+      } else if (e.key === 'Escape' && !isResultModalOpen && !isMapModalOpen && !isMentorModalOpen) {
+        resetWorld();
+        setLastResult(null);
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleLaunch, resetWorld, isResultModalOpen, isMapModalOpen, isMentorModalOpen]);
+
+  // Next / Prev Level Navigation
+  const prevLevel = levels.find((l) => l.id === (activeLevel?.id || 0) - 1);
   const nextLevel = levels.find((l) => l.id === (activeLevel?.id || 0) + 1);
   const hasNextSector = Boolean(nextLevel && nextLevel.unlocked);
 
@@ -250,11 +266,20 @@ export function PlaygroundView() {
     }
   };
 
+  const handlePrevSector = () => {
+    if (prevLevel && prevLevel.unlocked) {
+      setIsResultModalOpen(false);
+      setLastResult(null);
+      resetWorld();
+      selectLevelWithUrlSync(prevLevel);
+    }
+  };
+
   if (loadingLevels && !activeLevel) {
     return (
       <div style={{ maxWidth: '800px', margin: '4rem auto', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
-        <div style={{ width: '36px', height: '36px', border: '3px solid rgba(6, 182, 212, 0.2)', borderTopColor: 'var(--accent-cyan)', borderRadius: '50%', margin: '0 auto 1rem', animation: 'spin 0.8s linear infinite' }} />
-        <span style={{ color: 'var(--text-muted)' }}>Initialising flight matrix & sector telemetry...</span>
+        <div style={{ width: '32px', height: '32px', border: '3px solid rgba(56, 189, 248, 0.2)', borderTopColor: 'var(--accent-cyan)', borderRadius: '50%', margin: '0 auto 1rem', animation: 'spin 0.8s linear infinite' }} />
+        <span style={{ color: 'var(--text-muted)' }}>Loading level workspace...</span>
       </div>
     );
   }
@@ -262,99 +287,112 @@ export function PlaygroundView() {
   const isCelebrating = Boolean((result?.passed || lastResult?.passed) && (runState === 'passed' || isResultModalOpen));
 
   return (
-    <div
-      style={{
-        maxWidth: '1440px',
-        margin: '0 auto',
-        padding: '1.5rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1.25rem'
-      }}
-    >
-      {/* Flight Control Telemetry Header */}
+    <div className="workspace-container">
+      {/* Calm, Focused Workspace Header */}
       <div
+        className="calm-card"
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: '1rem',
-          paddingBottom: '1rem',
-          borderBottom: '1px solid var(--border-subtle)'
+          gap: '0.75rem',
+          padding: '0.75rem 1.25rem'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           <div
             style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, var(--accent-cyan), var(--accent-blue))',
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              backgroundColor: 'rgba(56, 189, 248, 0.12)',
+              border: '1px solid var(--border-subtle)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '1.3rem'
+              fontSize: '1rem',
+              color: 'var(--accent-cyan)'
             }}
           >
             🛰️
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                {user?.username || 'Autonomous Pilot'}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <h1 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                Level {activeLevel?.id || 1}: {activeLevel?.title || 'Boot Sequence'}
               </h1>
-              {user?.isGuest && (
-                <span
-                  style={{
-                    padding: '0.15rem 0.5rem',
-                    borderRadius: '4px',
-                    fontSize: '0.72rem',
-                    fontFamily: 'var(--font-mono)',
-                    backgroundColor: 'rgba(234, 179, 8, 0.15)',
-                    color: '#eab308',
-                    border: '1px solid rgba(234, 179, 8, 0.4)'
-                  }}
-                >
-                  GUEST SESSION
-                </span>
-              )}
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                ({user?.username || 'Pilot'})
+              </span>
             </div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-              ID: <code style={{ color: 'var(--accent-cyan)' }}>{user?.id}</code> • Campaign Operations
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              {activeLevel?.zone || 'Neon Outskirts'} • {activeLevel?.concept || 'Logic'}
             </div>
           </div>
         </div>
 
-        {/* Player Chips */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', fontFamily: 'var(--font-mono)' }}>
-          <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>PILOT TIER</span>
-            <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--accent-cyan)' }}>
-              Level {user?.level || 1}
-            </span>
-          </div>
+        {/* Quick Level Navigation Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={handlePrevSector}
+            disabled={!prevLevel || !prevLevel.unlocked}
+            title={prevLevel ? `Go to Level ${prevLevel.id}` : 'No previous level'}
+            style={{
+              padding: '0.35rem 0.65rem',
+              minHeight: '34px',
+              backgroundColor: 'var(--bg-secondary)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-sm)',
+              color: prevLevel && prevLevel.unlocked ? 'var(--text-primary)' : 'var(--text-muted)',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              cursor: prevLevel && prevLevel.unlocked ? 'pointer' : 'not-allowed',
+              opacity: prevLevel && prevLevel.unlocked ? 1 : 0.5
+            }}
+          >
+            ← Prev
+          </button>
 
-          <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>TOTAL XP</span>
-            <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--accent-cyan)' }}>
-              {user?.totalXp || 0} XP
-            </span>
-          </div>
+          <button
+            type="button"
+            onClick={() => setIsMapModalOpen(true)}
+            style={{
+              padding: '0.35rem 0.75rem',
+              minHeight: '34px',
+              backgroundColor: 'var(--bg-secondary)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-sm)',
+              color: 'var(--accent-cyan)',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+          >
+            🗺️ Level Map
+          </button>
 
-          <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>CREDITS</span>
-            <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--accent-gold)' }}>
-              🪙 {user?.coins || 0}
-            </span>
-          </div>
-
-          <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>STREAK</span>
-            <span style={{ fontSize: '1rem', fontWeight: 700, color: '#fb923c' }}>
-              🔥 {user?.streak || 0}
-            </span>
-          </div>
+          <button
+            type="button"
+            onClick={handleNextSector}
+            disabled={!nextLevel || !nextLevel.unlocked}
+            title={nextLevel ? (nextLevel.unlocked ? `Go to Level ${nextLevel.id}` : 'Level locked') : 'Final level'}
+            style={{
+              padding: '0.35rem 0.65rem',
+              minHeight: '34px',
+              backgroundColor: 'var(--bg-secondary)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-sm)',
+              color: nextLevel && nextLevel.unlocked ? 'var(--text-primary)' : 'var(--text-muted)',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              cursor: nextLevel && nextLevel.unlocked ? 'pointer' : 'not-allowed',
+              opacity: nextLevel && nextLevel.unlocked ? 1 : 0.5
+            }}
+          >
+            Next →
+          </button>
         </div>
       </div>
 
@@ -363,20 +401,20 @@ export function PlaygroundView() {
         <div
           role="alert"
           style={{
-            padding: '0.9rem 1.25rem',
+            padding: '0.75rem 1.25rem',
             backgroundColor: 'rgba(239, 68, 68, 0.12)',
-            border: '1px solid rgba(239, 68, 68, 0.4)',
+            border: '1px solid rgba(239, 68, 68, 0.35)',
             borderRadius: 'var(--radius-md)',
-            color: '#fca5a5',
-            fontSize: '0.9rem',
+            color: 'var(--accent-red)',
+            fontSize: '0.88rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '1rem'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <span style={{ fontSize: '1.2rem' }}>⚠</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span>⚠</span>
             <span>{error}</span>
           </div>
           <button
@@ -385,7 +423,7 @@ export function PlaygroundView() {
             style={{
               background: 'none',
               border: 'none',
-              color: '#fca5a5',
+              color: 'var(--accent-red)',
               cursor: 'pointer',
               fontSize: '1rem'
             }}
@@ -401,9 +439,9 @@ export function PlaygroundView() {
           style={{
             padding: '0.75rem 1.25rem',
             backgroundColor: 'rgba(234, 179, 8, 0.12)',
-            border: '1px solid rgba(234, 179, 8, 0.4)',
+            border: '1px solid rgba(234, 179, 8, 0.35)',
             borderRadius: 'var(--radius-md)',
-            color: '#fef08a',
+            color: 'var(--accent-gold)',
             fontSize: '0.85rem',
             display: 'flex',
             alignItems: 'center',
@@ -411,7 +449,7 @@ export function PlaygroundView() {
             gap: '1rem'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span>⚠️</span>
             <span>{refreshError}</span>
           </div>
@@ -422,9 +460,9 @@ export function PlaygroundView() {
             style={{
               padding: '0.35rem 0.75rem',
               borderRadius: 'var(--radius-sm)',
-              border: '1px solid #eab308',
-              backgroundColor: 'rgba(234, 179, 8, 0.2)',
-              color: '#fef08a',
+              border: '1px solid var(--accent-gold)',
+              backgroundColor: 'rgba(234, 179, 8, 0.15)',
+              color: 'var(--accent-gold)',
               fontSize: '0.78rem',
               fontWeight: 700,
               cursor: isRefreshingProgress ? 'wait' : 'pointer'
@@ -438,25 +476,27 @@ export function PlaygroundView() {
       {/* Persistent Result Summary Banner (Visible when modal is closed but run result exists) */}
       {!isResultModalOpen && lastResult && (
         <div
+          className="calm-card"
           style={{
-            padding: '0.85rem 1.25rem',
-            backgroundColor: lastResult.passed ? 'rgba(52, 211, 153, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-            border: lastResult.passed ? '1px solid rgba(52, 211, 153, 0.4)' : '1px solid rgba(239, 68, 68, 0.4)',
-            borderRadius: 'var(--radius-md)',
+            padding: '0.8rem 1.25rem',
+            backgroundColor: lastResult.passed ? 'rgba(52, 211, 153, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+            borderColor: lastResult.passed ? 'rgba(52, 211, 153, 0.35)' : 'rgba(239, 68, 68, 0.35)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
-            gap: '1rem'
+            gap: '0.75rem'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <span style={{ fontSize: '1.25rem' }}>{lastResult.passed ? '✓' : '✕'}</span>
+            <span style={{ fontSize: '1.2rem', color: lastResult.passed ? 'var(--accent-emerald)' : 'var(--accent-red)' }}>
+              {lastResult.passed ? '✓' : '✕'}
+            </span>
             <div>
-              <div style={{ fontWeight: 700, fontSize: '0.92rem', color: lastResult.passed ? 'var(--accent-emerald)' : '#fca5a5' }}>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: lastResult.passed ? 'var(--accent-emerald)' : 'var(--accent-red)' }}>
                 {lastResult.passed ? 'Level complete!' : 'Not quite yet—try again'}
                 {lastResult.passed && (
-                  <span style={{ marginLeft: '0.6rem', color: 'var(--accent-gold)' }}>
+                  <span style={{ marginLeft: '0.5rem', color: 'var(--accent-gold)' }}>
                     {'★'.repeat(lastResult.stars || 0)}
                   </span>
                 )}
@@ -467,15 +507,16 @@ export function PlaygroundView() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button
               type="button"
               onClick={() => setIsResultModalOpen(true)}
               style={{
                 padding: '0.4rem 0.85rem',
+                minHeight: '36px',
                 borderRadius: 'var(--radius-sm)',
                 border: '1px solid var(--border-subtle)',
-                backgroundColor: 'rgba(31, 41, 55, 0.8)',
+                backgroundColor: 'var(--bg-secondary)',
                 color: 'var(--text-primary)',
                 fontSize: '0.82rem',
                 fontWeight: 600,
@@ -491,10 +532,11 @@ export function PlaygroundView() {
                 onClick={handleNextSector}
                 style={{
                   padding: '0.4rem 0.95rem',
+                  minHeight: '36px',
                   borderRadius: 'var(--radius-sm)',
                   border: 'none',
                   backgroundColor: 'var(--accent-cyan)',
-                  color: '#070f18',
+                  color: '#ffffff',
                   fontSize: '0.82rem',
                   fontWeight: 700,
                   cursor: 'pointer'
@@ -513,10 +555,11 @@ export function PlaygroundView() {
                 }}
                 style={{
                   padding: '0.4rem 0.85rem',
+                  minHeight: '36px',
                   borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--accent-cyan)',
-                  backgroundColor: 'rgba(66, 227, 198, 0.1)',
-                  color: 'var(--accent-cyan)',
+                  border: '1px solid var(--border-subtle)',
+                  backgroundColor: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)',
                   fontSize: '0.82rem',
                   fontWeight: 600,
                   cursor: 'pointer'
@@ -529,24 +572,15 @@ export function PlaygroundView() {
         </div>
       )}
 
-      {/* Main Dual-Column Game Shell */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1.25fr) minmax(360px, 1fr)',
-          gap: '1.5rem',
-          alignItems: 'start'
-        }}
-      >
-        {/* Left Column: World Simulation & Mission HUD */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {/* Main Responsive Game Shell */}
+      <div className="workspace-grid">
+        {/* Left Column: Board Simulation, Mission Objectives & Flight Controls */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <WorldScene
             level={activeLevel}
             state={worldState}
             isCelebrating={isCelebrating}
           />
-
-          <MissionBriefing level={activeLevel} />
 
           <PlaybackControls
             isBusy={isBusy}
@@ -564,9 +598,11 @@ export function PlaygroundView() {
             programLength={program.length}
             hasActiveLevel={Boolean(activeLevel)}
           />
+
+          <MissionBriefing level={activeLevel} />
         </div>
 
-        {/* Right Column: Blockly Editor & Program Preview */}
+        {/* Right Column: Blockly Drag-and-Drop Editor */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <BlocklyEditor
             key={`blockly-${activeLevel?.id}`}
@@ -574,50 +610,6 @@ export function PlaygroundView() {
             isBusy={isBusy}
             initialXml={STARTER_BLOCKS[activeLevel?.id] || null}
           />
-
-          <div
-            style={{
-              padding: '0.85rem 1rem',
-              backgroundColor: 'rgba(17, 24, 39, 0.6)',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-subtle)',
-              fontSize: '0.82rem',
-              color: 'var(--text-muted)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '0.75rem',
-              flexWrap: 'wrap'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span>💡</span>
-              <span>
-                Tip: Drag blocks to build your drone sequence. Use repeat blocks for compact loops.
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsMentorModalOpen(true)}
-              style={{
-                padding: '0.4rem 0.8rem',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--accent-cyan)',
-                backgroundColor: 'rgba(66, 227, 198, 0.12)',
-                color: 'var(--accent-cyan)',
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                fontFamily: 'var(--font-mono)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.35rem'
-              }}
-            >
-              <span>🤖</span>
-              <span>AI MENTOR</span>
-            </button>
-          </div>
         </div>
       </div>
 

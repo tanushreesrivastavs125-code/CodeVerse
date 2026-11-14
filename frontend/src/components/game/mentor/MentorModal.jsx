@@ -223,10 +223,10 @@ export function MentorModal({ isOpen, onClose, level, program }) {
           width: '100%',
           maxWidth: '720px',
           maxHeight: '90vh',
-          backgroundColor: '#0c1520',
+          backgroundColor: 'var(--bg-card)',
           border: '1px solid var(--border-subtle)',
           borderRadius: 'var(--radius-lg)',
-          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.7), 0 0 30px rgba(66, 227, 198, 0.12)',
+          boxShadow: 'var(--shadow-lg)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden'
@@ -240,7 +240,7 @@ export function MentorModal({ isOpen, onClose, level, program }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            backgroundColor: 'rgba(15, 23, 42, 0.6)'
+            backgroundColor: 'var(--bg-secondary)'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

@@ -172,23 +172,23 @@ export function registerCodeVerseBlocks() {
 }
 
 /**
- * Custom dark cyber theme for CodeVerse Blockly editor.
+ * Custom Dark Theme for CodeVerse Blockly editor.
  */
-export const codeVerseTheme = Blockly.Theme.defineTheme('codeverseCyber', {
+export const codeVerseDarkTheme = Blockly.Theme.defineTheme('codeverseDark', {
   base: Blockly.Themes.Classic,
   componentStyles: {
-    workspaceBackgroundColour: '#0b0f19',
-    toolboxBackgroundColour: '#111827',
-    toolboxForegroundColour: '#9ca3af',
-    flyoutBackgroundColour: '#1f2937',
-    flyoutForegroundColour: '#f3f4f6',
-    flyoutOpacity: 0.95,
-    scrollbarColour: '#374151',
-    scrollbarOpacity: 0.7,
-    insertionMarkerColour: '#06b6d4',
-    insertionMarkerOpacity: 0.8,
-    markerColour: '#06b6d4',
-    cursorColour: '#06b6d4'
+    workspaceBackgroundColour: '#0e1520',
+    toolboxBackgroundColour: '#131d2b',
+    toolboxForegroundColour: '#9cb3c9',
+    flyoutBackgroundColour: '#162232',
+    flyoutForegroundColour: '#e6edf3',
+    flyoutOpacity: 0.98,
+    scrollbarColour: '#2a3e56',
+    scrollbarOpacity: 0.75,
+    insertionMarkerColour: '#38bdf8',
+    insertionMarkerOpacity: 0.85,
+    markerColour: '#38bdf8',
+    cursorColour: '#38bdf8'
   },
   fontStyle: {
     family: "'JetBrains Mono', monospace",
@@ -196,6 +196,72 @@ export const codeVerseTheme = Blockly.Theme.defineTheme('codeverseCyber', {
     size: 11
   }
 });
+
+/**
+ * Custom Light Theme for CodeVerse Blockly editor.
+ */
+export const codeVerseLightTheme = Blockly.Theme.defineTheme('codeverseLight', {
+  base: Blockly.Themes.Classic,
+  componentStyles: {
+    workspaceBackgroundColour: '#f8fafc',
+    toolboxBackgroundColour: '#ffffff',
+    toolboxForegroundColour: '#334155',
+    flyoutBackgroundColour: '#ffffff',
+    flyoutForegroundColour: '#0f172a',
+    flyoutOpacity: 0.98,
+    scrollbarColour: '#cbd5e1',
+    scrollbarOpacity: 0.75,
+    insertionMarkerColour: '#0284c7',
+    insertionMarkerOpacity: 0.85,
+    markerColour: '#0284c7',
+    cursorColour: '#0284c7'
+  },
+  fontStyle: {
+    family: "'JetBrains Mono', monospace",
+    weight: '600',
+    size: 11
+  }
+});
+
+/**
+ * Custom Soft Contrast Theme for CodeVerse Blockly editor.
+ */
+export const codeVerseSoftTheme = Blockly.Theme.defineTheme('codeverseSoft', {
+  base: Blockly.Themes.Classic,
+  componentStyles: {
+    workspaceBackgroundColour: '#1a2029',
+    toolboxBackgroundColour: '#232934',
+    toolboxForegroundColour: '#97a6b8',
+    flyoutBackgroundColour: '#262c38',
+    flyoutForegroundColour: '#dbe3ed',
+    flyoutOpacity: 0.98,
+    scrollbarColour: '#3b4657',
+    scrollbarOpacity: 0.75,
+    insertionMarkerColour: '#5eaad9',
+    insertionMarkerOpacity: 0.85,
+    markerColour: '#5eaad9',
+    cursorColour: '#5eaad9'
+  },
+  fontStyle: {
+    family: "'JetBrains Mono', monospace",
+    weight: '600',
+    size: 11
+  }
+});
+
+/**
+ * Backward compatibility alias for codeVerseTheme.
+ */
+export const codeVerseTheme = codeVerseDarkTheme;
+
+/**
+ * Helper to select the Blockly theme matching the active application theme.
+ */
+export function getBlocklyTheme(themeName) {
+  if (themeName === 'light') return codeVerseLightTheme;
+  if (themeName === 'soft') return codeVerseSoftTheme;
+  return codeVerseDarkTheme;
+}
 
 /**
  * Standard toolbox configuration with Actions, Control, and Sensors.

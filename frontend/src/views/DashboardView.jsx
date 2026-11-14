@@ -383,7 +383,7 @@ export function DashboardView() {
                         <div
                           key={lvl.id}
                           style={{
-                            backgroundColor: isLocked ? 'rgba(17, 24, 39, 0.5)' : 'var(--bg-secondary)',
+                            backgroundColor: isLocked ? 'var(--bg-card)' : 'var(--bg-secondary)',
                             border: isCompleted
                               ? '1px solid rgba(16, 185, 129, 0.4)'
                               : isLocked

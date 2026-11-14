@@ -323,13 +323,13 @@ This milestone transforms CodeVerse into a clear, beginner-friendly coding game 
 Preserving server-authoritative evaluation, transactional rewards, existing accounts, progress, guilds, and replay protection.
 
 ```
-Stage A: Fix Gameplay Results, Progression, and Authentication (CURRENT)
+Stage A: Fix Gameplay Results, Progression, and Authentication (Complete)
    │  └─ Run lifecycle state machine, persistent boards, next-level flow, multi-origin LAN auth
    ▼
-Stage B: Calm UI and Theme Settings
+Stage B: Calm UI and Theme Settings (Complete)
    │  └─ Focused workspace, Dark/Light/Soft Contrast/System themes, reduced motion, mobile layout
    ▼
-Stage C: Teach Before Testing
+Stage C: Teach Before Testing (NEXT)
    │  └─ Structured pedagogical lessons, progressive toolbox, contextual demonstrations, multi-tier hints
    ▼
 Stage D: Real Multilanguage Code Preview
@@ -339,8 +339,9 @@ Stage E: Expand the Actual Learning Game
       └─ Variables, For/While loops, Arrays, Indexing, Search, Sorting (compare-and-swap), Recursion (call stacks)
 ```
 
-### Stage A — Fix Gameplay Results, Progression, and Authentication (Current)
+### Stage A — Fix Gameplay Results, Progression, and Authentication (Completed)
 - **Branch:** `feature/gameplay-progression-auth`
+- **PR:** #25 / #26 (Merged to `main`)
 - **Focus Areas:**
   - **Run Lifecycle State Machine:** Replace raw boolean `isBusy` with explicit lifecycle states: `idle` → `submitting` → `playing` → `passed` / `failed`, with a separate recoverable `request-error` state.
   - **Playback Hook (`useGamePlayback`):** Reset world state and results only upon actual level identity changes (`level?.id`), preserving the board and modal on metadata updates. Clean client cancellation that never claims server-committed rewards were undone. Consistent handling of empty frames and `prefers-reduced-motion`.
@@ -351,17 +352,20 @@ Stage E: Expand the Actual Learning Game
   - **Action Count Normalization:** Standardize action count readings across API contracts (`steps` and `actionsCount`) and `ProfileView`.
   - **Multi-Origin LAN Authentication & CSRF:** Support comma-separated `CORS_ORIGIN`, full origin validation (protocol, host, port), seamless access via localhost, 127.0.0.1, and configured LAN IP (e.g. mobile testing), with strict distinction between 403 `LEVEL_LOCKED` and 403 `CSRF_ORIGIN_INVALID`.
 
-### Stage B — Calm UI and Theme Settings
+### Stage B — Calm UI and Theme Settings (Completed)
+- **Branch:** `codex/calm-ui-themes`
 - **Goal:** Replace visual clutter with a focused learning workspace.
 - **Deliverables:**
-  - Compact navigation; clear level title, objective, and lesson access; board and editor as primary content.
-  - Run/Stop/Reset controls adjacent to editor, accessible without excessive scrolling.
-  - Collapsible secondary metrics, hints, and technical details; removal of duplicate player badges and repeated mentor buttons.
-  - Plain-language wording replacing jargon (e.g., replacing "tactical par execution").
-  - Four selectable themes: Dark, Light, Soft Contrast, and Follow System, persisted to prevent flash-of-unstyled-content.
-  - Complete theming across Blockly toolbox/workspace, code preview, dialogs, forms, and board using shared design tokens.
-  - Optional background animations (defaulting to off in learning workspace), reduced-motion, and audio preferences.
-  - Responsive layouts across mobile, tablet, and desktop without horizontal overflow; accessible keyboard focus and touch alternatives.
+  - Compact navigation; clear level title, objective, and level selector access; board and editor as primary content.
+  - Run/Reset controls prominently positioned adjacent to the editor and board, accessible without excessive scrolling.
+  - Keyboard shortcuts (`Ctrl+Enter` to Launch, `Esc` to Reset) and touch-friendly controls (minimum 42-44px tap targets).
+  - Collapsible secondary metrics, hints, and technical constraints; removal of duplicate player badges and repeated mentor buttons.
+  - Plain-language wording replacing jargon (e.g., replacing "tactical par execution" with "Target: X actions").
+  - Four selectable themes: Dark, Light, Soft Contrast, and Follow System, persisted in `localStorage` to prevent flash-of-unstyled-content via an early head script.
+  - Complete theming across Blockly toolbox/workspace (`codeverseDark`, `codeverseLight`, `codeverseSoft`), code preview, dialogs, forms, and board using shared design tokens.
+  - Muted surfaces, readable text (WCAG AA), restrained accents, and minimal glow.
+  - Reduced-motion preferences (`codeverse_motion`) and audio sound preferences (`codeverse_sound`) with persistence.
+  - Responsive layouts across mobile, tablet, and desktop without horizontal overflow.
 
 ### Stage C — Teach Before Testing
 - **Goal:** Comprehensive pedagogical curriculum introducing concepts before evaluation.

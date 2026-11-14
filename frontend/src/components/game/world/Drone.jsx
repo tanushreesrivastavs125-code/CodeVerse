@@ -1,3 +1,5 @@
+import { useTheme } from '../../../context/ThemeContext.jsx';
+
 /**
  * Animated Drone Component for CodeVerse Simulation Board.
  * Features directional heading, thrusters, antenna, and stateful event animations.
@@ -12,11 +14,12 @@ export function Drone({
   boardOffsetX = 0,
   boardOffsetY = 0
 }) {
+  const { isReducedMotion } = useTheme();
   const headingDeg = direction * 90;
   const leftPx = boardOffsetX + x * tileSize + tileSize * 0.125;
   const topPx = boardOffsetY + y * tileSize + tileSize * 0.125;
   const sizePx = tileSize * 0.75;
-  const celebratingClass = (isCelebrating || event === 'victory') ? 'drone-celebrating' : '';
+  const celebratingClass = (!isReducedMotion && (isCelebrating || event === 'victory')) ? 'drone-celebrating' : '';
 
   return (
     <div
@@ -27,7 +30,7 @@ export function Drone({
         top: `${topPx}px`,
         width: `${sizePx}px`,
         height: `${sizePx}px`,
-        transition: 'left 0.25s ease-out, top 0.25s ease-out, transform 0.25s ease-out',
+        transition: isReducedMotion ? 'none' : 'left 0.25s ease-out, top 0.25s ease-out, transform 0.25s ease-out',
         zIndex: 10,
         pointerEvents: 'none'
       }}

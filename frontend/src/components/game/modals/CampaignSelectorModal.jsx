@@ -221,17 +221,17 @@ export function CampaignSelectorModal({
                         padding: '0.9rem 1.15rem',
                         borderRadius: 'var(--radius-md)',
                         backgroundColor: isCurrent
-                          ? 'rgba(6, 182, 212, 0.12)'
+                          ? 'rgba(56, 189, 248, 0.12)'
                           : isLocked
-                            ? 'rgba(17, 24, 39, 0.35)'
-                            : '#111e2e',
+                            ? 'var(--bg-secondary)'
+                            : 'var(--bg-secondary)',
                         border: isCurrent
                           ? '1px solid var(--accent-cyan)'
                           : isCompleted
-                            ? '1px solid rgba(16, 185, 129, 0.4)'
+                            ? '1px solid var(--accent-emerald)'
                             : isLocked
-                              ? '1px solid rgba(55, 65, 81, 0.25)'
-                              : '1px solid rgba(6, 182, 212, 0.3)',
+                              ? '1px solid var(--border-subtle)'
+                              : '1px solid var(--border-subtle)',
                         cursor: isLocked || isBusy ? 'not-allowed' : 'pointer',
                         opacity: isLocked ? 0.45 : 1,
                         textAlign: 'left',

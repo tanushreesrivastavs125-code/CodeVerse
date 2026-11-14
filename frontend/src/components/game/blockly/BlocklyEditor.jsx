@@ -2,13 +2,14 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import * as Blockly from 'blockly';
 import {
   registerCodeVerseBlocks,
-  codeVerseTheme,
+  getBlocklyTheme,
   gameToolbox
 } from './blocklyConfig.js';
 import {
   compileWorkspaceToAST,
   programToPreviewCode
 } from './astCompiler.js';
+import { useTheme } from '../../../context/ThemeContext.jsx';
 
 /**
  * BlocklyEditor Component integrates the visual drag-and-drop programming workspace,
@@ -23,16 +24,31 @@ export function BlocklyEditor({
 }) {
   const editorRef = useRef(null);
   const workspaceRef = useRef(null);
+  const { resolvedTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('blocks'); // 'blocks' | 'code'
   const [previewCode, setPreviewCode] = useState('');
   const [compilationError, setCompilationError] = useState(null);
 
   const onProgramChangeRef = useRef(onProgramChange);
   const initialXmlRef = useRef(initialXml);
+  const resolvedThemeRef = useRef(resolvedTheme);
 
   useEffect(() => {
     onProgramChangeRef.current = onProgramChange;
+    resolvedThemeRef.current = resolvedTheme;
   });
+
+  // Dynamic theme update for active Blockly workspace
+  useEffect(() => {
+    if (workspaceRef.current) {
+      try {
+        const themeObj = getBlocklyTheme(resolvedTheme);
+        workspaceRef.current.setTheme(themeObj);
+      } catch {
+        // Fallback safely if theme set fails
+      }
+    }
+  }, [resolvedTheme]);
 
   // Initialize workspace
   useEffect(() => {
@@ -46,14 +62,16 @@ export function BlocklyEditor({
       workspaceRef.current = null;
     }
 
+    const currentTheme = getBlocklyTheme(resolvedThemeRef.current);
+
     const ws = Blockly.inject(editorRef.current, {
       toolbox: gameToolbox,
-      theme: codeVerseTheme,
+      theme: currentTheme,
       renderer: 'geras',
       grid: {
         spacing: 20,
         length: 2,
-        colour: '#1f2937',
+        colour: resolvedThemeRef.current === 'light' ? '#e2e8f0' : '#1f2937',
         snap: true
       },
       trashcan: true,
@@ -154,13 +172,13 @@ export function BlocklyEditor({
   return (
     <div
       style={{
-        backgroundColor: '#0c1824',
+        backgroundColor: 'var(--bg-card)',
         borderRadius: 'var(--radius-lg)',
         border: '1px solid var(--border-subtle)',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.4)'
+        boxShadow: 'var(--shadow-sm)'
       }}
     >
       {/* Editor Header & Mode Tabs */}
@@ -169,9 +187,9 @@ export function BlocklyEditor({
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          padding: '0.75rem 1rem',
-          backgroundColor: '#08121c',
-          borderBottom: '1px solid rgba(75, 85, 99, 0.3)'
+          padding: '0.65rem 1rem',
+          backgroundColor: 'var(--bg-secondary)',
+          borderBottom: '1px solid var(--border-subtle)'
         }}
       >
         <div style={{ display: 'flex', gap: '0.4rem' }}>
@@ -183,7 +201,7 @@ export function BlocklyEditor({
               borderRadius: 'var(--radius-sm)',
               border: '1px solid',
               borderColor: activeTab === 'blocks' ? 'var(--accent-cyan)' : 'transparent',
-              backgroundColor: activeTab === 'blocks' ? 'rgba(6, 182, 212, 0.15)' : 'transparent',
+              backgroundColor: activeTab === 'blocks' ? 'rgba(56, 189, 248, 0.12)' : 'transparent',
               color: activeTab === 'blocks' ? 'var(--accent-cyan)' : 'var(--text-muted)',
               fontSize: '0.82rem',
               fontWeight: 600,
@@ -201,7 +219,7 @@ export function BlocklyEditor({
               borderRadius: 'var(--radius-sm)',
               border: '1px solid',
               borderColor: activeTab === 'code' ? 'var(--accent-cyan)' : 'transparent',
-              backgroundColor: activeTab === 'code' ? 'rgba(6, 182, 212, 0.15)' : 'transparent',
+              backgroundColor: activeTab === 'code' ? 'rgba(56, 189, 248, 0.12)' : 'transparent',
               color: activeTab === 'code' ? 'var(--accent-cyan)' : 'var(--text-muted)',
               fontSize: '0.82rem',
               fontWeight: 600,
@@ -222,7 +240,7 @@ export function BlocklyEditor({
             borderRadius: 'var(--radius-sm)',
             border: '1px solid rgba(239, 68, 68, 0.3)',
             backgroundColor: 'transparent',
-            color: '#f87171',
+            color: 'var(--accent-red)',
             fontSize: '0.75rem',
             cursor: isBusy ? 'not-allowed' : 'pointer',
             opacity: isBusy ? 0.5 : 1
@@ -238,7 +256,7 @@ export function BlocklyEditor({
           position: 'relative',
           width: '100%',
           height: '420px',
-          backgroundColor: '#0b0f19'
+          backgroundColor: 'var(--board-bg)'
         }}
       >
         <div
@@ -255,10 +273,10 @@ export function BlocklyEditor({
             style={{
               width: '100%',
               height: '100%',
-              padding: '1rem',
+              padding: '1.25rem',
               overflow: 'auto',
               boxSizing: 'border-box',
-              backgroundColor: '#070f18'
+              backgroundColor: 'var(--bg-input)'
             }}
           >
             <div
@@ -276,7 +294,7 @@ export function BlocklyEditor({
                 margin: 0,
                 fontFamily: 'var(--font-mono)',
                 fontSize: '0.85rem',
-                color: '#38bdf8',
+                color: 'var(--text-primary)',
                 lineHeight: 1.6
               }}
             >
