@@ -628,5 +628,83 @@ describe('Stage B: Calm UI and Theme Settings Suite', () => {
 
       assert.equal(runTriggered, false, 'Ctrl+Enter must not fire when typing inside an input');
     });
+
+    test('closing modal or drawer on Escape stops immediate propagation on window target and preserves board & outcome', async () => {
+      const mockLevels = [
+        { id: 1, title: 'Boot Sequence', zone: 'Neon Outskirts', concept: 'Sequence', unlocked: true, completed: false, map: ['S..G'], par: 3 }
+      ];
+
+      mock.method(api.campaign, 'getLevels', async () => mockLevels);
+      mock.method(api.campaign, 'runLevel', async () => ({
+        passed: true,
+        stars: 2,
+        earned: { xp: 50, coins: 15 },
+        message: 'Path cleared!',
+        state: { x: 3, y: 0 },
+        frames: []
+      }));
+
+      const mockUser = { id: 'usr_stop', username: 'StopPilot' };
+
+      await act(async () => {
+        root.render(
+          React.createElement(
+            MemoryRouter,
+            { initialEntries: ['/playground?level=1'] },
+            React.createElement(
+              ThemeProvider,
+              null,
+              React.createElement(
+                AuthContext.Provider,
+                { value: { user: mockUser, refreshProfile: async () => mockUser } },
+                React.createElement(PlaygroundView, null)
+              )
+            )
+          )
+        );
+      });
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 20));
+      });
+
+      // Trigger run to open ResultModal
+      const launchBtn = Array.from(rootElement.querySelectorAll('button')).find((b) =>
+        b.textContent.includes('Launch Program')
+      );
+      await act(async () => {
+        launchBtn.click();
+      });
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 30));
+      });
+
+      assert.ok(rootElement.querySelector('[role="dialog"]'), 'Result dialog must be open');
+
+      // Attach a listener registered after modal is open to verify stopImmediatePropagation
+      let subsequentListenerFired = false;
+      const subsequentListener = () => {
+        subsequentListenerFired = true;
+      };
+      window.addEventListener('keydown', subsequentListener);
+
+      try {
+        // Dispatch Escape keydown
+        await act(async () => {
+          const escEvent = new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+          window.dispatchEvent(escEvent);
+        });
+
+        // Modal closed
+        assert.equal(rootElement.querySelector('[role="dialog"]'), null, 'Modal must close on Escape');
+        // Subsequent listener on window did NOT fire because stopImmediatePropagation was called
+        assert.equal(subsequentListenerFired, false, 'Subsequent window listeners must not fire after Escape is consumed');
+        // Summary banner still present
+        assert.ok(rootElement.textContent.includes('Path cleared!'), 'Run outcome banner must be preserved');
+      } finally {
+        window.removeEventListener('keydown', subsequentListener);
+      }
+    });
   });
 });

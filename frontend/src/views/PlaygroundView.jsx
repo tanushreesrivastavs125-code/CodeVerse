@@ -280,22 +280,27 @@ export function PlaygroundView() {
       }
 
       if (e.key === 'Escape') {
+        if (e.defaultPrevented) return;
+
         // Priority 1: Close active modal without resetting the board behind it
         if (isResultModalOpen) {
           e.preventDefault();
           e.stopPropagation();
+          e.stopImmediatePropagation?.();
           setIsResultModalOpen(false);
           return;
         }
         if (isMapModalOpen) {
           e.preventDefault();
           e.stopPropagation();
+          e.stopImmediatePropagation?.();
           setIsMapModalOpen(false);
           return;
         }
         if (isMentorModalOpen) {
           e.preventDefault();
           e.stopPropagation();
+          e.stopImmediatePropagation?.();
           setIsMentorModalOpen(false);
           return;
         }

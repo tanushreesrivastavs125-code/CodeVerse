@@ -165,7 +165,9 @@ export function MentorModal({ isOpen, onClose, level, program }) {
     if (!isOpen) return;
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
+        e.preventDefault();
         e.stopPropagation();
+        e.stopImmediatePropagation?.();
         onClose();
       }
     };
