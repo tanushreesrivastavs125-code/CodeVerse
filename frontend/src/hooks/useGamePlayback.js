@@ -21,6 +21,9 @@ export function useGamePlayback({
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [activeBlockId, setActiveBlockId] = useState(null);
+  const [activeNodeId, setActiveNodeId] = useState(null);
+  const [activeFrame, setActiveFrame] = useState(null);
 
   const generationRef = useRef(0);
   const timerRef = useRef(null);
@@ -69,6 +72,9 @@ export function useGamePlayback({
 
       if (level) {
         setWorldState(initialState(level));
+        setActiveBlockId(null);
+        setActiveNodeId(null);
+        setActiveFrame(null);
         setResult(null);
         setError(null);
         setRunState('idle');
@@ -155,6 +161,9 @@ export function useGamePlayback({
     }
 
     setRunState('idle');
+    setActiveBlockId(null);
+    setActiveNodeId(null);
+    setActiveFrame(null);
     setResult(null);
     setError(null);
 
@@ -172,6 +181,8 @@ export function useGamePlayback({
         if (generationRef.current !== runGen) return;
         submissionLockRef.current = false;
         timerRef.current = null;
+        setActiveBlockId(null);
+        setActiveNodeId(null);
         setRunState(finalOutcome.passed ? 'passed' : 'failed');
         setResult(finalOutcome);
 
@@ -224,6 +235,9 @@ export function useGamePlayback({
 
         const currentFrame = frames[frameIdx];
         setWorldState(currentFrame);
+        setActiveFrame(currentFrame);
+        setActiveBlockId(currentFrame.blockId || null);
+        setActiveNodeId(currentFrame.nodeId || null);
 
         // Sound trigger
         if (audioRef.current && currentFrame.event && currentFrame.event !== 'ready') {
@@ -282,6 +296,9 @@ export function useGamePlayback({
 
   return {
     worldState,
+    activeBlockId,
+    activeNodeId,
+    activeFrame,
     runState,
     isBusy,
     speed,

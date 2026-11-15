@@ -461,7 +461,7 @@ export function simulate(level, program, options = {}) {
 
   const tile = (x, y) => level.map[y]?.[x] || '#';
 
-  const snapshot = (event, message, isCondition = false) => {
+  const snapshot = (event, message, isCondition = false, meta = {}) => {
     state = {
       ...state,
       event,
@@ -470,6 +470,7 @@ export function simulate(level, program, options = {}) {
     };
     frames.push({
       ...state,
+      ...meta,
       collected: [...state.collected]
     });
   };
@@ -524,16 +525,20 @@ export function simulate(level, program, options = {}) {
       if (node.type === 'if') {
         executedSensors++;
         const condition = sensor(node.sensor);
-        if (options.recordConditions) {
+        const shouldRecord = options.recordConditions || Boolean(node.nodeId || node.blockId);
+        if (shouldRecord) {
           const outcomeText = condition
             ? `Condition [${node.sensor}] is TRUE → Executing IF body.`
             : `Condition [${node.sensor}] is FALSE → ${node.elseBody?.length ? 'Executing ELSE body.' : 'Skipping IF body.'}`;
-          snapshot('condition', outcomeText, true);
-          frames[frames.length - 1].condition = {
+          const condMeta = {
             sensor: node.sensor,
             outcome: condition,
             explanation: outcomeText
           };
+          const meta = { condition: condMeta };
+          if (node.nodeId) meta.nodeId = node.nodeId;
+          if (node.blockId) meta.blockId = node.blockId;
+          snapshot('condition', outcomeText, true, meta);
         }
         if (condition) {
           run(node.body, depth + 1);
@@ -547,9 +552,13 @@ export function simulate(level, program, options = {}) {
         throw new Error('A run can contain at most 150 actions.');
       }
 
+      const actionMeta = {};
+      if (node.nodeId) actionMeta.nodeId = node.nodeId;
+      if (node.blockId) actionMeta.blockId = node.blockId;
+
       if (node.type === 'left' || node.type === 'right') {
         state.direction = (state.direction + (node.type === 'left' ? 3 : 1)) % 4;
-        snapshot('turn', 'Heading adjusted.');
+        snapshot('turn', 'Heading adjusted.', false, actionMeta);
       } else if (node.type === 'move' || node.type === 'jump') {
         const distance = node.type === 'jump' ? 2 : 1;
         const target = ahead(distance);
@@ -562,7 +571,9 @@ export function simulate(level, program, options = {}) {
             'crash',
             isHazard
               ? 'Corruption hit! Jump over red tiles.'
-              : 'Route blocked. Change your program and retry.'
+              : 'Route blocked. Change your program and retry.',
+            false,
+            actionMeta
           );
           stopped = true;
           break;
@@ -572,22 +583,24 @@ export function simulate(level, program, options = {}) {
         state.y = target.y;
         snapshot(
           node.type === 'jump' ? 'jump' : 'move',
-          node.type === 'jump' ? 'Breach cleared.' : 'Drone advancing.'
+          node.type === 'jump' ? 'Breach cleared.' : 'Drone advancing.',
+          false,
+          actionMeta
         );
       } else if (node.type === 'collect') {
         const key = `${state.x},${state.y}`;
         if (sensor('energy')) {
           state.collected = [...state.collected, key];
-          snapshot('collect', 'Energy shard recovered.');
+          snapshot('collect', 'Energy shard recovered.', false, actionMeta);
         } else {
-          snapshot('miss', 'No energy on this tile.');
+          snapshot('miss', 'No energy on this tile.', false, actionMeta);
         }
       } else if (node.type === 'activate') {
         if (sensor('terminal')) {
           state.bridge = true;
-          snapshot('activate', 'Bridge deployed. Route restored.');
+          snapshot('activate', 'Bridge deployed. Route restored.', false, actionMeta);
         } else {
-          snapshot('miss', 'Move onto a terminal to activate it.');
+          snapshot('miss', 'Move onto a terminal to activate it.', false, actionMeta);
         }
       } else if (node.type === 'pulse') {
         let hit = false;
@@ -607,7 +620,9 @@ export function simulate(level, program, options = {}) {
           hit ? 'pulse' : 'miss',
           hit
             ? (state.bossHP ? 'Guardian shield damaged.' : 'Firewall destroyed!')
-            : 'No guardian in range.'
+            : 'No guardian in range.',
+          false,
+          actionMeta
         );
       }
     }
