@@ -259,11 +259,13 @@ describe('Stage D: Multi-Language Code Preview & Connected Playback', () => {
     const modal = document.querySelector('[role="dialog"]');
     assert.ok(modal, 'Download modal must be visible');
     assert.ok(modal.textContent.includes('Export Code (Python)'));
-    assert.ok(modal.textContent.includes('Verified Local Runtime'));
+    assert.ok(modal.textContent.includes('Toolchain & Execution'));
+    assert.ok(modal.textContent.includes('Verified via CodeVerse CI test suite'));
     assert.ok(modal.textContent.includes('python drone_mission.py'));
 
     // Download action cards
     assert.ok(modal.textContent.includes('Download Snippet'));
+    assert.ok(modal.textContent.includes('Requires CodeVerse Helpers'));
     assert.ok(modal.textContent.includes('Download Runnable Project'));
     assert.ok(modal.textContent.includes('Download README'));
 
@@ -276,6 +278,33 @@ describe('Stage D: Multi-Language Code Preview & Connected Playback', () => {
       closeBtn.click();
     });
     assert.equal(closed, true);
+  });
+
+  test('DownloadModal distinguishes plain-English outline and omits runnable console export', async () => {
+    const testAst = [{ type: 'move' }];
+
+    await act(async () => {
+      root.render(
+        React.createElement(
+          ThemeProvider,
+          null,
+          React.createElement(DownloadModal, {
+            isOpen: true,
+            onClose: () => {},
+            ast: testAst,
+            language: 'plainEnglish',
+            level: { id: 1, title: 'Boot Sequence' }
+          })
+        )
+      );
+    });
+
+    const modal = document.querySelector('[role="dialog"]');
+    assert.ok(modal, 'Download modal must be visible');
+    assert.ok(modal.textContent.includes('Algorithm Walkthrough'));
+    assert.ok(modal.textContent.includes('not executable code'));
+    assert.ok(modal.textContent.includes('Download Plain-English Steps'));
+    assert.ok(!modal.textContent.includes('Download Runnable Project'), 'Plain-English must not offer a runnable project');
   });
 
   test('snapshot isolation: displays submittedProgram snapshot during isBusy', async () => {

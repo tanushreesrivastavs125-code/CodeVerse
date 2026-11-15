@@ -59,15 +59,18 @@ describe('Stage D: Multi-Language Code Generators & Connected Previews', () => {
       assert.ok(meta.runCommand, `RunCommand required for ${lang}`);
     }
 
-    // Honest status disclosure: Node.js and Python verified locally, Java/C++/C require local toolchains
-    assert.equal(LANGUAGE_METADATA.javascript.verifiedRunnable, true);
-    assert.equal(LANGUAGE_METADATA.python.verifiedRunnable, true);
-    assert.equal(LANGUAGE_METADATA.java.verifiedRunnable, false);
-    assert.equal(LANGUAGE_METADATA.cpp.verifiedRunnable, false);
-    assert.equal(LANGUAGE_METADATA.c.verifiedRunnable, false);
-    assert.ok(LANGUAGE_METADATA.java.verificationBlockedReason.includes('javac'));
-    assert.ok(LANGUAGE_METADATA.cpp.verificationBlockedReason.includes('g++'));
-    assert.ok(LANGUAGE_METADATA.c.verificationBlockedReason.includes('gcc'));
+    // Accurate status disclosure: plainEnglish is an educational outline; others are executable programming languages
+    assert.equal(LANGUAGE_METADATA.plainEnglish.isExecutable, false);
+    assert.equal(LANGUAGE_METADATA.plainEnglish.exportCategory, 'explanation');
+    assert.equal(LANGUAGE_METADATA.javascript.isExecutable, true);
+    assert.equal(LANGUAGE_METADATA.python.isExecutable, true);
+    assert.equal(LANGUAGE_METADATA.java.isExecutable, true);
+    assert.equal(LANGUAGE_METADATA.cpp.isExecutable, true);
+    assert.equal(LANGUAGE_METADATA.c.isExecutable, true);
+    assert.ok(LANGUAGE_METADATA.java.runtimeRequirement.includes('JDK 11+'));
+    assert.ok(LANGUAGE_METADATA.cpp.runtimeRequirement.includes('C++17'));
+    assert.ok(LANGUAGE_METADATA.c.runtimeRequirement.includes('C99'));
+    assert.ok(LANGUAGE_METADATA.javascript.verificationStatus.includes('CI test suite'));
   });
 
   test('handles empty programs gracefully with educational placeholders in all languages', () => {
