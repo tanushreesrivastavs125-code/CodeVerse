@@ -211,6 +211,9 @@ export function PlaygroundView() {
     result,
     error,
     setError,
+    activeBlockId,
+    activeNodeId,
+    activeFrame,
     resetWorld,
     releaseSubmissionLock,
     startSubmission,
@@ -223,6 +226,16 @@ export function PlaygroundView() {
     level: activeLevel,
     onRunFinished: handleRunFinished
   });
+
+  // Submitted program snapshot for stable line-highlighting during playback
+  const [submittedProgram, setSubmittedProgram] = useState(null);
+
+  // Clear submitted program snapshot when playback state returns to idle
+  useEffect(() => {
+    if (runState === 'idle') {
+      setSubmittedProgram(null);
+    }
+  }, [runState]);
 
   // Keep lastResult and modal in sync with playback hook result
   useEffect(() => {
@@ -253,6 +266,9 @@ export function PlaygroundView() {
     if (runGen === null) {
       return;
     }
+
+    // Capture program snapshot for playback highlighting
+    setSubmittedProgram(Array.isArray(program) ? JSON.parse(JSON.stringify(program)) : null);
 
     setError(null);
     setRefreshError(null);
@@ -799,6 +815,10 @@ export function PlaygroundView() {
             key={`blockly-${activeLevel?.id}`}
             onProgramChange={handleProgramChange}
             isBusy={isBusy}
+            highlightedBlockId={activeBlockId}
+            highlightedNodeId={activeNodeId}
+            activeFrame={activeFrame}
+            submittedProgram={submittedProgram}
             initialXml={STARTER_BLOCKS[activeLevel?.id] || null}
             isVisible={!isNarrowScreen || mobileTab === 'code'}
             level={activeLevel}

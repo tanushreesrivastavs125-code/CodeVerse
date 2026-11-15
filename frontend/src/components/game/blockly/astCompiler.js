@@ -47,11 +47,16 @@ export function compileBlockSequence(block) {
           throw new Error('Repeat loop cannot be empty. Connect action blocks inside.');
         }
 
-        nodes.push({
+        const repeatNode = {
           type: 'repeat',
           count,
           body: compileBlockSequence(bodyBlock)
-        });
+        };
+        if (current.id) {
+          repeatNode.nodeId = current.id;
+          repeatNode.blockId = current.id;
+        }
+        nodes.push(repeatNode);
       } else if (actionName === 'if') {
         const sensor = extractSensor(current.getInputTargetBlock('SENSOR'));
         const bodyBlock = current.getInputTargetBlock('DO');
@@ -59,12 +64,17 @@ export function compileBlockSequence(block) {
           throw new Error('The if-condition block must contain at least one action inside.');
         }
 
-        nodes.push({
+        const ifNode = {
           type: 'if',
           sensor,
           body: compileBlockSequence(bodyBlock),
           elseBody: []
-        });
+        };
+        if (current.id) {
+          ifNode.nodeId = current.id;
+          ifNode.blockId = current.id;
+        }
+        nodes.push(ifNode);
       } else if (actionName === 'if_else') {
         const sensor = extractSensor(current.getInputTargetBlock('SENSOR'));
         const bodyBlock = current.getInputTargetBlock('DO');
@@ -75,15 +85,25 @@ export function compileBlockSequence(block) {
         const elseBlock = current.getInputTargetBlock('ELSE');
         const elseBody = elseBlock ? compileBlockSequence(elseBlock) : [];
 
-        nodes.push({
+        const ifElseNode = {
           type: 'if',
           sensor,
           body: compileBlockSequence(bodyBlock),
           elseBody
-        });
+        };
+        if (current.id) {
+          ifElseNode.nodeId = current.id;
+          ifElseNode.blockId = current.id;
+        }
+        nodes.push(ifElseNode);
       } else {
         // Simple atomic actions: move, left, right, collect, jump, activate, pulse
-        nodes.push({ type: actionName });
+        const actionNode = { type: actionName };
+        if (current.id) {
+          actionNode.nodeId = current.id;
+          actionNode.blockId = current.id;
+        }
+        nodes.push(actionNode);
       }
     } else if (type === 'controls_repeat_ext') {
       const timesBlock = current.getInputTargetBlock('TIMES');
@@ -98,11 +118,16 @@ export function compileBlockSequence(block) {
         throw new Error('Repeat loop cannot be empty. Connect action blocks inside.');
       }
 
-      nodes.push({
+      const extRepeatNode = {
         type: 'repeat',
         count,
         body: compileBlockSequence(bodyBlock)
-      });
+      };
+      if (current.id) {
+        extRepeatNode.nodeId = current.id;
+        extRepeatNode.blockId = current.id;
+      }
+      nodes.push(extRepeatNode);
     } else if (type === 'controls_if') {
       let first = null;
       let tail = null;
@@ -121,6 +146,10 @@ export function compileBlockSequence(block) {
           body: compileBlockSequence(bodyBlock),
           elseBody: []
         };
+        if (current.id) {
+          branch.nodeId = `${current.id}_${i}`;
+          branch.blockId = current.id;
+        }
 
         if (tail) {
           tail.elseBody = [branch];
@@ -262,3 +291,13 @@ export function programToPreviewCode(ast, depth = 0) {
     })
     .join('\n');
 }
+
+export {
+  generateCode,
+  SUPPORTED_LANGUAGES,
+  LANGUAGE_METADATA,
+  generateSnippetExport,
+  generateRunnableExport,
+  buildExportReadme
+} from '../../../../../shared/codeGenerators/index.js';
+
