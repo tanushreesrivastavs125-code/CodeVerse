@@ -16,11 +16,10 @@ import { useGamePlayback } from '../hooks/useGamePlayback.js';
 
 const STARTER_BLOCKS = {
   1: `<xml xmlns="https://developers.google.com/blockly/xml">
-  <block type="cv_repeat" x="30" y="30">
-    <field name="COUNT">3</field>
-    <statement name="DO">
+  <block type="cv_move" x="30" y="30">
+    <next>
       <block type="cv_move"></block>
-    </statement>
+    </next>
   </block>
 </xml>`
 };

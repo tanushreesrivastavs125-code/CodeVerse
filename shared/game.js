@@ -448,7 +448,7 @@ export function initialState(level) {
  * @param {Array} program - Validated AST command array
  * @returns {object} Simulation outcome with frames, final state, and stars
  */
-export function simulate(level, program) {
+export function simulate(level, program, options = {}) {
   validateProgram(program);
 
   let state = initialState(level);
@@ -461,12 +461,12 @@ export function simulate(level, program) {
 
   const tile = (x, y) => level.map[y]?.[x] || '#';
 
-  const snapshot = (event, message) => {
+  const snapshot = (event, message, isCondition = false) => {
     state = {
       ...state,
       event,
       message,
-      steps: state.steps + 1
+      steps: isCondition ? state.steps : state.steps + 1
     };
     frames.push({
       ...state,
@@ -524,6 +524,17 @@ export function simulate(level, program) {
       if (node.type === 'if') {
         executedSensors++;
         const condition = sensor(node.sensor);
+        if (options.recordConditions) {
+          const outcomeText = condition
+            ? `Condition [${node.sensor}] is TRUE → Executing IF body.`
+            : `Condition [${node.sensor}] is FALSE → ${node.elseBody?.length ? 'Executing ELSE body.' : 'Skipping IF body.'}`;
+          snapshot('condition', outcomeText, true);
+          frames[frames.length - 1].condition = {
+            sensor: node.sensor,
+            outcome: condition,
+            explanation: outcomeText
+          };
+        }
         if (condition) {
           run(node.body, depth + 1);
         } else if (node.elseBody && node.elseBody.length > 0) {

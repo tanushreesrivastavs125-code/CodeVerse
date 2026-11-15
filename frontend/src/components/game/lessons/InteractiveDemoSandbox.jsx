@@ -1,159 +1,96 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { simulate } from '../../../../../shared/game.js';
 
 const DIRECTION_ARROWS = ['→', '↓', '←', '↑'];
-const DELTAS = [
-  { dx: 1, dy: 0 },
-  { dx: 0, dy: 1 },
-  { dx: -1, dy: 0 },
-  { dx: 0, dy: -1 }
-];
+const DIRECTION_NAMES = ['East (0°)', 'South (90°)', 'West (180°)', 'North (270°)'];
 
-/**
- * Pre-computes simulation frames for an interactive worked example.
- */
-function computeDemoFrames(demoMap, demoInitialState, program) {
-  const mapRows = Array.isArray(demoMap) ? demoMap : ['#####', '#S.G#', '#####'];
-  const startX = demoInitialState?.x ?? 1;
-  const startY = demoInitialState?.y ?? 1;
-  const startDir = demoInitialState?.direction ?? 0;
-
-  // Count boss HP if guardian is present
-  const hasBoss = mapRows.some((r) => r.includes('X'));
-  const initialBossHP = hasBoss ? 3 : 0;
-
-  const initialFrame = {
-    x: startX,
-    y: startY,
-    direction: startDir,
-    collected: [],
-    bridge: false,
-    bossHP: initialBossHP,
-    actionName: 'Initial Position',
-    stepNumber: 0
-  };
-
-  const frames = [initialFrame];
-
-  // Flatten nested program commands for sequential demo playback
-  function flattenProgram(cmds) {
-    const list = [];
-    if (!Array.isArray(cmds)) return list;
-    for (const cmd of cmds) {
-      if (cmd.type === 'repeat') {
-        const count = Math.min(cmd.count || 1, 10);
-        for (let i = 0; i < count; i++) {
-          list.push(...flattenProgram(cmd.body || []));
-        }
-      } else if (cmd.type === 'if') {
-        // In worked example, evaluate condition against map or include body
-        list.push(...flattenProgram(cmd.body || []));
-      } else {
-        list.push(cmd);
-      }
-    }
-    return list;
+function formatFrameAction(frame) {
+  if (frame.condition) {
+    return frame.condition.explanation;
   }
-
-  const flattened = flattenProgram(program || []);
-
-  let currentState = {
-    x: startX,
-    y: startY,
-    direction: startDir,
-    collected: [],
-    bridge: false,
-    bossHP: initialBossHP
-  };
-
-  let stepCount = 0;
-
-  for (const cmd of flattened) {
-    stepCount++;
-    const nextState = {
-      ...currentState,
-      collected: [...currentState.collected]
-    };
-    let actionLabel = cmd.type;
-
-    if (cmd.type === 'move') {
-      actionLabel = 'Move Forward';
-      const delta = DELTAS[nextState.direction];
-      const targetX = nextState.x + delta.dx;
-      const targetY = nextState.y + delta.dy;
-      const row = mapRows[targetY];
-      const tile = row ? row[targetX] : '#';
-      if (tile !== '#') {
-        nextState.x = targetX;
-        nextState.y = targetY;
-      }
-    } else if (cmd.type === 'left') {
-      actionLabel = 'Turn Left ↶';
-      nextState.direction = (nextState.direction + 3) % 4;
-    } else if (cmd.type === 'right') {
-      actionLabel = 'Turn Right ↷';
-      nextState.direction = (nextState.direction + 1) % 4;
-    } else if (cmd.type === 'jump') {
-      actionLabel = 'Jump Breach';
-      const delta = DELTAS[nextState.direction];
-      const targetX = nextState.x + delta.dx * 2;
-      const targetY = nextState.y + delta.dy * 2;
-      const row = mapRows[targetY];
-      const tile = row ? row[targetX] : '#';
-      if (tile !== '#') {
-        nextState.x = targetX;
-        nextState.y = targetY;
-      }
-    } else if (cmd.type === 'collect') {
-      actionLabel = 'Collect Energy ◈';
-      const key = `${nextState.x},${nextState.y}`;
-      if (!nextState.collected.includes(key)) {
-        nextState.collected.push(key);
-      }
-    } else if (cmd.type === 'activate') {
-      actionLabel = 'Activate Terminal ⌘';
-      nextState.bridge = true;
-    } else if (cmd.type === 'pulse') {
-      actionLabel = 'Fire Pulse ⚡';
-      if (nextState.bossHP > 0) {
-        nextState.bossHP = Math.max(0, nextState.bossHP - 1);
-      }
-    }
-
-    currentState = nextState;
-    frames.push({
-      ...nextState,
-      actionName: actionLabel,
-      stepNumber: stepCount
-    });
+  switch (frame.event) {
+    case 'ready':
+      return 'Initial Position';
+    case 'move':
+      return 'Move Forward';
+    case 'turn':
+      return `Turn Facing: ${DIRECTION_NAMES[frame.direction] || frame.direction}`;
+    case 'jump':
+      return 'Jump Across Breach';
+    case 'collect':
+      return 'Collect Energy ◈';
+    case 'activate':
+      return 'Activate Terminal ⌘';
+    case 'pulse':
+      return 'Fire Pulse ⚡';
+    case 'crash':
+      return `Collision / Crash 💥: ${frame.message}`;
+    case 'miss':
+      return `Action Missed ⚠️: ${frame.message}`;
+    default:
+      return frame.message || frame.event || 'Action';
   }
-
-  return frames;
 }
 
 /**
  * InteractiveDemoSandbox provides an isolated, zero-side-effect sandbox
  * where learners can observe and interact with a worked concept demonstration.
+ * Powered directly by the canonical CodeVerse simulation engine.
  */
 export function InteractiveDemoSandbox({ workedExample }) {
   const [frameIndex, setFrameIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const playTimerRef = useRef(null);
 
-  const demoMap = workedExample?.demoMap || ['#####', '#S.G#', '#####'];
-
-  const frames = useMemo(() => {
-    const map = workedExample?.demoMap || ['#####', '#S.G#', '#####'];
-    const init = workedExample?.demoInitialState || { x: 1, y: 1, direction: 0 };
-    const prog = workedExample?.program || [];
-    return computeDemoFrames(map, init, prog);
+  const demoMap = useMemo(() => {
+    return workedExample?.demoMap || workedExample?.demoLevel?.map || ['#####', '#S.G#', '#####'];
   }, [workedExample]);
 
-  // Clean timer on unmount
+  const demoLevel = useMemo(() => {
+    const map = demoMap;
+    const direction = workedExample?.demoInitialState?.direction ?? workedExample?.demoLevel?.direction ?? 0;
+    const bossHealth = workedExample?.bossHealth ?? workedExample?.demoLevel?.bossHealth ?? (map.some((r) => r.includes('X')) ? 3 : 0);
+    return {
+      id: workedExample?.demoLevel?.id || 'demo-sandbox',
+      title: workedExample?.title || 'Concept Demonstration',
+      map,
+      direction,
+      bossHealth
+    };
+  }, [demoMap, workedExample]);
+
+  const frames = useMemo(() => {
+    const prog = workedExample?.program || [];
+    try {
+      const outcome = simulate(demoLevel, prog, { recordConditions: true });
+      return outcome.frames.map((frame, idx) => ({
+        ...frame,
+        stepNumber: idx,
+        actionName: formatFrameAction(frame)
+      }));
+    } catch (err) {
+      // Safe fallback frame on invalid payload
+      return [{
+        x: 1,
+        y: 1,
+        direction: demoLevel.direction,
+        collected: [],
+        bridge: false,
+        bossHP: demoLevel.bossHealth,
+        event: 'ready',
+        message: err.message || 'Ready to demonstrate.',
+        stepNumber: 0,
+        actionName: 'Initial Position'
+      }];
+    }
+  }, [demoLevel, workedExample]);
+
+  // Clean timer on unmount or program change
   useEffect(() => {
     return () => {
       if (playTimerRef.current) clearInterval(playTimerRef.current);
     };
-  }, []);
+  }, [workedExample]);
 
   const handleReset = useCallback(() => {
     if (playTimerRef.current) clearInterval(playTimerRef.current);
@@ -183,12 +120,12 @@ export function InteractiveDemoSandbox({ workedExample }) {
           }
           return prev + 1;
         });
-      }, 650);
+      }, 700);
     }
   }, [isPlaying, frameIndex, frames.length]);
 
   const currentFrame = frames[frameIndex] || frames[0];
-  const totalSteps = frames.length - 1;
+  const totalSteps = Math.max(0, frames.length - 1);
 
   return (
     <div
@@ -205,7 +142,7 @@ export function InteractiveDemoSandbox({ workedExample }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
         <div>
           <div style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: 'var(--accent-cyan)', fontWeight: 700 }}>
-            INTERACTIVE DEMO // ISOLATED SANDBOX
+            INTERACTIVE DEMO // CANONICAL SIMULATOR
           </div>
           <div style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)' }}>
             {workedExample?.title || 'Concept Demonstration'}
@@ -217,8 +154,26 @@ export function InteractiveDemoSandbox({ workedExample }) {
         </div>
       </div>
 
+      {workedExample?.isIntentionalFailure && (
+        <div
+          data-testid="intentional-failure-banner"
+          style={{
+            padding: '0.45rem 0.75rem',
+            backgroundColor: 'rgba(239, 68, 68, 0.12)',
+            border: '1px solid rgba(239, 68, 68, 0.35)',
+            borderRadius: 'var(--radius-sm)',
+            color: 'var(--text-danger, #ef4444)',
+            fontSize: '0.8rem',
+            fontWeight: 600,
+            lineHeight: 1.4
+          }}
+        >
+          ⚠️ <strong>Intentional Failure Demonstration:</strong> Shows what happens when an obstacle or mistake is encountered without the correct action.
+        </div>
+      )}
+
       <p style={{ margin: 0, fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-        {workedExample?.explanation || 'Watch how the commands execute step-by-step.'}
+        {workedExample?.explanation || 'Watch how the commands execute step-by-step using canonical simulation.'}
       </p>
 
       {/* Mini Demo Board Grid */}
@@ -238,8 +193,8 @@ export function InteractiveDemoSandbox({ workedExample }) {
             <div key={ry} style={{ display: 'flex', gap: '3px' }}>
               {[...row].map((char, rx) => {
                 const isDrone = currentFrame.x === rx && currentFrame.y === ry;
-                const isCollected = currentFrame.collected.includes(`${rx},${ry}`);
-                const isBridgeExtended = currentFrame.bridge;
+                const isCollected = currentFrame.collected?.includes(`${rx},${ry}`);
+                const isBridgeExtended = Boolean(currentFrame.bridge);
 
                 let tileBg = 'rgba(255, 255, 255, 0.04)';
                 let tileBorder = '1px solid rgba(255, 255, 255, 0.06)';
@@ -268,7 +223,7 @@ export function InteractiveDemoSandbox({ workedExample }) {
                 }
 
                 if (isDrone) {
-                  content = `🤖${DIRECTION_ARROWS[currentFrame.direction]}`;
+                  content = `🤖${DIRECTION_ARROWS[currentFrame.direction] || '→'}`;
                 }
 
                 return (
@@ -297,6 +252,24 @@ export function InteractiveDemoSandbox({ workedExample }) {
         </div>
       </div>
 
+      {/* Condition Evaluation Callout */}
+      {currentFrame.condition && (
+        <div
+          data-testid="condition-explanation"
+          style={{
+            padding: '0.45rem 0.75rem',
+            backgroundColor: currentFrame.condition.outcome ? 'rgba(52, 211, 153, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+            border: currentFrame.condition.outcome ? '1px solid rgba(52, 211, 153, 0.35)' : '1px solid rgba(245, 158, 11, 0.35)',
+            borderRadius: 'var(--radius-sm)',
+            color: currentFrame.condition.outcome ? '#34d399' : '#f59e0b',
+            fontSize: '0.8rem',
+            fontFamily: 'var(--font-mono)'
+          }}
+        >
+          <strong>Sensor Check:</strong> {currentFrame.condition.explanation}
+        </div>
+      )}
+
       {/* Action Telemetry & Control Bar */}
       <div
         style={{
@@ -305,7 +278,7 @@ export function InteractiveDemoSandbox({ workedExample }) {
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: '0.5rem',
-          padding: '0.4rem 0.65rem',
+          padding: '0.45rem 0.75rem',
           backgroundColor: 'rgba(56, 189, 248, 0.08)',
           borderRadius: 'var(--radius-sm)',
           border: '1px solid rgba(56, 189, 248, 0.2)'
@@ -313,6 +286,11 @@ export function InteractiveDemoSandbox({ workedExample }) {
       >
         <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
           <span style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>Action:</span> {currentFrame.actionName}
+          {currentFrame.message && currentFrame.event !== 'ready' && !currentFrame.condition && (
+            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+              {currentFrame.message}
+            </div>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: '0.4rem' }}>
