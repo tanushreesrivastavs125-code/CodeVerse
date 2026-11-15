@@ -2,9 +2,11 @@
  * CodeVerse Campaign Curriculum & Progressive Learning Engine (Stage C)
  *
  * Provides structured educational content, progressive toolbox definitions,
- * 3-tier graduated hints, visual legends, interactive worked examples,
+ * 3-tier graduated hints, visual legends, canonical interactive worked examples,
  * and diagnostic error advice for all 24 campaign levels.
  */
+
+import { levels } from './game.js';
 
 export const VISUAL_LEGEND = {
   robot: {
@@ -146,6 +148,30 @@ export const BLOCK_DEFINITIONS = {
 };
 
 /**
+ * Explicit intentional failure worked example demonstrating crash behavior.
+ */
+export const INTENTIONAL_FAILURE_EXAMPLE = {
+  title: 'Wall Collision (Intentional Failure Demo)',
+  isIntentionalFailure: true,
+  explanation: 'Demonstrates what happens when the robot attempts to move into a solid wall: the simulation halts on collision with an explanatory crash diagnosis.',
+  demoLevel: {
+    id: 'demo-failure',
+    title: 'Collision Demonstration',
+    map: ['####', '#S.#', '####'],
+    direction: 0,
+    bossHealth: 0
+  },
+  demoMap: ['####', '#S.#', '####'],
+  demoInitialState: { x: 1, y: 1, direction: 0 },
+  program: [{ type: 'move' }, { type: 'move' }],
+  expectedOutcome: {
+    passed: false,
+    event: 'crash',
+    isIntentionalFailure: true
+  }
+};
+
+/**
  * Structured lesson content, worked examples, visual legends, and 3-tier graduated hints
  * for all 24 campaign levels.
  */
@@ -157,18 +183,30 @@ export const LEVEL_CURRICULUM = {
     objective: 'Move the robot forward 3 tiles to reach the green exit portal.',
     learningObjective: 'Understand sequential execution: commands run one after another in order from top to bottom.',
     newConcept: 'Sequences & Forward Movement',
-    prerequisites: ['Basic navigation'],
-    practisedSkills: ['Counting steps', 'Connecting blocks'],
-    introducedBlocks: [BLOCK_DEFINITIONS.cv_move, BLOCK_DEFINITIONS.cv_repeat],
-    allowedBlocks: ['cv_move', 'cv_repeat'],
+    prerequisites: [],
+    practisedSkills: ['Counting steps', 'Connecting blocks in sequence'],
+    introducedBlocks: [BLOCK_DEFINITIONS.cv_move],
+    allowedBlocks: ['cv_move'],
     conceptExplanation: 'Programs are lists of instructions executed in order. When you stack Move Forward blocks, the robot executes each move one tile at a time in the direction it faces.',
     visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.floor, VISUAL_LEGEND.exit, VISUAL_LEGEND.wall],
     workedExample: {
       title: 'Taking Two Steps',
       explanation: 'To move forward two tiles, connect two Move Forward blocks in order.',
+      demoLevel: {
+        id: 'demo-1',
+        title: 'Two Steps Demo',
+        map: ['####', '#S.G#', '####'],
+        direction: 0,
+        bossHealth: 0
+      },
+      demoMap: ['####', '#S.G#', '####'],
+      demoInitialState: { x: 1, y: 1, direction: 0 },
       program: [{ type: 'move' }, { type: 'move' }],
-      demoMap: ['#####', '#S.G#', '#####'],
-      demoInitialState: { x: 1, y: 1, direction: 0 }
+      expectedOutcome: {
+        passed: true,
+        finalPosition: { x: 3, y: 1 },
+        collectedCount: 0
+      }
     },
     commonMistake: {
       mistake: 'Counting the starting tile as step 1.',
@@ -177,7 +215,7 @@ export const LEVEL_CURRICULUM = {
     hints: [
       { level: 1, label: 'Notice the Goal', text: 'Look at the green exit portal on the right. How many floor tiles are between the robot and the goal?' },
       { level: 2, label: 'Helpful Concept', text: 'The robot starts facing east toward the exit. You only need forward moves to get there.' },
-      { level: 3, label: 'Step-by-Step Suggestion', text: 'Place 3 Move Forward blocks in a row, or use a Repeat 3 block with Move inside.' }
+      { level: 3, label: 'Step-by-Step Suggestion', text: 'Place 3 Move Forward blocks in a vertical stack to reach the portal.' }
     ],
     postSuccessExplanation: 'Great job! Your commands ran in exact sequence from top to bottom. That is the foundation of all computer programming.'
   },
@@ -191,15 +229,27 @@ export const LEVEL_CURRICULUM = {
     prerequisites: ['Level 1: Sequences'],
     practisedSkills: ['Sequential movement', 'Stopping at targets'],
     introducedBlocks: [BLOCK_DEFINITIONS.cv_collect],
-    allowedBlocks: ['cv_move', 'cv_collect', 'cv_repeat'],
+    allowedBlocks: ['cv_move', 'cv_collect'],
     conceptExplanation: 'Just moving to the exit is not enough when objectives are on the board! Move onto the tile with the diamond shard, then use "Collect Energy" before moving forward.',
     visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.energy, VISUAL_LEGEND.exit],
     workedExample: {
       title: 'Step and Collect',
       explanation: 'Move onto a shard, collect it, then step forward to the exit.',
-      program: [{ type: 'move' }, { type: 'collect' }, { type: 'move' }],
+      demoLevel: {
+        id: 'demo-2',
+        title: 'Collect Demo',
+        map: ['#####', '#SCG#', '#####'],
+        direction: 0,
+        bossHealth: 0
+      },
       demoMap: ['#####', '#SCG#', '#####'],
-      demoInitialState: { x: 1, y: 1, direction: 0 }
+      demoInitialState: { x: 1, y: 1, direction: 0 },
+      program: [{ type: 'move' }, { type: 'collect' }, { type: 'move' }],
+      expectedOutcome: {
+        passed: true,
+        finalPosition: { x: 3, y: 1 },
+        collectedCount: 1
+      }
     },
     commonMistake: {
       mistake: 'Calling Collect Energy before stepping onto the shard tile, or walking past without collecting.',
@@ -222,15 +272,27 @@ export const LEVEL_CURRICULUM = {
     prerequisites: ['Level 2: Actions'],
     practisedSkills: ['Movement', 'Collecting', 'Spatial reasoning'],
     introducedBlocks: [BLOCK_DEFINITIONS.cv_left, BLOCK_DEFINITIONS.cv_right],
-    allowedBlocks: ['cv_move', 'cv_left', 'cv_right', 'cv_collect', 'cv_repeat'],
+    allowedBlocks: ['cv_move', 'cv_left', 'cv_right', 'cv_collect'],
     conceptExplanation: 'The robot has a direction: East (0°), South (90°), West (180°), or North (270°). "Turn Right" rotates clockwise 90 degrees in place without changing position. Move Forward always advances in the current facing direction.',
     visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.wall, VISUAL_LEGEND.energy, VISUAL_LEGEND.exit],
     workedExample: {
       title: 'Turning a Corner',
-      explanation: 'Advance 1 step, turn right to face south, then advance 1 step.',
-      program: [{ type: 'move' }, { type: 'right' }, { type: 'move' }],
+      explanation: 'Advance 1 step, turn right to face south, then advance 1 step to the exit.',
+      demoLevel: {
+        id: 'demo-3',
+        title: 'Turn Demo',
+        map: ['####', '#S.#', '##G#', '####'],
+        direction: 0,
+        bossHealth: 0
+      },
       demoMap: ['####', '#S.#', '##G#', '####'],
-      demoInitialState: { x: 1, y: 1, direction: 0 }
+      demoInitialState: { x: 1, y: 1, direction: 0 },
+      program: [{ type: 'move' }, { type: 'right' }, { type: 'move' }],
+      expectedOutcome: {
+        passed: true,
+        finalPosition: { x: 2, y: 2 },
+        finalDirection: 1
+      }
     },
     commonMistake: {
       mistake: 'Assuming turning moves the robot forward.',
@@ -258,10 +320,26 @@ export const LEVEL_CURRICULUM = {
     visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.energy, VISUAL_LEGEND.exit],
     workedExample: {
       title: 'Repeating Move and Collect',
-      explanation: 'Repeat 2 times: move forward and collect energy.',
-      program: [{ type: 'repeat', count: 2, body: [{ type: 'move' }, { type: 'collect' }] }],
-      demoMap: ['######', '#SCCG#', '######'],
-      demoInitialState: { x: 1, y: 1, direction: 0 }
+      explanation: 'Repeat 2 times: move forward and collect energy, then step to exit.',
+      demoLevel: {
+        id: 'demo-4',
+        title: 'Loop Demo',
+        map: ['#######', '#SCC.G#', '#######'],
+        direction: 0,
+        bossHealth: 0
+      },
+      demoMap: ['#######', '#SCC.G#', '#######'],
+      demoInitialState: { x: 1, y: 1, direction: 0 },
+      program: [
+        { type: 'repeat', count: 2, body: [{ type: 'move' }, { type: 'collect' }] },
+        { type: 'move' },
+        { type: 'move' }
+      ],
+      expectedOutcome: {
+        passed: true,
+        finalPosition: { x: 5, y: 1 },
+        collectedCount: 2
+      }
     },
     commonMistake: {
       mistake: 'Putting blocks under the repeat block instead of inside its "DO" mouth.',
@@ -289,10 +367,21 @@ export const LEVEL_CURRICULUM = {
     visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.hazard, VISUAL_LEGEND.floor, VISUAL_LEGEND.exit],
     workedExample: {
       title: 'Jumping a Gap',
-      explanation: 'Step forward 1 tile to position in front of hazard, jump 2 tiles over it, then step to exit.',
-      program: [{ type: 'move' }, { type: 'jump' }, { type: 'move' }],
+      explanation: 'Step forward 1 tile to position in front of hazard, jump 2 tiles over it, landing on the exit.',
+      demoLevel: {
+        id: 'demo-5',
+        title: 'Jump Demo',
+        map: ['######', '#S.HG#', '######'],
+        direction: 0,
+        bossHealth: 0
+      },
       demoMap: ['######', '#S.HG#', '######'],
-      demoInitialState: { x: 1, y: 1, direction: 0 }
+      demoInitialState: { x: 1, y: 1, direction: 0 },
+      program: [{ type: 'move' }, { type: 'jump' }],
+      expectedOutcome: {
+        passed: true,
+        finalPosition: { x: 4, y: 1 }
+      }
     },
     commonMistake: {
       mistake: 'Jumping when standing too far away or right on top of the hazard.',
@@ -321,9 +410,21 @@ export const LEVEL_CURRICULUM = {
     workedExample: {
       title: 'Activating a Bridge',
       explanation: 'Move onto terminal T, activate it, then cross the extended bridge B to exit.',
-      program: [{ type: 'move' }, { type: 'activate' }, { type: 'move' }, { type: 'move' }],
+      demoLevel: {
+        id: 'demo-6',
+        title: 'Terminal Bridge Demo',
+        map: ['######', '#STBG#', '######'],
+        direction: 0,
+        bossHealth: 0
+      },
       demoMap: ['######', '#STBG#', '######'],
-      demoInitialState: { x: 1, y: 1, direction: 0 }
+      demoInitialState: { x: 1, y: 1, direction: 0 },
+      program: [{ type: 'move' }, { type: 'activate' }, { type: 'move' }, { type: 'move' }],
+      expectedOutcome: {
+        passed: true,
+        bridgeDeployed: true,
+        finalPosition: { x: 4, y: 1 }
+      }
     },
     commonMistake: {
       mistake: 'Trying to activate the terminal from a distance before standing on it.',
@@ -350,11 +451,28 @@ export const LEVEL_CURRICULUM = {
     conceptExplanation: 'When shard locations vary, hardcoding individual moves and collects is brittle. The "If" block tests a sensor (like "energy on tile"). If true, it runs the enclosed action. If false, it skips it!',
     visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.energy, VISUAL_LEGEND.exit],
     workedExample: {
-      title: 'Smart Collection',
-      explanation: 'Move forward, and IF standing on energy, collect it.',
-      program: [{ type: 'move' }, { type: 'if', sensor: 'energy', body: [{ type: 'collect' }] }],
+      title: 'Smart Collection (Condition True Case)',
+      explanation: 'Move forward onto energy shard, check if standing on energy (evaluates TRUE), collect it, then move to exit.',
+      demoLevel: {
+        id: 'demo-7',
+        title: 'Condition True Demo',
+        map: ['#####', '#SCG#', '#####'],
+        direction: 0,
+        bossHealth: 0
+      },
       demoMap: ['#####', '#SCG#', '#####'],
-      demoInitialState: { x: 1, y: 1, direction: 0 }
+      demoInitialState: { x: 1, y: 1, direction: 0 },
+      program: [
+        { type: 'move' },
+        { type: 'if', sensor: 'energy', body: [{ type: 'collect' }] },
+        { type: 'move' }
+      ],
+      expectedOutcome: {
+        passed: true,
+        finalPosition: { x: 3, y: 1 },
+        collectedCount: 1,
+        conditionOutcome: true
+      }
     },
     commonMistake: {
       mistake: 'Placing the Move block inside the If block, which gets skipped when no energy is present.',
@@ -382,10 +500,28 @@ export const LEVEL_CURRICULUM = {
     visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.wall, VISUAL_LEGEND.energy, VISUAL_LEGEND.exit],
     workedExample: {
       title: 'U-Turn Route',
-      explanation: 'Move east, turn south, move south, turn west, move west.',
-      program: [{ type: 'move' }, { type: 'right' }, { type: 'move' }, { type: 'right' }, { type: 'move' }],
+      explanation: 'Move east, turn south, move south, turn west, move west to exit.',
+      demoLevel: {
+        id: 'demo-8',
+        title: 'Spiral U-Turn Demo',
+        map: ['####', '#S.#', '#G.#', '####'],
+        direction: 0,
+        bossHealth: 0
+      },
       demoMap: ['####', '#S.#', '#G.#', '####'],
-      demoInitialState: { x: 1, y: 1, direction: 0 }
+      demoInitialState: { x: 1, y: 1, direction: 0 },
+      program: [
+        { type: 'move' },
+        { type: 'right' },
+        { type: 'move' },
+        { type: 'right' },
+        { type: 'move' }
+      ],
+      expectedOutcome: {
+        passed: true,
+        finalPosition: { x: 1, y: 2 },
+        finalDirection: 2
+      }
     },
     commonMistake: {
       mistake: 'Turning left when facing south expecting to go west.',
@@ -413,10 +549,27 @@ export const LEVEL_CURRICULUM = {
     visualLegend: [VISUAL_LEGEND.terminal, VISUAL_LEGEND.bridge, VISUAL_LEGEND.hazard, VISUAL_LEGEND.energy, VISUAL_LEGEND.exit],
     workedExample: {
       title: 'Bridge and Leap',
-      explanation: 'Activate switch, walk across bridge, then jump over corruption tile.',
-      program: [{ type: 'move' }, { type: 'activate' }, { type: 'move' }, { type: 'jump' }],
+      explanation: 'Activate switch, walk across bridge, then jump over corruption tile to reach exit.',
+      demoLevel: {
+        id: 'demo-9',
+        title: 'Bridge and Jump Demo',
+        map: ['#######', '#STBHG#', '#######'],
+        direction: 0,
+        bossHealth: 0
+      },
       demoMap: ['#######', '#STBHG#', '#######'],
-      demoInitialState: { x: 1, y: 1, direction: 0 }
+      demoInitialState: { x: 1, y: 1, direction: 0 },
+      program: [
+        { type: 'move' },
+        { type: 'activate' },
+        { type: 'move' },
+        { type: 'jump' }
+      ],
+      expectedOutcome: {
+        passed: true,
+        bridgeDeployed: true,
+        finalPosition: { x: 5, y: 1 }
+      }
     },
     commonMistake: {
       mistake: 'Using Move instead of Jump after crossing the bridge.',
@@ -443,11 +596,28 @@ export const LEVEL_CURRICULUM = {
     conceptExplanation: '"If/Else" lets your robot choose between two actions: if a wall is directly ahead, turn right; OTHERWISE, move forward. Repeating this rule lets the robot navigate corners automatically!',
     visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.wall, VISUAL_LEGEND.energy, VISUAL_LEGEND.exit],
     workedExample: {
-      title: 'Wall Avoidance Decision',
-      explanation: 'If wall ahead, turn right; else move forward.',
-      program: [{ type: 'if', sensor: 'wall', body: [{ type: 'right' }], elseBody: [{ type: 'move' }] }],
-      demoMap: ['####', '#S.#', '##.#', '####'],
-      demoInitialState: { x: 1, y: 1, direction: 0 }
+      title: 'If / Else Dual Branching (False & True Cases)',
+      explanation: 'First step tests sensor(wall) = FALSE (runs ELSE: move). Second step tests sensor(wall) = TRUE (runs IF: turn right). Then finishes to exit.',
+      demoLevel: {
+        id: 'demo-10',
+        title: 'If Else Branching Demo',
+        map: ['#####', '#S.##', '##.G#', '#####'],
+        direction: 0,
+        bossHealth: 0
+      },
+      demoMap: ['#####', '#S.##', '##.G#', '#####'],
+      demoInitialState: { x: 1, y: 1, direction: 0 },
+      program: [
+        { type: 'if', sensor: 'wall', body: [{ type: 'right' }], elseBody: [{ type: 'move' }] },
+        { type: 'if', sensor: 'wall', body: [{ type: 'right' }], elseBody: [{ type: 'move' }] },
+        { type: 'move' },
+        { type: 'left' },
+        { type: 'move' }
+      ],
+      expectedOutcome: {
+        passed: true,
+        finalPosition: { x: 3, y: 2 }
+      }
     },
     commonMistake: {
       mistake: 'Putting Move inside the "IF wall" branch instead of the "ELSE" branch.',
@@ -474,11 +644,30 @@ export const LEVEL_CURRICULUM = {
     conceptExplanation: 'The Firewall Guardian (X) blocks the path with a 3-point energy shield. Stepping into it causes a fatal crash! Face the guardian from 1 to 3 tiles away and fire "Pulse" 3 times to destroy its shield before advancing.',
     visualLegend: [VISUAL_LEGEND.guardian, VISUAL_LEGEND.energy, VISUAL_LEGEND.exit],
     workedExample: {
-      title: 'Discharging a Guardian',
-      explanation: 'Move within range, fire pulse to deplete 1 HP shield, then advance through.',
-      program: [{ type: 'move' }, { type: 'pulse' }, { type: 'move' }, { type: 'move' }],
-      demoMap: ['#####', '#SXG#', '#####'],
-      demoInitialState: { x: 1, y: 1, direction: 0 }
+      title: 'Discharging a Guardian at Range 3',
+      explanation: 'From 3 tiles away, fire pulse to destroy guardian shield, then advance through to exit.',
+      demoLevel: {
+        id: 'demo-11',
+        title: 'Guardian Pulse Demo',
+        map: ['#######', '#S..X.G#', '#######'],
+        direction: 0,
+        bossHealth: 1
+      },
+      demoMap: ['#######', '#S..X.G#', '#######'],
+      demoInitialState: { x: 1, y: 1, direction: 0 },
+      program: [
+        { type: 'pulse' },
+        { type: 'move' },
+        { type: 'move' },
+        { type: 'move' },
+        { type: 'move' },
+        { type: 'move' }
+      ],
+      expectedOutcome: {
+        passed: true,
+        bossHP: 0,
+        finalPosition: { x: 6, y: 1 }
+      }
     },
     commonMistake: {
       mistake: 'Firing pulse from more than 3 tiles away, or attempting to walk onto the guardian while its shield is active.',
@@ -507,9 +696,33 @@ export const LEVEL_CURRICULUM = {
     workedExample: {
       title: 'Full Sequence Integration',
       explanation: 'Demonstrates completing an integrated route with multiple mechanics.',
-      program: [{ type: 'move' }, { type: 'collect' }, { type: 'move' }, { type: 'activate' }, { type: 'move' }],
-      demoMap: ['######', '#SCTB#', '######'],
-      demoInitialState: { x: 1, y: 1, direction: 0 }
+      demoLevel: {
+        id: 'demo-12',
+        title: 'Full Integration Demo',
+        map: ['########', '#SCTBX.G#', '########'],
+        direction: 0,
+        bossHealth: 1
+      },
+      demoMap: ['########', '#SCTBX.G#', '########'],
+      demoInitialState: { x: 1, y: 1, direction: 0 },
+      program: [
+        { type: 'move' },
+        { type: 'collect' },
+        { type: 'move' },
+        { type: 'activate' },
+        { type: 'pulse' },
+        { type: 'move' },
+        { type: 'move' },
+        { type: 'move' },
+        { type: 'move' }
+      ],
+      expectedOutcome: {
+        passed: true,
+        collectedCount: 1,
+        bridgeDeployed: true,
+        bossHP: 0,
+        finalPosition: { x: 7, y: 1 }
+      }
     },
     commonMistake: {
       mistake: 'Rushing to the boss without activating the bridge or collecting both energy shards.',
@@ -524,63 +737,283 @@ export const LEVEL_CURRICULUM = {
   }
 };
 
-// Generate structured curriculum entries for advanced sectors 13-24
+/**
+ * Generates verified, mechanically accurate curriculum entries for advanced sectors 13-24.
+ * Uses real level object properties (crystals, hazards, bridges, bossHP, constraints) directly.
+ */
 function generateAdvancedCurriculum() {
   const advancedEntries = {};
-  const districtThemes = {
-    4: { name: 'Shadow Network', focus: 'Multi-lane loops & serpentine routing' },
-    5: { name: 'Quantum Grid', focus: 'Adaptive sensor decisions & compact block constraints' },
-    6: { name: 'Singularity', focus: 'Mastery of multi-guardian combat & tight efficiency' }
+
+  // Level-specific verified demonstration definitions for sectors 13-24
+  const advancedDemos = {
+    13: {
+      title: 'Serpentine Multi-Lane Traversal',
+      explanation: 'Demonstrates alternating lane turns and crystal recovery inside loops.',
+      demoMap: ['######', '#S.C##', '###.##', '#G.C##', '######'],
+      direction: 0,
+      bossHealth: 0,
+      program: [
+        { type: 'repeat', count: 2, body: [{ type: 'move' }] },
+        { type: 'collect' },
+        { type: 'right' },
+        { type: 'move' },
+        { type: 'move' },
+        { type: 'collect' },
+        { type: 'right' },
+        { type: 'repeat', count: 2, body: [{ type: 'move' }] }
+      ],
+      expectedOutcome: { passed: true, collectedCount: 2, finalPosition: { x: 1, y: 3 } }
+    },
+    14: {
+      title: 'Corrupted Lane Breach Jump',
+      explanation: 'Demonstrates vaulting hazards across lanes and collecting shards.',
+      demoMap: ['#######', '#S.HCG#', '#######'],
+      direction: 0,
+      bossHealth: 0,
+      program: [
+        { type: 'move' },
+        { type: 'jump' },
+        { type: 'collect' },
+        { type: 'move' }
+      ],
+      expectedOutcome: { passed: true, collectedCount: 1, finalPosition: { x: 5, y: 1 } }
+    },
+    15: {
+      title: 'Multi-Span Bridge Deployment',
+      explanation: 'Demonstrates activating terminal and crossing dual bridge spans.',
+      demoMap: ['#######', '#STBBG#', '#######'],
+      direction: 0,
+      bossHealth: 0,
+      program: [
+        { type: 'move' },
+        { type: 'activate' },
+        { type: 'repeat', count: 3, body: [{ type: 'move' }] }
+      ],
+      expectedOutcome: { passed: true, bridgeDeployed: true, finalPosition: { x: 5, y: 1 } }
+    },
+    16: {
+      title: 'Sentinel Combat with 2-Point Shield',
+      explanation: 'Demonstrates collecting shard and depleting 2-point guardian shield with pulse.',
+      demoMap: ['######', '#SCX.G#', '######'],
+      direction: 0,
+      bossHealth: 2,
+      program: [
+        { type: 'move' },
+        { type: 'collect' },
+        { type: 'pulse' },
+        { type: 'pulse' },
+        { type: 'move' },
+        { type: 'move' },
+        { type: 'move' }
+      ],
+      expectedOutcome: { passed: true, collectedCount: 1, bossHP: 0, finalPosition: { x: 5, y: 1 } }
+    },
+    17: {
+      title: 'Sensor Evaluation (Condition False Case)',
+      explanation: 'Demonstrates sensor(energy) evaluating FALSE on empty tile, safely skipping collect.',
+      demoMap: ['######', '#S..G#', '######'],
+      direction: 0,
+      bossHealth: 0,
+      program: [
+        { type: 'move' },
+        { type: 'if', sensor: 'energy', body: [{ type: 'collect' }] },
+        { type: 'repeat', count: 2, body: [{ type: 'move' }] }
+      ],
+      expectedOutcome: { passed: true, conditionOutcome: false, finalPosition: { x: 4, y: 1 } }
+    },
+    18: {
+      title: 'Conditional Traversal with Hazard Vault',
+      explanation: 'Demonstrates sensing energy before jumping over corruption breach.',
+      demoMap: ['#######', '#SCH.G#', '#######'],
+      direction: 0,
+      bossHealth: 0,
+      program: [
+        { type: 'move' },
+        { type: 'if', sensor: 'energy', body: [{ type: 'collect' }] },
+        { type: 'jump' },
+        { type: 'move' }
+      ],
+      expectedOutcome: { passed: true, collectedCount: 1, finalPosition: { x: 5, y: 1 } }
+    },
+    19: {
+      title: 'Quantum Lock Bridge & Boss Combat',
+      explanation: 'Demonstrates activating bridge then pulsing 2-point guardian before crossing.',
+      demoMap: ['########', '#STBX.G#', '########'],
+      direction: 0,
+      bossHealth: 2,
+      program: [
+        { type: 'move' },
+        { type: 'activate' },
+        { type: 'pulse' },
+        { type: 'pulse' },
+        { type: 'move' },
+        { type: 'move' },
+        { type: 'move' },
+        { type: 'move' }
+      ],
+      expectedOutcome: { passed: true, bridgeDeployed: true, bossHP: 0, finalPosition: { x: 6, y: 1 } }
+    },
+    20: {
+      title: 'Grid Overload Multi-Phase Synthesis',
+      explanation: 'Demonstrates shard sensing, terminal activation, guardian combat, and hazard leap.',
+      demoMap: ['##########', '#SCTBX.HG#', '##########'],
+      direction: 0,
+      bossHealth: 1,
+      program: [
+        { type: 'move' },
+        { type: 'if', sensor: 'energy', body: [{ type: 'collect' }] },
+        { type: 'move' },
+        { type: 'activate' },
+        { type: 'pulse' },
+        { type: 'move' },
+        { type: 'move' },
+        { type: 'move' },
+        { type: 'jump' }
+      ],
+      expectedOutcome: { passed: true, bridgeDeployed: true, bossHP: 0, finalPosition: { x: 8, y: 1 } }
+    },
+    21: {
+      title: 'Deep Core 3-Point Boss Combat',
+      explanation: 'Demonstrates looping 3 pulse attacks from range to eliminate deep core boss.',
+      demoMap: ['######', '#S.X.G#', '######'],
+      direction: 0,
+      bossHealth: 3,
+      program: [
+        { type: 'repeat', count: 3, body: [{ type: 'pulse' }] },
+        { type: 'repeat', count: 4, body: [{ type: 'move' }] }
+      ],
+      expectedOutcome: { passed: true, bossHP: 0, finalPosition: { x: 5, y: 1 } }
+    },
+    22: {
+      title: 'Zero-Waste Loop Compaction',
+      explanation: 'Demonstrates traversing corridors under strict block and action limits.',
+      demoMap: ['#######', '#S...G#', '#######'],
+      direction: 0,
+      bossHealth: 0,
+      program: [
+        { type: 'repeat', count: 4, body: [{ type: 'move' }] }
+      ],
+      expectedOutcome: { passed: true, finalPosition: { x: 5, y: 1 } }
+    },
+    23: {
+      title: 'Endurance Multi-Shard Sweep & Boss Combat',
+      explanation: 'Demonstrates collecting multiple shards along a route and breaking 2-point shield.',
+      demoMap: ['########', '#SC.C.XG#', '########'],
+      direction: 0,
+      bossHealth: 2,
+      program: [
+        { type: 'move' },
+        { type: 'collect' },
+        { type: 'move' },
+        { type: 'move' },
+        { type: 'collect' },
+        { type: 'pulse' },
+        { type: 'pulse' },
+        { type: 'move' },
+        { type: 'move' },
+        { type: 'move' }
+      ],
+      expectedOutcome: { passed: true, collectedCount: 2, bossHP: 0, finalPosition: { x: 7, y: 1 } }
+    },
+    24: {
+      title: 'The Singularity Master Climax',
+      explanation: 'Full mastery: shard collection, terminal bridge deploy, guardian combat, and extraction.',
+      demoMap: ['###########', '#SCTBX.C.G#', '###########'],
+      direction: 0,
+      bossHealth: 2,
+      program: [
+        { type: 'move' },
+        { type: 'collect' },
+        { type: 'move' },
+        { type: 'activate' },
+        { type: 'pulse' },
+        { type: 'pulse' },
+        { type: 'move' },
+        { type: 'move' },
+        { type: 'move' },
+        { type: 'move' },
+        { type: 'collect' },
+        { type: 'move' },
+        { type: 'move' }
+      ],
+      expectedOutcome: { passed: true, collectedCount: 2, bridgeDeployed: true, bossHP: 0, finalPosition: { x: 9, y: 1 } }
+    }
   };
 
-  const titles = [
-    'Relay Ascent', 'Corrupted Relay', 'Bridge Labyrinth', 'Shadow Sentinel',
-    'Sensor Sweep', 'Fractured Lanes', 'Quantum Lock', 'Grid Overload',
-    'Deep Core Descent', 'Blackout Protocol', 'Last Transmission', 'The Singularity'
-  ];
+  for (let id = 13; id <= 24; id++) {
+    const levelObj = levels[id - 1];
+    if (!levelObj) continue;
 
-  for (let idx = 0; idx < 12; idx++) {
-    const id = idx + 13;
-    const title = titles[idx];
-    const districtId = id <= 16 ? 4 : id <= 20 ? 5 : 6;
-    const district = districtThemes[districtId];
-    const requiresSensors = id >= 17;
-    const bossHealth = id === 16 ? 4 : id === 17 ? 4 : id === 18 ? 4 : id === 19 ? 5 : id === 20 ? 5 : id === 21 ? 6 : id === 22 ? 6 : id === 23 ? 7 : id === 24 ? 8 : 0;
+    const mapChars = levelObj.map.join('');
+    const crystals = (mapChars.match(/C/g) || []).length;
+    const hazards = (mapChars.match(/H/g) || []).length;
+    const bridges = (mapChars.match(/B/g) || []).length;
+    const bossHealth = levelObj.bossHealth || 0;
+    const lanes = Math.floor((levelObj.map.length - 1) / 2);
+    const requiresSensors = Boolean(levelObj.requireSensors);
+    const requiresLoops = Boolean(levelObj.requireLoops);
+    const par = levelObj.par;
+    const maxActions = levelObj.maxActions;
+    const maxBlocks = levelObj.maxBlocks;
+
+    const demo = advancedDemos[id];
 
     advancedEntries[id] = {
       id,
-      title,
-      zone: district.name,
-      objective: `Navigate ${id <= 16 ? '3' : id <= 20 ? '4' : '5'} lanes in the ${district.name}, recover all energy shards${bossHealth ? `, defeat the ${bossHealth}-HP guardian` : ''}, and escape within program limits.`,
+      title: levelObj.title,
+      zone: levelObj.zone,
+      objective: `Navigate ${lanes} lanes in the ${levelObj.zone}, recover all ${crystals} energy shards${hazards ? `, jump ${hazards} corruption hazards` : ''}${bridges ? ', activate bridge switches' : ''}${bossHealth ? `, and defeat the ${bossHealth}-HP guardian` : ''} within ${maxActions} actions and ${maxBlocks} blocks.`,
       learningObjective: requiresSensors
-        ? 'Master adaptive sensor conditions inside loops to solve complex multi-lane maps within strict block budgets.'
-        : 'Master multi-lane serpentine routing using alternating right and left turns with loop bodies.',
+        ? `Master adaptive sensor evaluation inside loops to clear ${lanes} lanes within strict limits (${maxBlocks} blocks, ${maxActions} actions).`
+        : `Master multi-lane serpentine routing using alternating right and left turns under par ${par}.`,
       newConcept: requiresSensors ? 'Adaptive Sensor Logic & Budget Constraints' : 'Serpentine Multi-Lane Loops',
       prerequisites: [`Level ${id - 1}`],
       practisedSkills: ['Loop optimization', 'Sensor evaluation', 'Step budget management'],
       introducedBlocks: [],
       allowedBlocks: ['cv_move', 'cv_left', 'cv_right', 'cv_collect', 'cv_repeat', 'cv_jump', 'cv_activate', 'cv_pulse', 'cv_if', 'cv_if_else', 'cv_sensor'],
       conceptExplanation: requiresSensors
-        ? 'In high-density sectors, hardcoded actions exceed block limits. Wrap your navigation in loops and use sensors (like "energy on tile") to decide when to collect shards automatically.'
-        : 'When traversing back and forth across multiple lanes, alternate your turns at the end of each lane (Right-Right on lane 1, Left-Left on lane 2) while keeping actions inside repeating loops.',
+        ? `In high-density sectors like ${levelObj.title}, hardcoding every step exceeds the ${maxBlocks} block budget. Wrap your traversal in repeat loops and use "if energy on tile" to collect dynamically.`
+        : `When traversing back and forth across ${lanes} lanes, alternate your turns at the end of each corridor (Right-Right on lane 1, Left-Left on lane 2) while keeping movement inside repeat loops.`,
       visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.energy, VISUAL_LEGEND.hazard, VISUAL_LEGEND.exit],
       workedExample: {
-        title: 'Lane Traversal Loop',
-        explanation: 'Shows moving along a lane and using a sensor to collect energy efficiently.',
-        program: [{ type: 'repeat', count: 3, body: [{ type: 'move' }, { type: 'if', sensor: 'energy', body: [{ type: 'collect' }] }] }],
-        demoMap: ['#####', '#SCG#', '#####'],
-        demoInitialState: { x: 1, y: 1, direction: 0 }
+        title: demo.title,
+        explanation: demo.explanation,
+        demoLevel: {
+          id: `demo-${id}`,
+          title: demo.title,
+          map: demo.demoMap,
+          direction: demo.direction,
+          bossHealth: demo.bossHealth
+        },
+        demoMap: demo.demoMap,
+        demoInitialState: { x: 1, y: 1, direction: demo.direction },
+        program: demo.program,
+        expectedOutcome: demo.expectedOutcome
       },
       commonMistake: {
-        mistake: 'Writing separate blocks for each tile, which causes a "Program too large" block budget failure.',
+        mistake: `Writing separate blocks for each tile, which causes a "Program too large: ${maxBlocks} blocks limit" failure.`,
         correction: 'Look for repeating lane patterns and condense your moves into Repeat loops.'
       },
       hints: [
-        { level: 1, label: 'Notice the Goal', text: `This sector has strict constraints: ${requiresSensors ? 'You MUST evaluate a sensor condition and execute a repeat loop.' : 'You MUST execute a repeat loop.'}` },
-        { level: 2, label: 'Helpful Concept', text: 'Plan lane by lane. Alternate between right turns and left turns at the lane edges.' },
-        { level: 3, label: 'Step-by-Step Suggestion', text: bossHealth ? `Remember to fire ${bossHealth} pulse attacks before advancing onto the guardian's tile!` : 'Jump over red corruption tiles and use sensors to grab all shards.' }
+        {
+          level: 1,
+          label: 'Notice the Goal',
+          text: `This sector has ${crystals} energy shards across ${lanes} lanes.${bossHealth ? ` The guardian requires ${bossHealth} pulse hits.` : ''} Constraints: max ${maxActions} actions, max ${maxBlocks} blocks.${requiresSensors ? ' You must evaluate a sensor condition.' : ''}${requiresLoops ? ' You must use a repeat loop.' : ''}`
+        },
+        {
+          level: 2,
+          label: 'Helpful Concept',
+          text: `Plan lane by lane. Alternate turns at corridor ends (Right-Right, then Left-Left). ${requiresSensors ? 'Use "if energy on tile" to collect shards only when present.' : 'Use Repeat loops for long straights.'}`
+        },
+        {
+          level: 3,
+          label: 'Step-by-Step Suggestion',
+          text: bossHealth
+            ? `Face the guardian from 1-3 tiles away and fire pulse ${bossHealth} times before stepping onto its tile. Collect all ${crystals} shards to open extraction.`
+            : `Jump corruption hazards (H) and activate terminals (T) to deploy bridges (B) before crossing.`
+        }
       ],
-      postSuccessExplanation: `Outstanding! You conquered Sector ${id} demonstrating advanced algorithmic efficiency in the ${district.name}.`
+      postSuccessExplanation: `Outstanding! You conquered Sector ${id} (${levelObj.title}) demonstrating advanced algorithmic efficiency in the ${levelObj.zone}.`
     };
   }
 
@@ -650,7 +1083,7 @@ export function auditCurriculum(levelsList) {
  *
  * @param {object} level
  * @param {object} finalState
- * @param {Array} program
+ * @param {Array} _program
  * @returns {{ diagnosis: string, suggestion: string, hintTier: number }}
  */
 export function diagnoseFailure(level, finalState, _program) {

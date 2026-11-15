@@ -20,10 +20,10 @@ This document provides the authoritative curriculum audit and pedagogical map fo
 | Block | Type | Category | Mechanics / Syntax | Introduced |
 | :--- | :--- | :--- | :--- | :--- |
 | **Move Forward** | `cv_move` | Actions | Advances 1 tile in facing direction (`move()`). Fails if wall or hazard. | Level 1 |
-| **Repeat N Times** | `cv_repeat` | Control | Loops enclosed body N times ($1 \le N \le 30$) (`repeat(N) { ... }`). | Level 1 (formalized in Level 4) |
 | **Collect Energy** | `cv_collect` | Actions | Collects shard on current tile (`collect()`). Portal requires all shards. | Level 2 |
 | **Turn Left** | `cv_left` | Actions | Rotates 90° counter-clockwise in place (`turnLeft()`). | Level 3 |
 | **Turn Right** | `cv_right` | Actions | Rotates 90° clockwise in place (`turnRight()`). | Level 3 |
+| **Repeat N Times** | `cv_repeat` | Control | Loops enclosed body N times ($1 \le N \le 30$) (`repeat(N) { ... }`). | Level 4 |
 | **Jump Breach** | `cv_jump` | Actions | Vaults exactly 2 tiles forward in facing direction (`jump()`). Bypasses hazards. | Level 5 |
 | **Activate Terminal**| `cv_activate` | Actions | Flips switch on terminal tile (`T`), extending bridges (`B`) (`activate()`). | Level 6 |
 | **If Condition** | `cv_if` | Control | Evaluates sensor predicate before executing body (`if (sensor) { ... }`). | Level 7 |
@@ -37,9 +37,9 @@ This document provides the authoritative curriculum audit and pedagogical map fo
 
 | Level | District | Concept / Mechanic | Plain-English Objective | Learning Objective | Prerequisites | Practised Skills | Allowed Blocks |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **1** | Neon Outskirts | Sequences & Forward Movement | Move forward 3 tiles to reach the green exit portal. | Understand sequential execution: commands run in order from top to bottom. | Basic navigation | Counting steps, connecting blocks | `cv_move`, `cv_repeat` |
-| **2** | Neon Outskirts | Actions & Shard Collection | Collect both energy shards along the path, then extract. | Understand action commands and state changes on specific tiles. | Level 1: Sequences | Sequential movement, stopping at targets | `cv_move`, `cv_collect`, `cv_repeat` |
-| **3** | Neon Outskirts | Direction & Turning (Heading) | Navigate around the corner, collect shard, and exit. | Understand heading: rotating 90° in place without changing position. | Level 2: Actions | Movement, collecting, spatial reasoning | `cv_move`, `cv_left`, `cv_right`, `cv_collect`, `cv_repeat` |
+| **1** | Neon Outskirts | Sequences & Forward Movement | Move forward 3 tiles to reach the green exit portal. | Understand sequential execution: commands run in order from top to bottom. | Basic navigation | Counting steps, connecting blocks | `cv_move` |
+| **2** | Neon Outskirts | Actions & Shard Collection | Collect both energy shards along the path, then extract. | Understand action commands and state changes on specific tiles. | Level 1: Sequences | Sequential movement, stopping at targets | `cv_move`, `cv_collect` |
+| **3** | Neon Outskirts | Direction & Turning (Heading) | Navigate around the corner, collect shard, and exit. | Understand heading: rotating 90° in place without changing position. | Level 2: Actions | Movement, collecting, spatial reasoning | `cv_move`, `cv_left`, `cv_right`, `cv_collect` |
 | **4** | Neon Outskirts | Repeat Loops (Iteration) | Collect all four shards using a compact program with a loop. | Understand iteration: running a block group multiple times to eliminate repetition. | Level 3: Turning | Spotting patterns, loop body design | `cv_move`, `cv_left`, `cv_right`, `cv_collect`, `cv_repeat` |
 | **5** | Cipher District | Breach Jumping (Hazards) | Leap over the red corruption hazard tile, collect shard, and extract. | Understand multi-tile actions: leaping two tiles to safely clear hazards. | Level 4: Loops | Distance calculation, hazard identification | `cv_move`, `cv_left`, `cv_right`, `cv_collect`, `cv_repeat`, `cv_jump` |
 | **6** | Cipher District | Terminals & Bridge Deployment | Step onto terminal, activate it to deploy bridge, and cross to exit. | Understand interactive switches and dynamic environment state. | Level 5: Jumping | Sequential problem solving, switches | `cv_move`, `cv_left`, `cv_right`, `cv_collect`, `cv_repeat`, `cv_jump`, `cv_activate` |

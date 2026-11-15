@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { levels, validateProgram } from '../../../shared/game.js';
+import { levels, validateProgram, simulate } from '../../../shared/game.js';
 import {
   LEVEL_CURRICULUM,
   VISUAL_LEGEND,
   BLOCK_DEFINITIONS,
+  INTENTIONAL_FAILURE_EXAMPLE,
   getLevelCurriculum,
   auditCurriculum,
   diagnoseFailure
@@ -51,16 +52,17 @@ test('Curriculum Audit: 24 Levels Complete and Mechanically Accurate', async (t)
 
   await t.test('progressive block staging introduces mechanics chronologically', () => {
     const l1 = getLevelCurriculum(1);
-    assert.deepEqual(l1.allowedBlocks, ['cv_move', 'cv_repeat']);
+    assert.deepEqual(l1.allowedBlocks, ['cv_move'], 'Level 1 must only allow cv_move for new learners');
 
     const l2 = getLevelCurriculum(2);
-    assert.ok(l2.allowedBlocks.includes('cv_collect'));
-    assert.ok(!l2.allowedBlocks.includes('cv_left'));
+    assert.deepEqual(l2.allowedBlocks, ['cv_move', 'cv_collect'], 'Level 2 adds collection');
 
     const l3 = getLevelCurriculum(3);
-    assert.ok(l3.allowedBlocks.includes('cv_left'));
-    assert.ok(l3.allowedBlocks.includes('cv_right'));
-    assert.ok(!l3.allowedBlocks.includes('cv_jump'));
+    assert.deepEqual(l3.allowedBlocks, ['cv_move', 'cv_left', 'cv_right', 'cv_collect'], 'Level 3 adds turns');
+
+    const l4 = getLevelCurriculum(4);
+    assert.ok(l4.allowedBlocks.includes('cv_repeat'), 'Level 4 introduces repeat loops');
+    assert.ok(!l4.allowedBlocks.includes('cv_jump'));
 
     const l5 = getLevelCurriculum(5);
     assert.ok(l5.allowedBlocks.includes('cv_jump'));
@@ -83,18 +85,106 @@ test('Curriculum Audit: 24 Levels Complete and Mechanically Accurate', async (t)
     assert.ok(l11.allowedBlocks.includes('cv_pulse'));
   });
 
-  await t.test('worked examples have valid AST structure for validation engine', () => {
-    for (let id = 1; id <= 12; id++) {
+  await t.test('all 24 worked examples have valid AST and pass canonical simulation against demo boards', () => {
+    for (let id = 1; id <= 24; id++) {
       const curriculum = getLevelCurriculum(id);
       const { workedExample } = curriculum;
       assert.ok(workedExample, `Level ${id} must have workedExample`);
-      assert.ok(workedExample.title);
-      assert.ok(workedExample.explanation);
-      assert.ok(Array.isArray(workedExample.demoMap));
-      assert.ok(workedExample.demoInitialState);
+      assert.ok(workedExample.title, `Level ${id} workedExample must have title`);
+      assert.ok(workedExample.explanation, `Level ${id} workedExample must have explanation`);
+      assert.ok(Array.isArray(workedExample.demoMap), `Level ${id} demoMap must be array`);
+      assert.ok(workedExample.demoInitialState, `Level ${id} demoInitialState must exist`);
+
+      // 1. AST Validation
       const isValid = validateProgram(workedExample.program);
       assert.equal(isValid, true, `Worked example for level ${id} has invalid AST`);
+
+      // 2. Canonical Simulation Execution
+      const demoLevel = {
+        id: `demo-${id}`,
+        title: workedExample.title,
+        map: workedExample.demoMap,
+        direction: workedExample.demoInitialState.direction,
+        bossHealth: workedExample.demoLevel?.bossHealth ?? (workedExample.demoMap.some(r => r.includes('X')) ? 3 : 0)
+      };
+
+      const simResult = simulate(demoLevel, workedExample.program, { recordConditions: true });
+      assert.equal(simResult.passed, true, `Level ${id} worked example did not pass canonical simulation: ${simResult.message}`);
+      assert.ok(simResult.frames.length >= 2, `Level ${id} simulation frames must be non-empty`);
+
+      // 3. Assert specific demonstrated outcomes
+      if (workedExample.expectedOutcome) {
+        if (workedExample.expectedOutcome.finalPosition) {
+          assert.equal(simResult.state.x, workedExample.expectedOutcome.finalPosition.x, `Level ${id} final X mismatch`);
+          assert.equal(simResult.state.y, workedExample.expectedOutcome.finalPosition.y, `Level ${id} final Y mismatch`);
+        }
+        if (workedExample.expectedOutcome.collectedCount !== undefined) {
+          assert.equal(simResult.state.collected.length, workedExample.expectedOutcome.collectedCount, `Level ${id} collected count mismatch`);
+        }
+        if (workedExample.expectedOutcome.bridgeDeployed !== undefined) {
+          assert.equal(simResult.state.bridge, workedExample.expectedOutcome.bridgeDeployed, `Level ${id} bridge status mismatch`);
+        }
+        if (workedExample.expectedOutcome.bossHP !== undefined) {
+          assert.equal(simResult.state.bossHP, workedExample.expectedOutcome.bossHP, `Level ${id} boss HP mismatch`);
+        }
+      }
     }
+  });
+
+  await t.test('demonstrates true and false sensor conditions, if/else branching, and intentional failure', () => {
+    // 1. Condition TRUE case (Level 7)
+    const l7 = getLevelCurriculum(7);
+    const l7Sim = simulate(
+      { id: 'demo-7', title: 'L7 Demo', map: l7.workedExample.demoMap, direction: 0 },
+      l7.workedExample.program,
+      { recordConditions: true }
+    );
+    assert.equal(l7Sim.passed, true);
+    const l7CondFrame = l7Sim.frames.find(f => f.event === 'condition');
+    assert.ok(l7CondFrame, 'L7 must record a condition evaluation frame');
+    assert.equal(l7CondFrame.condition.outcome, true, 'L7 sensor(energy) must evaluate to TRUE on shard tile');
+    assert.ok(l7Sim.state.collected.length >= 1, 'L7 must have collected shard in conditional body');
+
+    // 2. Condition FALSE case (Level 17)
+    const l17 = getLevelCurriculum(17);
+    const l17Sim = simulate(
+      { id: 'demo-17', title: 'L17 Demo', map: l17.workedExample.demoMap, direction: 0 },
+      l17.workedExample.program,
+      { recordConditions: true }
+    );
+    assert.equal(l17Sim.passed, true);
+    const l17CondFrame = l17Sim.frames.find(f => f.event === 'condition');
+    assert.ok(l17CondFrame, 'L17 must record a condition evaluation frame');
+    assert.equal(l17CondFrame.condition.outcome, false, 'L17 sensor(energy) must evaluate to FALSE on empty floor');
+    assert.equal(l17Sim.state.collected.length, 0, 'L17 body must be skipped when sensor is FALSE');
+
+    // 3. Two-way If / Else branching (Level 10)
+    const l10 = getLevelCurriculum(10);
+    const l10Sim = simulate(
+      { id: 'demo-10', title: 'L10 Demo', map: l10.workedExample.demoMap, direction: 0 },
+      l10.workedExample.program,
+      { recordConditions: true }
+    );
+    assert.equal(l10Sim.passed, true);
+    const condFrames = l10Sim.frames.filter(f => f.event === 'condition');
+    assert.ok(condFrames.length >= 2, 'L10 must record multiple condition frames');
+    // First evaluation: floor ahead -> wall is FALSE -> took ELSE branch (move)
+    assert.equal(condFrames[0].condition.outcome, false, 'First check: wall ahead is FALSE');
+    assert.ok(condFrames[0].condition.explanation.includes('Executing ELSE body'));
+    // Second evaluation: wall ahead -> wall is TRUE -> took IF branch (turn right)
+    assert.equal(condFrames[1].condition.outcome, true, 'Second check: wall ahead is TRUE');
+    assert.ok(condFrames[1].condition.explanation.includes('Executing IF body'));
+
+    // 4. Intentional failure demonstration
+    assert.equal(INTENTIONAL_FAILURE_EXAMPLE.isIntentionalFailure, true);
+    const failSim = simulate(
+      INTENTIONAL_FAILURE_EXAMPLE.demoLevel,
+      INTENTIONAL_FAILURE_EXAMPLE.program,
+      { recordConditions: true }
+    );
+    assert.equal(failSim.passed, false, 'Intentional failure demo must fail');
+    assert.equal(failSim.state.event, 'crash', 'Intentional failure demo must halt on collision');
+    assert.ok(failSim.message.includes('Route blocked'), 'Failure message must report collision');
   });
 
   await t.test('diagnoseFailure returns grounded advice distinguishing mistakes from suggestions', () => {
