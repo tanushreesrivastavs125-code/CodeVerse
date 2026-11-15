@@ -25,6 +25,7 @@
     "test:backend": "npm --workspace=backend run test",
     "test:frontend": "npm --workspace=frontend run test",
     "test:campaign:integration": "npm --workspace=backend run test:campaign:integration",
+    "test:exports": "node backend/test/curriculum/executableExports.test.js",
     "test": "npm run test:backend && npm run test:frontend && npm run build:frontend",
     "lint:backend": "npm --workspace=backend run lint",
     "lint:frontend": "npm --workspace=frontend run lint",

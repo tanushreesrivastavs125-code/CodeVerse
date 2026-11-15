@@ -142,35 +142,39 @@ export function DownloadModal({
 
         {/* Body */}
         <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {/* Honest Status Callout */}
+          {/* Status & Toolchain Callout */}
           <div
             style={{
-              padding: '0.75rem 1rem',
+              padding: '0.8rem 1rem',
               borderRadius: 'var(--radius-md, 8px)',
-              backgroundColor: meta.verifiedRunnable ? 'rgba(34, 197, 94, 0.1)' : 'rgba(234, 179, 8, 0.12)',
-              border: `1px solid ${meta.verifiedRunnable ? 'rgba(34, 197, 94, 0.3)' : 'rgba(234, 179, 8, 0.3)'}`,
+              backgroundColor: meta.isExecutable ? 'rgba(56, 189, 248, 0.08)' : 'rgba(234, 179, 8, 0.1)',
+              border: `1px solid ${meta.isExecutable ? 'rgba(56, 189, 248, 0.25)' : 'rgba(234, 179, 8, 0.3)'}`,
               fontSize: '0.8rem',
               lineHeight: 1.5,
               color: 'var(--text-primary)'
             }}
           >
-            <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>
-              {meta.verifiedRunnable ? '✅ Verified Local Runtime' : '⚠️ Compiler Prerequisite'}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+              <span style={{ fontWeight: 700, color: meta.isExecutable ? 'var(--accent-cyan)' : 'var(--accent-gold)' }}>
+                {meta.isExecutable ? '⚙️ Toolchain & Execution' : '📖 Algorithm Walkthrough'}
+              </span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                {meta.verificationStatus}
+              </span>
             </div>
-            <div>{meta.runtimeRequirement}</div>
-            {meta.verificationBlockedReason && (
-              <div style={{ marginTop: '0.25rem', color: 'var(--text-muted)', fontSize: '0.74rem' }}>
-                Note: {meta.verificationBlockedReason}.
+            <div>
+              <strong>Requirements:</strong> {meta.runtimeRequirement}
+            </div>
+            {meta.isExecutable && (
+              <div style={{ marginTop: '0.35rem', fontFamily: 'var(--font-mono)', fontSize: '0.76rem', color: 'var(--accent-cyan)' }}>
+                <strong>Run Command:</strong> {meta.runCommand}
               </div>
             )}
-            <div style={{ marginTop: '0.4rem', fontFamily: 'var(--font-mono)', fontSize: '0.76rem', color: 'var(--accent-cyan)' }}>
-              Command: {meta.runCommand}
-            </div>
           </div>
 
           {/* Download Action Cards */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-            {/* 1. Learning Snippet */}
+            {/* 1. Algorithm Snippet / Outline */}
             <button
               type="button"
               onClick={handleDownloadSnippet}
@@ -188,45 +192,57 @@ export function DownloadModal({
               }}
             >
               <div>
-                <div style={{ fontWeight: 600, fontSize: '0.86rem' }}>
-                  📄 Download Snippet (codeverse_program.{meta.extension})
+                <div style={{ fontWeight: 600, fontSize: '0.86rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span>📄 {meta.isExecutable ? `Download Snippet (codeverse_program.${meta.extension})` : 'Download Plain-English Steps (mission_steps.txt)'}</span>
+                  {meta.isExecutable && (
+                    <span style={{ fontSize: '0.68rem', padding: '0.1rem 0.4rem', borderRadius: '4px', backgroundColor: 'rgba(234, 179, 8, 0.15)', color: 'var(--accent-gold)' }}>
+                      Requires CodeVerse Helpers
+                    </span>
+                  )}
                 </div>
-                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                  Clean student source code using CodeVerse drone helper APIs.
-                </div>
-              </div>
-              <span style={{ fontSize: '1.1rem', color: 'var(--accent-cyan)' }}>⬇️</span>
-            </button>
-
-            {/* 2. Complete Runnable Simulation */}
-            <button
-              type="button"
-              onClick={handleDownloadRunnable}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '0.85rem 1rem',
-                borderRadius: 'var(--radius-md, 8px)',
-                border: '1px solid var(--accent-cyan)',
-                backgroundColor: 'rgba(56, 189, 248, 0.08)',
-                color: 'var(--text-primary)',
-                cursor: 'pointer',
-                textAlign: 'left'
-              }}
-            >
-              <div>
-                <div style={{ fontWeight: 600, fontSize: '0.86rem', color: 'var(--accent-cyan)' }}>
-                  🚀 Download Runnable Project ({language === 'java' ? 'DroneMission.java' : `drone_mission.${meta.extension}`})
-                </div>
-                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                  Self-contained script with terminal grid simulator and mission reporting.
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                  {meta.isExecutable
+                    ? 'Algorithmic solution snippet for study. Requires CodeVerse drone helper APIs (not standalone without simulator).'
+                    : 'Human-readable step-by-step description of your program logic.'}
                 </div>
               </div>
               <span style={{ fontSize: '1.1rem', color: 'var(--accent-cyan)' }}>⬇️</span>
             </button>
 
-            {/* 3. README */}
+            {/* 2. Complete Runnable Console Simulation (Only for executable programming languages) */}
+            {meta.isExecutable && (
+              <button
+                type="button"
+                onClick={handleDownloadRunnable}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.85rem 1rem',
+                  borderRadius: 'var(--radius-md, 8px)',
+                  border: '1px solid var(--accent-cyan)',
+                  backgroundColor: 'rgba(56, 189, 248, 0.08)',
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.86rem', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span>🚀 Download Runnable Project ({language === 'java' ? 'DroneMission.java' : `drone_mission.${meta.extension}`})</span>
+                    <span style={{ fontSize: '0.68rem', padding: '0.1rem 0.4rem', borderRadius: '4px', backgroundColor: 'rgba(34, 197, 94, 0.15)', color: 'var(--accent-green, #22c55e)' }}>
+                      Complete Project
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                    Self-contained console script with embedded grid simulator and terminal reporting. Runs independently with {meta.label}.
+                  </div>
+                </div>
+                <span style={{ fontSize: '1.1rem', color: 'var(--accent-cyan)' }}>⬇️</span>
+              </button>
+            )}
+
+            {/* 3. README & Build Guide */}
             <button
               type="button"
               onClick={handleDownloadReadme}
@@ -245,10 +261,10 @@ export function DownloadModal({
             >
               <div>
                 <div style={{ fontWeight: 600, fontSize: '0.86rem' }}>
-                  📖 Download README & Setup (README.md)
+                  📖 Download README & Build Guide (README.md)
                 </div>
-                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                  Complete setup guide, compiler flags, and API reference for all languages.
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                  Full documentation covering snippets vs standalone projects, compiler flags, and platform-specific execution.
                 </div>
               </div>
               <span style={{ fontSize: '1.1rem', color: 'var(--text-muted)' }}>⬇️</span>

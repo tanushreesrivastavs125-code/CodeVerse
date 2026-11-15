@@ -131,9 +131,12 @@ export function generateRunnableExport(ast, language = 'javascript', level = nul
     content,
     mimeType: meta.mimeType,
     language: normLang,
-    verifiedRunnable: meta.verifiedRunnable,
+    isExecutable: meta.isExecutable,
+    verifiedRunnable: meta.isExecutable,
+    verificationStatus: meta.verificationStatus,
     runCommand: meta.runCommand,
     instructions: meta.runtimeRequirement,
-    verificationBlockedReason: meta.verificationBlockedReason || null
+    runtimeRequirement: meta.runtimeRequirement,
+    exportCategory: meta.exportCategory
   };
 }
