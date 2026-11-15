@@ -276,7 +276,11 @@ describe('Stage D: Multi-Language Code Generators & Connected Previews', () => {
 
     try {
       fs.writeFileSync(tempFile, pyExport.content, 'utf8');
-      const proc = spawnSync('python', [tempFile], { encoding: 'utf8', timeout: 8000 });
+      const proc = spawnSync('python', [tempFile], {
+        encoding: 'utf8',
+        timeout: 8000,
+        env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1' }
+      });
 
       assert.equal(
         proc.status,
@@ -342,7 +346,11 @@ describe('Stage D: Multi-Language Code Generators & Connected Previews', () => {
 
     try {
       fs.writeFileSync(tempFile, pyExport.content, 'utf8');
-      const proc = spawnSync('python', [tempFile], { encoding: 'utf8', timeout: 8000 });
+      const proc = spawnSync('python', [tempFile], {
+        encoding: 'utf8',
+        timeout: 8000,
+        env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1' }
+      });
 
       assert.equal(proc.status, 0);
       assert.ok(
@@ -377,7 +385,10 @@ describe('Stage D: Multi-Language Code Generators & Connected Previews', () => {
     try {
       const pyFile = path.join(tempDir, 'l2.py');
       fs.writeFileSync(pyFile, pyL2.content, 'utf8');
-      const pyRes = spawnSync('python', [pyFile], { encoding: 'utf8' });
+      const pyRes = spawnSync('python', [pyFile], {
+        encoding: 'utf8',
+        env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1' }
+      });
       assert.equal(pyRes.status, 0);
       assert.ok(pyRes.stdout.includes('MISSION PASSED'), `Python L2 must pass:\n${pyRes.stdout}`);
 

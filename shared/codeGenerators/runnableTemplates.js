@@ -297,14 +297,14 @@ function main() {
   const outcome = drone.checkOutcome();
   console.log('\\n' + '-'.repeat(55));
   if (outcome.passed) {
-    console.log(\`✅ MISSION PASSED! Drone reached target in \${outcome.steps} steps.\`);
+    console.log(\`[PASS] MISSION PASSED! Drone reached target in \${outcome.steps} steps.\`);
     console.log(\`   Energy cells collected: \${outcome.collected} / \${outcome.totalEnergy}\`);
     let stars = 1;
     if (outcome.steps <= LEVEL.par) stars = 3;
     else if (outcome.steps <= LEVEL.par * 1.5) stars = 2;
-    console.log(\`   Efficiency Rating: \${'★'.repeat(stars)}\${'☆'.repeat(3 - stars)}\`);
+    console.log(\`   Efficiency Rating: \${stars}/3 stars (\${'*'.repeat(stars)})\`);
   } else {
-    console.log(\`❌ MISSION FAILED: \${outcome.crashReason || 'Drone did not satisfy sector objectives.'}\`);
+    console.log(\`[FAIL] MISSION FAILED: \${outcome.crashReason || 'Drone did not satisfy sector objectives.'}\`);
     console.log(\`   Final Position: (\${drone.x}, \${drone.y}) | Facing: \${DIRS[drone.direction].char}\`);
     console.log(\`   Energy: \${outcome.collected} / \${outcome.totalEnergy}\`);
   }
@@ -534,16 +534,16 @@ def main():
     outcome = drone.check_outcome()
     print("\\n" + "-" * 55)
     if outcome["passed"]:
-        print(f"✅ MISSION PASSED! Drone reached target in {outcome['steps']} steps.")
+        print(f"[PASS] MISSION PASSED! Drone reached target in {outcome['steps']} steps.")
         print(f"   Energy cells collected: {outcome['collected']} / {outcome['total_energy']}")
         stars = 1
         if outcome["steps"] <= LEVEL["par"]:
             stars = 3
         elif outcome["steps"] <= LEVEL["par"] * 1.5:
             stars = 2
-        print(f"   Efficiency Rating: {'★' * stars}{'☆' * (3 - stars)}")
+        print(f"   Efficiency Rating: {stars}/3 stars ({'*' * stars})")
     else:
-        print(f"❌ MISSION FAILED: {outcome['crash_reason'] or 'Objectives not completed.'}")
+        print(f"[FAIL] MISSION FAILED: {outcome['crash_reason'] or 'Objectives not completed.'}")
         print(f"   Final Position: ({drone.x}, {drone.y}) | Facing: {DIRS[drone.direction]['char']}")
         print(f"   Energy: {outcome['collected']} / {outcome['total_energy']}")
     print("-" * 55 + "\\n")
@@ -706,7 +706,7 @@ ${codeRes.lines.map(line => '        ' + line).join('\n')}
             drone.crashReason = e.getMessage();
         }
         boolean passed = !drone.crashed && drone.tile(drone.x, drone.y) == 'G' && drone.bossHP == 0;
-        System.out.println(passed ? "✅ MISSION PASSED in " + drone.steps + " steps." : "❌ MISSION FAILED: " + drone.crashReason);
+        System.out.println(passed ? "[PASS] MISSION PASSED in " + drone.steps + " steps." : "[FAIL] MISSION FAILED: " + drone.crashReason);
     }
 }
 `;
@@ -862,9 +862,9 @@ int main() {
     runLearnerProgram(drone);
     bool passed = !drone.crashed && drone.tile(drone.x, drone.y) == 'G' && drone.bossHP == 0;
     if (passed) {
-        std::cout << "✅ MISSION PASSED in " << drone.steps << " steps." << std::endl;
+        std::cout << "[PASS] MISSION PASSED in " << drone.steps << " steps." << std::endl;
     } else {
-        std::cout << "❌ MISSION FAILED: " << drone.crashReason << std::endl;
+        std::cout << "[FAIL] MISSION FAILED: " << drone.crashReason << std::endl;
     }
     return 0;
 }
@@ -1017,9 +1017,9 @@ int main(void) {
     run_learner_program();
     bool passed = !g_crashed && tile_at(g_x, g_y) == 'G' && g_boss_hp == 0;
     if (passed) {
-        printf("✅ MISSION PASSED in %d steps.\\n", g_steps);
+        printf("[PASS] MISSION PASSED in %d steps.\\n", g_steps);
     } else {
-        printf("❌ MISSION FAILED: %s\\n", g_crash_reason);
+        printf("[FAIL] MISSION FAILED: %s\\n", g_crash_reason);
     }
     return 0;
 }
