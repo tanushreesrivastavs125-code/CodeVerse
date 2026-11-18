@@ -9,7 +9,8 @@ const DISTRICTS_CONFIG = [
   { id: 3, name: 'Firewall Core', sectorRange: [9, 12], focus: 'Sensors, combined mechanics & guardian combat' },
   { id: 4, name: 'Shadow Network', sectorRange: [13, 16], focus: 'Longer routes, multiple objectives & advanced loops' },
   { id: 5, name: 'Quantum Grid', sectorRange: [17, 20], focus: 'Adaptive programs, sensor decisions & tight efficiency' },
-  { id: 6, name: 'Singularity', sectorRange: [21, 24], focus: 'Expert combinations, demanding routes & final 8-point guardian' }
+  { id: 6, name: 'Singularity', sectorRange: [21, 24], focus: 'Expert combinations, demanding routes & final 8-point guardian' },
+  { id: 7, name: 'Algorithmic Core', sectorRange: [25, 32], focus: 'Variables, counters, comparisons & while loops' }
 ];
 
 export function DashboardView() {

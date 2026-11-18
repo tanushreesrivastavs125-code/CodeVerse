@@ -1,5 +1,5 @@
 import { CodeBuilder } from '../codeBuilder.js';
-import { ACTION_DESCRIPTIONS, getLoopVar } from '../helpers.js';
+import { ACTION_DESCRIPTIONS, getLoopVar, formatOperand, formatCondition } from '../helpers.js';
 
 /**
  * Generates idiomatic JavaScript from a CodeVerse AST.
@@ -37,6 +37,10 @@ export function generateJavaScript(ast, options = {}) {
 
   let hasLoop = false;
   let hasSensor = false;
+  let hasWhile = false;
+  let hasVariables = false;
+  let loopGuardCounter = 0;
+  const declaredVars = new Set();
 
   function compileNodes(nodes, depth = 0, loopDepth = 0) {
     for (const node of nodes) {
@@ -64,15 +68,79 @@ export function generateJavaScript(ast, options = {}) {
           blockId: node.blockId,
           type: 'repeat'
         });
+      } else if (node.type === 'while') {
+        hasWhile = true;
+        const condStr = formatCondition(node.condition, null, 'javascript');
+        let guardVar = null;
+        if (options.boundedLoops) {
+          guardVar = `_cv_loop_guard_${++loopGuardCounter}`;
+          builder.addLine(depth, `let ${guardVar} = 0;`);
+        }
+        builder.addLine(depth, `while (${condStr}) {`, node.nodeId, {
+          blockId: node.blockId,
+          type: 'while',
+          isCondition: true
+        });
+
+        if (options.boundedLoops && guardVar) {
+          builder.addLine(depth + 1, `if (++${guardVar} > 200) { drone.fail("This loop kept repeating because its condition never became false. Try updating the counter inside it."); break; }`);
+        }
+
+        if (Array.isArray(node.body) && node.body.length > 0) {
+          compileNodes(node.body, depth + 1, loopDepth);
+        }
+
+        builder.addLine(depth, '}', node.nodeId, {
+          blockId: node.blockId,
+          type: 'while'
+        });
+      } else if (node.type === 'var_set') {
+        hasVariables = true;
+        const varName = node.variable;
+        const valStr = formatOperand(node.value);
+        if (!declaredVars.has(varName)) {
+          builder.addLine(depth, `let ${varName} = ${valStr};`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'var_set',
+            variable: varName,
+            value: valStr
+          });
+          declaredVars.add(varName);
+        } else {
+          builder.addLine(depth, `${varName} = ${valStr};`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'var_set',
+            variable: varName,
+            value: valStr
+          });
+        }
+      } else if (node.type === 'var_change') {
+        hasVariables = true;
+        const varName = node.variable;
+        const amt = typeof node.amount === 'number' ? node.amount : Number(formatOperand(node.amount));
+        if (amt < 0) {
+          builder.addLine(depth, `${varName} -= ${Math.abs(amt)};`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'var_change',
+            variable: varName,
+            amount: amt
+          });
+        } else {
+          builder.addLine(depth, `${varName} += ${amt};`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'var_change',
+            variable: varName,
+            amount: amt
+          });
+        }
       } else if (node.type === 'if') {
         hasSensor = true;
-        const sensorName = node.sensor;
-        const sensorCall = `drone.sensor("${sensorName}")`;
-        const headerText = `if (${sensorCall}) {`;
+        const condStr = formatCondition(node.condition, node.sensor, 'javascript');
+        const headerText = `if (${condStr}) {`;
         builder.addLine(depth, headerText, node.nodeId, {
           blockId: node.blockId,
           type: 'if',
-          sensor: sensorName,
+          sensor: node.sensor,
           isCondition: true
         });
 
@@ -116,11 +184,27 @@ export function generateJavaScript(ast, options = {}) {
     });
   }
 
+  if (hasWhile) {
+    explanations.push({
+      id: 'while',
+      title: 'While Loops',
+      text: 'A "while (condition)" loop repeats its body continuously as long as the condition evaluates to true. Updating a variable inside the loop ensures it terminates safely.'
+    });
+  }
+
+  if (hasVariables) {
+    explanations.push({
+      id: 'variables',
+      title: 'Variables and Counters',
+      text: 'Variables store data values in memory. In JavaScript, "let" declares a new variable, which can be modified using operators like += or -=.'
+    });
+  }
+
   if (hasSensor) {
     explanations.push({
       id: 'sensor',
       title: 'Conditional Branching',
-      text: 'The "if (drone.sensor(...))" statement checks sector sensors. The body runs only if the condition returns true; otherwise the else-branch executes.'
+      text: 'The "if (condition)" statement checks sector conditions or comparisons. The body runs only if the condition returns true; otherwise the else-branch executes.'
     });
   }
 

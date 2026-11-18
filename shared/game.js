@@ -42,7 +42,8 @@ export const DISTRICTS = [
   { id: 3, name: 'Firewall Core', sectors: [9, 10, 11, 12], focus: 'Sensors, combined mechanics & guardian combat' },
   { id: 4, name: 'Shadow Network', sectors: [13, 14, 15, 16], focus: 'Longer routes, multiple objectives & advanced loops' },
   { id: 5, name: 'Quantum Grid', sectors: [17, 18, 19, 20], focus: 'Adaptive programs, sensor decisions & tight efficiency' },
-  { id: 6, name: 'Singularity', sectors: [21, 22, 23, 24], focus: 'Expert combinations, demanding routes & final 8-point guardian' }
+  { id: 6, name: 'Singularity', sectors: [21, 22, 23, 24], focus: 'Expert combinations, demanding routes & final 8-point guardian' },
+  { id: 7, name: 'Algorithmic Core', sectors: [25, 26, 27, 28, 29, 30, 31, 32], focus: 'Variables, counters, comparisons & while loops' }
 ];
 
 function generateAdvancedLevels() {
@@ -300,7 +301,106 @@ export const levels = [
     16,
     { bossHealth: 3, difficulty: 12 }
   ),
-  ...generateAdvancedLevels()
+  ...generateAdvancedLevels(),
+
+  // District 7: Algorithmic Core (Levels 25–32)
+  // Stage E: Interactive variables, counters, comparisons, and while loops
+  createLevel(
+    25,
+    'Data Genesis',
+    'Algorithmic Core',
+    'Variables & Initialization',
+    'Initialize variable "target" to 2, then step forward 2 tiles to reach the extraction portal.',
+    'Use the set variable block before your movement blocks. Watch the Variables panel record the value.',
+    ['#####', '#S.G#', '#####'],
+    0,
+    3,
+    { difficulty: 25, requireVariables: true }
+  ),
+  createLevel(
+    26,
+    'Step Counter',
+    'Algorithmic Core',
+    'Updating Variables & Counters',
+    'Collect both energy shards and track each collection with a counter variable "count".',
+    'Set count to 0 at the start. Move onto each shard, collect it, and change count by 1.',
+    ['######', '#SC.CG#', '######'],
+    0,
+    6,
+    { difficulty: 26, requireVariables: true, requireVarChange: true }
+  ),
+  createLevel(
+    27,
+    'Decision Gate',
+    'Algorithmic Core',
+    'Value Comparisons & If/Else',
+    'Compare collected energy with threshold 1. If energy >= 1, turn south toward extraction; else stay on path.',
+    'Set power to 0, collect the shard, change power by 1. Use an if block comparing power >= 1 to turn south.',
+    ['######', '#S.C##', '###.##', '###G##', '######'],
+    0,
+    6,
+    { difficulty: 27, requireVariables: true }
+  ),
+  createLevel(
+    28,
+    'While Loop Protocol',
+    'Algorithmic Core',
+    'While Loops (Repeat While True)',
+    'Advance to extraction using a while loop: repeat while step counter is less than 5.',
+    'A while loop checks its condition before every step. As long as step < 5, it executes the loop body.',
+    ['########', '#S....G#', '########'],
+    0,
+    6,
+    { difficulty: 28, requireWhile: true }
+  ),
+  createLevel(
+    29,
+    'Loop Termination',
+    'Algorithmic Core',
+    'Counter Termination',
+    'Recover 3 energy shards. Update counter "shards" inside the while loop so it terminates after 3 shards.',
+    'Inside the loop: move forward, collect shard, and change shards by 1 so shards < 3 becomes false.',
+    ['##########', '#S.C.C.CG#', '##########'],
+    0,
+    10,
+    { difficulty: 29, requireWhile: true, requireVarChange: true }
+  ),
+  createLevel(
+    30,
+    'Algorithm Fusion',
+    'Algorithmic Core',
+    'Loop, Counter & Sensor Fusion',
+    'Restore the bridge, jump the breach, and use a while loop with a counter to traverse the corridor.',
+    'Set step to 0. Activate the terminal, while step < 3 advance, then jump the corruption hazard to extract.',
+    ['############', '#STBB.H.C.G#', '############'],
+    0,
+    10,
+    { difficulty: 30, requireWhile: true, requireVariables: true }
+  ),
+  createLevel(
+    31,
+    'Infinite Loop Diagnosis',
+    'Algorithmic Core',
+    'Diagnosing Non-Terminating Loops',
+    'Diagnose the runaway loop! A loop without counter updates runs forever. Add "change count by 1" inside the loop.',
+    'Without updating the counter inside the loop, count < 4 never becomes false, hitting the execution limit.',
+    ['#######', '#S...G#', '#######'],
+    0,
+    6,
+    { difficulty: 31, requireWhile: true, requireVarChange: true }
+  ),
+  createLevel(
+    32,
+    'Algorithmic Master',
+    'Algorithmic Core',
+    'Independent Algorithmic Mastery',
+    'Final Chapter Mission: Deploy bridges, recover shards, and dismantle the guardian using a counter-driven while loop.',
+    'Set pulses to 0. Use while pulses < 3 to fire directed pulse blasts and dismantle the 3-point guardian shield.',
+    ['##############', '#STBB.C..X.G##', '##############'],
+    0,
+    15,
+    { bossHealth: 3, difficulty: 32, requireWhile: true, requireVariables: true }
+  )
 ];
 
 // Heading vectors: 0: East, 1: South, 2: West, 3: North
@@ -320,7 +420,10 @@ export const VALID_COMMANDS = new Set([
   'activate',
   'pulse',
   'repeat',
-  'if'
+  'if',
+  'var_set',
+  'var_change',
+  'while'
 ]);
 
 export const VALID_SENSORS = new Set([
@@ -331,9 +434,88 @@ export const VALID_SENSORS = new Set([
   'guardian'
 ]);
 
+export const VALID_COMPARISONS = new Set([
+  '==',
+  '!=',
+  '<',
+  '<=',
+  '>',
+  '>='
+]);
+
+export const IDENTIFIER_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]{0,31}$/;
+export const FORBIDDEN_VAR_NAMES = new Set(['__proto__', 'constructor', 'prototype']);
+
+export function isValidIdentifier(name) {
+  return typeof name === 'string' && IDENTIFIER_REGEX.test(name) && !FORBIDDEN_VAR_NAMES.has(name);
+}
+
+function validateOperand(operand) {
+  if (typeof operand === 'number') {
+    if (!Number.isInteger(operand) || operand < -10000 || operand > 10000) {
+      throw new Error('Numeric values must be integers between -10,000 and 10,000.');
+    }
+    return;
+  }
+  if (typeof operand === 'string') {
+    if (!isValidIdentifier(operand)) {
+      throw new Error(`Invalid identifier: "${operand}". Variables must start with a letter or underscore (up to 32 characters).`);
+    }
+    return;
+  }
+  if (operand && typeof operand === 'object') {
+    if (operand.type === 'var_get') {
+      const v = operand.var || operand.variable;
+      if (!isValidIdentifier(v)) {
+        throw new Error(`Invalid variable identifier: "${v}".`);
+      }
+      return;
+    }
+    if (operand.type === 'literal') {
+      if (!Number.isInteger(operand.value) || operand.value < -10000 || operand.value > 10000) {
+        throw new Error('Literal values must be integers between -10,000 and 10,000.');
+      }
+      return;
+    }
+  }
+  throw new Error(`Invalid operand in program: ${JSON.stringify(operand)}`);
+}
+
+function validateCondition(cond, nodeSensor) {
+  if (nodeSensor) {
+    if (!VALID_SENSORS.has(nodeSensor)) {
+      throw new Error(`Unknown sensor: ${nodeSensor}`);
+    }
+    return;
+  }
+  if (typeof cond === 'string') {
+    if (!VALID_SENSORS.has(cond)) {
+      throw new Error(`Unknown sensor condition: ${cond}`);
+    }
+    return;
+  }
+  if (cond && typeof cond === 'object') {
+    if (cond.type === 'sensor') {
+      if (!VALID_SENSORS.has(cond.sensor)) {
+        throw new Error(`Unknown sensor: ${cond.sensor}`);
+      }
+      return;
+    }
+    if (cond.type === 'compare') {
+      if (!VALID_COMPARISONS.has(cond.op)) {
+        throw new Error(`Unsupported comparison operator: "${cond.op}".`);
+      }
+      validateOperand(cond.left);
+      validateOperand(cond.right);
+      return;
+    }
+  }
+  throw new Error('Condition must be a sensor query or comparison.');
+}
+
 /**
  * Validates the AST command tree before execution, including unexecuted branches.
- * Rejects malformed values, unbound repetitions, and unknown commands.
+ * Rejects malformed values, unbound repetitions, undefined variables, and unknown commands.
  *
  * @param {Array} program
  * @param {number} [maxDepth=8]
@@ -355,6 +537,7 @@ export function validateProgram(program, maxDepth = 8) {
   }
 
   let totalNodes = 0;
+  const declaredVars = new Set();
 
   function traverse(nodes, depth) {
     if (depth > maxDepth) {
@@ -376,7 +559,24 @@ export function validateProgram(program, maxDepth = 8) {
         throw new Error('Program exceeds the 300-instruction limit.');
       }
 
-      if (node.type === 'repeat') {
+      if (node.type === 'var_set') {
+        const varName = node.var || node.variable;
+        if (!isValidIdentifier(varName)) {
+          throw new Error(`Invalid variable name: "${varName}". Names must start with a letter or underscore and contain only alphanumeric characters (up to 32 characters).`);
+        }
+        declaredVars.add(varName);
+        validateOperand(node.value !== undefined ? node.value : 0);
+      } else if (node.type === 'var_change') {
+        const varName = node.var || node.variable;
+        if (!isValidIdentifier(varName)) {
+          throw new Error(`Invalid variable name: "${varName}".`);
+        }
+        if (node.amount !== undefined) {
+          if (!Number.isInteger(node.amount) || node.amount < -10000 || node.amount > 10000) {
+            throw new Error('Counter amount must be an integer between -10,000 and 10,000.');
+          }
+        }
+      } else if (node.type === 'repeat') {
         if (!Number.isInteger(node.count) || node.count < 1 || node.count > 30) {
           throw new Error('Repeat count must be between 1 and 30.');
         }
@@ -384,10 +584,16 @@ export function validateProgram(program, maxDepth = 8) {
           throw new Error('Repeat block must contain a body array of commands.');
         }
         traverse(node.body, depth + 1);
-      } else if (node.type === 'if') {
-        if (!VALID_SENSORS.has(node.sensor)) {
-          throw new Error(`Unknown sensor: ${node.sensor}`);
+      } else if (node.type === 'while') {
+        validateCondition(node.condition, node.sensor);
+        if (!Array.isArray(node.body)) {
+          throw new Error('While block must contain a body array of commands.');
         }
+        if (node.body.length > 0) {
+          traverse(node.body, depth + 1);
+        }
+      } else if (node.type === 'if') {
+        validateCondition(node.condition, node.sensor);
         if (!Array.isArray(node.body)) {
           throw new Error('If block must contain a body array of commands.');
         }
@@ -436,6 +642,7 @@ export function initialState(level) {
     bossHP,
     health: 3,
     steps: 0,
+    variables: {},
     event: 'ready',
     message: 'Program the drone. The city is waiting.'
   };
@@ -452,11 +659,15 @@ export function simulate(level, program, options = {}) {
   validateProgram(program);
 
   let state = initialState(level);
+  state.variables = Object.create(null);
+
   let ticks = 0;
   let stopped = false;
   let executedLoops = 0;
+  let executedWhileLoops = 0;
   let executedSensors = 0;
-  const frames = [{ ...state, collected: [...state.collected] }];
+  let executedVarUpdates = 0;
+  const frames = [{ ...state, collected: [...state.collected], variables: { ...state.variables } }];
   const totalEnergy = level.map.join('').split('C').length - 1;
 
   const tile = (x, y) => level.map[y]?.[x] || '#';
@@ -466,11 +677,13 @@ export function simulate(level, program, options = {}) {
       ...state,
       event,
       message,
+      variables: { ...state.variables },
       steps: isCondition ? state.steps : state.steps + 1
     };
     frames.push({
       ...state,
       ...meta,
+      variables: { ...state.variables },
       collected: [...state.collected]
     });
   };
@@ -506,12 +719,141 @@ export function simulate(level, program, options = {}) {
     }
   };
 
+  function resolveOperand(operand) {
+    if (typeof operand === 'number') {
+      if (!Number.isFinite(operand)) throw new Error('Invalid numeric value.');
+      return Math.trunc(operand);
+    }
+    if (typeof operand === 'string') {
+      if (!isValidIdentifier(operand)) throw new Error(`Invalid identifier: "${operand}".`);
+      if (!(operand in state.variables)) {
+        throw new Error(`Variable "${operand}" is used before being set.`);
+      }
+      return state.variables[operand];
+    }
+    if (operand && typeof operand === 'object') {
+      if (operand.type === 'var_get') {
+        const vName = operand.var || operand.variable;
+        if (!isValidIdentifier(vName)) throw new Error(`Invalid identifier: "${vName}".`);
+        if (!(vName in state.variables)) {
+          throw new Error(`Variable "${vName}" is used before being set.`);
+        }
+        return state.variables[vName];
+      }
+      if (operand.type === 'literal') {
+        return Math.trunc(operand.value);
+      }
+    }
+    throw new Error(`Invalid operand in expression: ${JSON.stringify(operand)}`);
+  }
+
+  function evaluateCondition(cond, nodeSensor) {
+    if (nodeSensor) {
+      const outcome = sensor(nodeSensor);
+      return {
+        outcome,
+        text: `sensor("${nodeSensor}")`,
+        meta: { sensor: nodeSensor, outcome }
+      };
+    }
+    if (typeof cond === 'string') {
+      const outcome = sensor(cond);
+      return {
+        outcome,
+        text: `sensor("${cond}")`,
+        meta: { sensor: cond, outcome }
+      };
+    }
+    if (cond && typeof cond === 'object') {
+      if (cond.type === 'sensor') {
+        const outcome = sensor(cond.sensor);
+        return {
+          outcome,
+          text: `sensor("${cond.sensor}")`,
+          meta: { sensor: cond.sensor, outcome }
+        };
+      }
+      if (cond.type === 'compare') {
+        const leftVal = resolveOperand(cond.left);
+        const rightVal = resolveOperand(cond.right);
+        const leftLabel = typeof cond.left === 'string' ? cond.left : (cond.left?.var ?? cond.left);
+        const rightLabel = typeof cond.right === 'string' ? cond.right : (cond.right?.var ?? cond.right);
+        let outcome = false;
+        switch (cond.op) {
+          case '<': outcome = leftVal < rightVal; break;
+          case '<=': outcome = leftVal <= rightVal; break;
+          case '>': outcome = leftVal > rightVal; break;
+          case '>=': outcome = leftVal >= rightVal; break;
+          case '==': outcome = leftVal === rightVal; break;
+          case '!=': outcome = leftVal !== rightVal; break;
+          default:
+            throw new Error(`Unsupported comparison operator: "${cond.op}".`);
+        }
+        const text = `${leftLabel} ${cond.op} ${rightLabel} (${leftVal} ${cond.op} ${rightVal})`;
+        return {
+          outcome,
+          text,
+          meta: {
+            comparison: { left: leftLabel, leftVal, op: cond.op, right: rightLabel, rightVal, outcome },
+            outcome
+          }
+        };
+      }
+    }
+    throw new Error('Condition must be a sensor query or comparison.');
+  }
+
   function run(nodes, depth = 0) {
     if (depth > 8) throw new Error('Program nesting is limited to 8.');
 
     for (const node of nodes) {
       if (stopped) return;
-      if (++ticks > 300) throw new Error('Program exceeds the 300-instruction limit.');
+      if (++ticks > 1000) throw new Error('Program exceeds the 1000-instruction execution limit.');
+
+      if (node.type === 'var_set') {
+        const varName = node.var || node.variable;
+        if (!isValidIdentifier(varName)) {
+          throw new Error(`Invalid identifier: "${varName}".`);
+        }
+        const val = resolveOperand(node.value !== undefined ? node.value : 0);
+        const prevVal = state.variables[varName];
+        state.variables[varName] = val;
+        const changeText = prevVal !== undefined
+          ? `${varName} changed from ${prevVal} to ${val}.`
+          : `Set ${varName} to ${val}.`;
+        const varMeta = {
+          varMutation: { varName, prevVal: prevVal ?? null, val, changeText },
+          variables: { ...state.variables }
+        };
+        if (node.nodeId) varMeta.nodeId = node.nodeId;
+        if (node.blockId) varMeta.blockId = node.blockId;
+        snapshot('var_set', changeText, true, varMeta);
+        continue;
+      }
+
+      if (node.type === 'var_change') {
+        executedVarUpdates++;
+        const varName = node.var || node.variable;
+        if (!isValidIdentifier(varName)) {
+          throw new Error(`Invalid identifier: "${varName}".`);
+        }
+        if (!(varName in state.variables)) {
+          throw new Error(`Variable "${varName}" must be set before changing it.`);
+        }
+        const amount = Number.isInteger(node.amount) ? node.amount : 1;
+        const prevVal = state.variables[varName];
+        const newVal = prevVal + amount;
+        state.variables[varName] = newVal;
+        const changeText = `${varName} changed from ${prevVal} to ${newVal}.`;
+        const varMeta = {
+          varMutation: { varName, prevVal, val: newVal, changeText },
+          variables: { ...state.variables }
+        };
+        if (node.nodeId) varMeta.nodeId = node.nodeId;
+        if (node.blockId) varMeta.blockId = node.blockId;
+        snapshot('var_change', changeText, true, varMeta);
+        continue;
+      }
 
       if (node.type === 'repeat') {
         executedLoops++;
@@ -522,25 +864,82 @@ export function simulate(level, program, options = {}) {
         continue;
       }
 
+      if (node.type === 'while') {
+        executedLoops++;
+        executedWhileLoops++;
+        let loopIters = 0;
+        const MAX_WHILE_ITERS = 200;
+
+        while (true) {
+          if (stopped) break;
+          ticks++;
+          loopIters++;
+
+          if (loopIters > MAX_WHILE_ITERS || ticks > 1000) {
+            stopped = true;
+            const runawayMsg = 'This loop kept repeating because its condition never became false. Try updating the counter inside it.';
+            state.message = runawayMsg;
+            snapshot('loop_limit', runawayMsg, true, {
+              variables: { ...state.variables },
+              nodeId: node.nodeId,
+              blockId: node.blockId,
+              whileCondition: {
+                expr: 'runaway_limit',
+                outcome: true,
+                iteration: loopIters,
+                explanation: runawayMsg
+              }
+            });
+            break;
+          }
+
+          const condEval = evaluateCondition(node.condition, node.sensor);
+          const condMeta = {
+            variables: { ...state.variables },
+            whileCondition: {
+              expr: condEval.text,
+              outcome: condEval.outcome,
+              iteration: loopIters,
+              explanation: `While [${condEval.text}] is ${condEval.outcome ? 'TRUE' : 'FALSE'} (iteration ${loopIters}).`
+            }
+          };
+          if (node.nodeId) condMeta.nodeId = node.nodeId;
+          if (node.blockId) condMeta.blockId = node.blockId;
+          snapshot('while_step', `While [${condEval.text}] is ${condEval.outcome ? 'TRUE' : 'FALSE'}.`, true, condMeta);
+
+          if (!condEval.outcome) {
+            break;
+          }
+
+          if (Array.isArray(node.body) && node.body.length > 0) {
+            run(node.body, depth + 1);
+          }
+        }
+        continue;
+      }
+
       if (node.type === 'if') {
         executedSensors++;
-        const condition = sensor(node.sensor);
+        const condEval = evaluateCondition(node.condition, node.sensor);
         const shouldRecord = options.recordConditions || Boolean(node.nodeId || node.blockId);
         if (shouldRecord) {
-          const outcomeText = condition
-            ? `Condition [${node.sensor}] is TRUE → Executing IF body.`
-            : `Condition [${node.sensor}] is FALSE → ${node.elseBody?.length ? 'Executing ELSE body.' : 'Skipping IF body.'}`;
+          const outcomeText = condEval.outcome
+            ? `Condition [${condEval.text}] is TRUE → Executing IF body.`
+            : `Condition [${condEval.text}] is FALSE → ${node.elseBody?.length ? 'Executing ELSE body.' : 'Skipping IF body.'}`;
           const condMeta = {
-            sensor: node.sensor,
-            outcome: condition,
-            explanation: outcomeText
+            variables: { ...state.variables },
+            condition: {
+              sensor: node.sensor || 'compare',
+              outcome: condEval.outcome,
+              explanation: outcomeText,
+              detail: condEval.meta
+            }
           };
-          const meta = { condition: condMeta };
-          if (node.nodeId) meta.nodeId = node.nodeId;
-          if (node.blockId) meta.blockId = node.blockId;
-          snapshot('condition', outcomeText, true, meta);
+          if (node.nodeId) condMeta.nodeId = node.nodeId;
+          if (node.blockId) condMeta.blockId = node.blockId;
+          snapshot('condition', outcomeText, true, condMeta);
         }
-        if (condition) {
+        if (condEval.outcome) {
           run(node.body, depth + 1);
         } else if (node.elseBody && node.elseBody.length > 0) {
           run(node.elseBody, depth + 1);
@@ -650,7 +1049,13 @@ export function simulate(level, program, options = {}) {
 
   const programBlocks = countBlocks(program);
   const constraintMessage =
-    level.requireLoops && (!hasCommand('repeat') || executedLoops === 0)
+    level.requireVariables && Object.keys(state.variables).length === 0
+      ? 'This sector requires initializing and using a variable.'
+      : level.requireVarChange && executedVarUpdates === 0
+      ? 'This sector requires updating a counter variable.'
+      : level.requireWhile && (!hasCommand('while') || executedWhileLoops === 0)
+      ? 'This sector requires an executed while loop.'
+      : level.requireLoops && (!hasCommand('repeat') || executedLoops === 0)
       ? 'This sector requires an executed repeat block.'
       : level.requireSensors && (!hasCommand('if') || executedSensors === 0)
       ? 'This sector requires an evaluated sensor condition.'

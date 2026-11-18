@@ -152,4 +152,73 @@ describe('Blockly AST Compiler & Validation Rules', () => {
     assert.equal(validRes.valid, true);
     assert.equal(validRes.error, null);
   });
+
+  test('compiles cv_var_set, cv_var_change, and cv_while with compare condition', () => {
+    const valBlock = {
+      type: 'cv_val_num',
+      getFieldValue: (f) => (f === 'NUM' ? '10' : null)
+    };
+
+    const varSetBlock = {
+      type: 'cv_var_set',
+      getFieldValue: (f) => (f === 'VAR' ? 'energy' : null),
+      getInputTargetBlock: (n) => (n === 'VALUE' ? valBlock : null),
+      getNextBlock: () => varChangeBlock
+    };
+
+    const varChangeBlock = {
+      type: 'cv_var_change',
+      getFieldValue: (f) => (f === 'VAR' ? 'energy' : (f === 'DELTA' ? '-1' : null)),
+      getNextBlock: () => whileBlock
+    };
+
+    const compareBlock = {
+      type: 'cv_compare',
+      getFieldValue: (f) => (f === 'OP' ? '>' : null),
+      getInputTargetBlock: (n) => {
+        if (n === 'LEFT') return { type: 'cv_var_get', getFieldValue: () => 'energy' };
+        if (n === 'RIGHT') return { type: 'cv_val_num', getFieldValue: () => '0' };
+        return null;
+      }
+    };
+
+    const moveBlock = {
+      type: 'cv_move',
+      getNextBlock: () => null
+    };
+
+    const whileBlock = {
+      type: 'cv_while',
+      getInputTargetBlock: (n) => {
+        if (n === 'CONDITION') return compareBlock;
+        if (n === 'DO') return moveBlock;
+        return null;
+      },
+      getNextBlock: () => null
+    };
+
+    const ast = compileBlockSequence(varSetBlock);
+    assert.deepEqual(ast, [
+      { type: 'var_set', var: 'energy', variable: 'energy', value: 10 },
+      { type: 'var_change', var: 'energy', variable: 'energy', amount: -1 },
+      {
+        type: 'while',
+        condition: {
+          type: 'compare',
+          left: { type: 'var_get', var: 'energy' },
+          op: '>',
+          right: 0
+        },
+        body: [{ type: 'move' }]
+      }
+    ]);
+
+    const validRes = validateProgramAST(ast);
+    assert.equal(validRes.valid, true);
+
+    const preview = programToPreviewCode(ast);
+    assert.ok(preview.includes('let energy = 10;'));
+    assert.ok(preview.includes('energy -= 1;'));
+    assert.ok(preview.includes('while (energy > 0) {'));
+  });
 });

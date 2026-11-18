@@ -11,18 +11,18 @@ import {
   diagnoseFailure
 } from '../../../shared/curriculum.js';
 
-test('Curriculum Audit: 24 Levels Complete and Mechanically Accurate', async (t) => {
-  await t.test('auditCurriculum passes with zero errors for all 24 levels', () => {
+test('Curriculum Audit: 32 Levels Complete and Mechanically Accurate', async (t) => {
+  await t.test('auditCurriculum passes with zero errors for all 32 levels', () => {
     assert.ok(Object.keys(VISUAL_LEGEND).length >= 7, 'VISUAL_LEGEND must define core mechanics');
     assert.ok(Object.keys(BLOCK_DEFINITIONS).length >= 9, 'BLOCK_DEFINITIONS must define core blocks');
-    assert.equal(Object.keys(LEVEL_CURRICULUM).length, 24, 'LEVEL_CURRICULUM must contain 24 levels');
+    assert.equal(Object.keys(LEVEL_CURRICULUM).length, 32, 'LEVEL_CURRICULUM must contain 32 levels');
     const result = auditCurriculum(levels);
     assert.equal(result.valid, true, `Audit failed: ${result.errors.join(', ')}`);
     assert.equal(result.errors.length, 0);
   });
 
   await t.test('every level contains required educational and pedagogical attributes', () => {
-    for (let id = 1; id <= 24; id++) {
+    for (let id = 1; id <= 32; id++) {
       const curriculum = getLevelCurriculum(id);
       assert.ok(curriculum, `Level ${id} curriculum must exist`);
       assert.equal(curriculum.id, id);
@@ -85,8 +85,8 @@ test('Curriculum Audit: 24 Levels Complete and Mechanically Accurate', async (t)
     assert.ok(l11.allowedBlocks.includes('cv_pulse'));
   });
 
-  await t.test('all 24 worked examples have valid AST and pass canonical simulation against demo boards', () => {
-    for (let id = 1; id <= 24; id++) {
+  await t.test('all 32 worked examples have valid AST and pass canonical simulation against demo boards', () => {
+    for (let id = 1; id <= 32; id++) {
       const curriculum = getLevelCurriculum(id);
       const { workedExample } = curriculum;
       assert.ok(workedExample, `Level ${id} must have workedExample`);
@@ -109,7 +109,12 @@ test('Curriculum Audit: 24 Levels Complete and Mechanically Accurate', async (t)
       };
 
       const simResult = simulate(demoLevel, workedExample.program, { recordConditions: true });
-      assert.equal(simResult.passed, true, `Level ${id} worked example did not pass canonical simulation: ${simResult.message}`);
+      if (workedExample.isIntentionalFailure) {
+        assert.equal(simResult.passed, false, `Level ${id} intentional failure example should not pass`);
+        assert.equal(simResult.state.event, 'loop_limit');
+      } else {
+        assert.equal(simResult.passed, true, `Level ${id} worked example did not pass canonical simulation: ${simResult.message}`);
+      }
       assert.ok(simResult.frames.length >= 2, `Level ${id} simulation frames must be non-empty`);
 
       // 3. Assert specific demonstrated outcomes

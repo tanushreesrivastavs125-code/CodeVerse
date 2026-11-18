@@ -150,7 +150,7 @@ export function generateFallbackGuidance({
         `- **District:** ${targetDistrict ? targetDistrict.name : 'Unknown'} (District Focus: ${targetDistrict ? targetDistrict.focus : 'Core mechanics'})\n` +
         `- **Core Concept:** ${nextTarget.concept}\n` +
         `- **Tactical Briefing:** ${nextTarget.briefing}\n\n` +
-        `**Flight Progress:** You have cleared **${completedCount} / 24 sectors** with **${totalStars} total stars** earned.\n` +
+        `**Flight Progress:** You have cleared **${completedCount} / ${levels.length} sectors** with **${totalStars} total stars** earned.\n` +
         `Proceed to Sector ${nextTarget.id} to advance the campaign frontier.`
       );
     }
@@ -174,11 +174,14 @@ export function generateFallbackGuidance({
       );
     }
 
+    const maxStars = levels.length * 3;
+    const finalSector = levels[levels.length - 1];
+
     return (
       `### Master Pilot Status\n\n` +
-      `**Congratulations, Pilot!** You have conquered all **24 sectors** across all 6 districts with a perfect **72 / 72 stars**!\n\n` +
+      `**Congratulations, Pilot!** You have conquered all **${levels.length} sectors** across all ${DISTRICTS.length} districts with a perfect **${maxStars} / ${maxStars} stars**!\n\n` +
       `- **Next Activity:** Check the **Global Leaderboard** to compare your flight efficiency and weekly XP against top cyber pilots.\n` +
-      `- **Experimentation:** Visit the flight console on Sector 24 ("The Singularity") to experiment with alternative algorithmic solutions.`
+      `- **Experimentation:** Visit the flight console on Sector ${finalSector.id} ("${finalSector.title}") to experiment with alternative algorithmic solutions.`
     );
   }
 
@@ -434,7 +437,7 @@ export async function callExternalLlm({ config, prompt }) {
         {
           role: 'system',
           content:
-            'You are the CodeVerse Flight Mentor, an encouraging, technical mentor embedded in a cyber coding adventure game. You guide pilots through 24 progressive sectors teaching computational thinking. Always provide concise, technical, graduated guidance. Never give away full solutions immediately. Never claim to modify player balances or game rules. Format in clean markdown.'
+            'You are the CodeVerse Flight Mentor, an encouraging, technical mentor embedded in a cyber coding adventure game. You guide pilots through progressive campaign sectors teaching computational thinking. Always provide concise, technical, graduated guidance. Never give away full solutions immediately. Never claim to modify player balances or game rules. Format in clean markdown.'
         },
         {
           role: 'user',

@@ -74,7 +74,7 @@ function resolveLevelMeta(level) {
  */
 export function buildJavaScriptRunnable(ast, level = DEFAULT_LEVEL) {
   const meta = resolveLevelMeta(level);
-  const codeRes = generateJavaScript(ast, { includeHeader: false });
+  const codeRes = generateJavaScript(ast, { includeHeader: false, boundedLoops: true });
   const mapJson = JSON.stringify(meta.map);
 
   return `#!/usr/bin/env node
@@ -162,6 +162,11 @@ class ConsoleDroneSimulator {
       this.crashReason = 'Action limit exceeded (150 actions max).';
       throw new Error(this.crashReason);
     }
+  }
+
+  fail(reason) {
+    this.crashed = true;
+    this.crashReason = reason;
   }
 
   move() {
@@ -344,7 +349,7 @@ main();
  */
 export function buildPythonRunnable(ast, level = DEFAULT_LEVEL) {
   const meta = resolveLevelMeta(level);
-  const codeRes = generatePython(ast, { includeHeader: false });
+  const codeRes = generatePython(ast, { includeHeader: false, boundedLoops: true });
   const mapStr = JSON.stringify(meta.map);
 
   return `#!/usr/bin/env python3
@@ -427,6 +432,10 @@ class ConsoleDroneSimulator:
             self.crashed = True
             self.crash_reason = "Action limit exceeded (150 actions max)."
             raise RuntimeError(self.crash_reason)
+
+    def fail(self, reason):
+        self.crashed = True
+        self.crash_reason = reason
 
     def move(self):
         if self.crashed:
@@ -596,7 +605,7 @@ if __name__ == "__main__":
  */
 export function buildJavaRunnable(ast, level = DEFAULT_LEVEL) {
   const meta = resolveLevelMeta(level);
-  const codeRes = generateJava(ast, { includeHeader: false });
+  const codeRes = generateJava(ast, { includeHeader: false, boundedLoops: true });
   const mapLines = meta.map.map(m => `        "${m}"`).join(',\n');
 
   return `/**
@@ -664,6 +673,11 @@ ${mapLines}
                 crashed = true;
                 crashReason = "Action limit exceeded (150 actions max).";
             }
+        }
+
+        public void fail(String reason) {
+            this.crashed = true;
+            this.crashReason = reason;
         }
 
         public void move() {
@@ -778,7 +792,7 @@ ${codeRes.lines.map(line => '        ' + line).join('\n')}
  */
 export function buildCppRunnable(ast, level = DEFAULT_LEVEL) {
   const meta = resolveLevelMeta(level);
-  const codeRes = generateCpp(ast, { includeHeader: false });
+  const codeRes = generateCpp(ast, { includeHeader: false, boundedLoops: true });
   const mapLines = meta.map.map(m => `    "${m}"`).join(',\n');
 
   return `/**
@@ -847,6 +861,11 @@ public:
             crashed = true;
             crashReason = "Action limit exceeded (150 actions max).";
         }
+    }
+
+    void fail(const std::string& reason) {
+        crashed = true;
+        crashReason = reason;
     }
 
     void move() {
@@ -966,7 +985,7 @@ int main() {
  */
 export function buildCRunnable(ast, level = DEFAULT_LEVEL) {
   const meta = resolveLevelMeta(level);
-  const codeRes = generateC(ast, { includeHeader: false });
+  const codeRes = generateC(ast, { includeHeader: false, boundedLoops: true });
   const mapLines = meta.map.map(m => `    "${m}"`).join(',\n');
 
   return `/**
@@ -1022,6 +1041,11 @@ static void record_action(void) {
         g_crashed = true;
         snprintf(g_crash_reason, sizeof(g_crash_reason), "Action limit exceeded (150 actions max).");
     }
+}
+
+static void drone_fail(const char* reason) {
+    g_crashed = true;
+    snprintf(g_crash_reason, sizeof(g_crash_reason), "%s", reason);
 }
 
 int drone_sensor(const char* name) {

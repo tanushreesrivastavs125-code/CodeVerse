@@ -1,5 +1,5 @@
 import { CodeBuilder } from '../codeBuilder.js';
-import { ACTION_DESCRIPTIONS, getLoopVar } from '../helpers.js';
+import { ACTION_DESCRIPTIONS, getLoopVar, formatOperand, formatCondition } from '../helpers.js';
 
 /**
  * Generates idiomatic Python 3 from a CodeVerse AST.
@@ -37,6 +37,9 @@ export function generatePython(ast, options = {}) {
 
   let hasLoop = false;
   let hasSensor = false;
+  let hasWhile = false;
+  let hasVariables = false;
+  let loopGuardCounter = 0;
 
   function compileNodes(nodes, depth = 0, loopDepth = 0) {
     for (const node of nodes) {
@@ -61,14 +64,61 @@ export function generatePython(ast, options = {}) {
         } else {
           builder.addLine(depth + 1, 'pass', node.nodeId);
         }
+      } else if (node.type === 'while') {
+        hasWhile = true;
+        const condStr = formatCondition(node.condition, null, 'python');
+        let guardVar = null;
+        if (options.boundedLoops) {
+          guardVar = `_cv_loop_guard_${++loopGuardCounter}`;
+          builder.addLine(depth, `${guardVar} = 0`);
+        }
+        builder.addLine(depth, `while ${condStr}:`, node.nodeId, {
+          blockId: node.blockId,
+          type: 'while',
+          isCondition: true
+        });
+
+        if (options.boundedLoops && guardVar) {
+          builder.addLine(depth + 1, `${guardVar} += 1`);
+          builder.addLine(depth + 1, `if ${guardVar} > 200:`);
+          builder.addLine(depth + 2, `drone.fail("This loop kept repeating because its condition never became false. Try updating the counter inside it.")`);
+          builder.addLine(depth + 2, `break`);
+        }
+
+        if (Array.isArray(node.body) && node.body.length > 0) {
+          compileNodes(node.body, depth + 1, loopDepth);
+        } else if (!options.boundedLoops) {
+          builder.addLine(depth + 1, 'pass', node.nodeId);
+        }
+      } else if (node.type === 'var_set') {
+        hasVariables = true;
+        const varName = node.variable;
+        const valStr = formatOperand(node.value);
+        builder.addLine(depth, `${varName} = ${valStr}`, node.nodeId, {
+          blockId: node.blockId,
+          type: 'var_set',
+          variable: varName,
+          value: valStr
+        });
+      } else if (node.type === 'var_change') {
+        hasVariables = true;
+        const varName = node.variable;
+        const amt = typeof node.amount === 'number' ? node.amount : Number(formatOperand(node.amount));
+        const opStr = amt < 0 ? `-= ${Math.abs(amt)}` : `+= ${amt}`;
+        builder.addLine(depth, `${varName} ${opStr}`, node.nodeId, {
+          blockId: node.blockId,
+          type: 'var_change',
+          variable: varName,
+          amount: amt
+        });
       } else if (node.type === 'if') {
         hasSensor = true;
-        const sensorName = node.sensor;
-        const headerText = `if drone.sensor("${sensorName}"):`;
+        const condStr = formatCondition(node.condition, node.sensor, 'python');
+        const headerText = `if ${condStr}:`;
         builder.addLine(depth, headerText, node.nodeId, {
           blockId: node.blockId,
           type: 'if',
-          sensor: sensorName,
+          sensor: node.sensor,
           isCondition: true
         });
 
@@ -109,11 +159,27 @@ export function generatePython(ast, options = {}) {
     });
   }
 
+  if (hasWhile) {
+    explanations.push({
+      id: 'while',
+      title: 'While Loops in Python',
+      text: 'In Python, "while condition:" executes repeatedly as long as the condition evaluates to True. Changing a counter variable inside the loop body allows it to complete.'
+    });
+  }
+
+  if (hasVariables) {
+    explanations.push({
+      id: 'variables',
+      title: 'Variables and Counters in Python',
+      text: 'Variables are assigned directly using "name = value". Counter variables can be updated using augmented assignments like "count += 1".'
+    });
+  }
+
   if (hasSensor) {
     explanations.push({
       id: 'sensor',
       title: 'Python If-Else Conditions',
-      text: 'The "if drone.sensor(...):" statement checks sector sensors. The indented block below it executes only if the condition is true.'
+      text: 'The "if condition:" statement checks sensor values or numerical comparisons. The indented block below it executes only if the condition is True.'
     });
   }
 

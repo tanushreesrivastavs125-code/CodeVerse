@@ -387,19 +387,33 @@ Stage E: Expand the Actual Learning Game
 
 ### Stage E — Expand the Actual Learning Game
 - **Goal:** Broaden the curriculum beyond movement puzzles into full computational thinking.
-- **Curriculum Expansion Sequence:**
-  1. Sequencing and debugging.
-  2. Counted repetition and `for` loops.
-  3. Conditions and `if` / `else`.
-  4. Sensors and `while` loops.
-  5. Variables and counters (with visible value watches).
-  6. Functions and parameters.
-  7. Arrays and indexing (with visible memory cells and pointer indicators).
-  8. Searching algorithms.
-  9. Sorting algorithms (starting with concrete compare-and-swap interactive mechanics).
-  10. Recursion (with visible call stacks and base-case indicators).
-- **Execution Guardrails:**
-  - Full end-to-end implementation for each concept: lesson → Blockly blocks → AST validation → bounded authoritative interpreter → animation trace → code generators → hints → progression → tests.
-  - Server-side execution limits (ticks, loop bounds, recursion depth, memory), kind failure explanations, stable level IDs, and immutable historical rewards.
+
+#### Stage E (Part 1) — Variables, Counters, Comparisons, and While Loops (Current)
+- **Branch:** `codex/variables-while-levels`
+- **Sectors:** Append stable Levels 25–32 (District 7: *Algorithmic Core*):
+  - **Level 25 (Data Genesis):** Create a named variable and observe its value.
+  - **Level 26 (Step Counter):** Update a variable and use a counter.
+  - **Level 27 (Decision Gate):** Compare values with comparison operators (`<`, `<=`, `==`, `!=`, `>`, `>=`) and make an if/else decision.
+  - **Level 28 (While Loop Protocol):** Introduce while as "repeat while this condition is true."
+  - **Level 29 (Loop Termination):** Update a counter so a while loop terminates.
+  - **Level 30 (Algorithm Fusion):** Combine a counter, condition, and existing robot actions.
+  - **Level 31 (Runaway Diagnosis):** Diagnose a non-terminating loop using a safe bounded demonstration.
+  - **Level 32 (Algorithmic Master):** Independent mastery challenge applying variables, counters, comparisons, and while loops.
+- **Execution Guardrails & Language Subset:**
+  - Typed AST nodes: `var_set`, `var_change`, `compare`, `while`.
+  - Strict validation: safe identifier naming (`^[a-zA-Z_][a-zA-Z0-9_]{0,31}$`, no `__proto__`), integer range check, rejection of undefined variables and unsupported operators.
+  - Deterministic evaluation without `eval()` or arbitrary JavaScript.
+  - Bounded interpreter execution budgets: max 1000 interpreter ticks, bounded loop iterations, 150 drone action limit, and friendly non-terminating loop diagnosis: *"This loop kept repeating because its condition never became false. Try updating the counter inside it."*
+  - Frame-isolated Variables Watch Panel with live mutation highlight, while condition inspection, and snapshot isolation during playback.
+  - Updated multi-language code generators (Plain-English, JavaScript, Python, Java, C++, C) and bounded standalone runnable exports.
+  - Server-authoritative progression: completing Level 24 unlocks Level 25; Level 32 is the new campaign final; idempotent duplicate reward prevention preserved.
+
+#### Later Stage E Concepts (Roadmap Queue)
+The remaining computational thinking curriculum will be delivered across subsequent targeted milestones:
+1. **Functions & Parameters (Stage E Part 2):** User-defined callable procedures, parameter passing, return values, and modular decomposition.
+2. **Arrays & Indexing (Stage E Part 3):** Sequential linear data structures, zero-indexed access, bounds checking, visible memory cells, and pointer indicators.
+3. **Searching Algorithms (Stage E Part 4):** Linear search, early termination, sorted array properties, and binary search state tracing.
+4. **Sorting Algorithms (Stage E Part 5):** Concrete compare-and-swap interactive mechanics, bubble sort, selection sort, and visual array element swaps.
+5. **Recursion & Call Stacks (Stage E Part 6):** Self-referential procedures, base cases, call frame stacking, stack overflow bounds, and unwind tracing.
 
 

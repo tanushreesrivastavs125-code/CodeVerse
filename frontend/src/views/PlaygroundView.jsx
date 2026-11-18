@@ -7,6 +7,7 @@ import { BlocklyEditor } from '../components/game/blockly/BlocklyEditor.jsx';
 import { validateProgramAST } from '../components/game/blockly/astCompiler.js';
 import { PlaybackControls } from '../components/game/controls/PlaybackControls.jsx';
 import { MissionBriefing } from '../components/game/controls/MissionBriefing.jsx';
+import { VariablesWatchPanel } from '../components/game/controls/VariablesWatchPanel.jsx';
 import { CampaignSelectorModal } from '../components/game/modals/CampaignSelectorModal.jsx';
 import { ResultModal } from '../components/game/modals/ResultModal.jsx';
 import { MentorModal } from '../components/game/mentor/MentorModal.jsx';
@@ -773,6 +774,12 @@ export function PlaygroundView() {
             level={activeLevel}
             state={worldState}
             isCelebrating={isCelebrating}
+          />
+
+          <VariablesWatchPanel
+            variables={worldState?.variables}
+            activeFrame={activeFrame}
+            level={activeLevel}
           />
 
           {!isNarrowScreen && (
