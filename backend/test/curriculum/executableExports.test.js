@@ -264,6 +264,36 @@ describe('Stage D: Multi-Language Executable Exports Compilation & Semantic Veri
           ]
         }
       ]
+    },
+    {
+      name: 'Variables and counter while loop',
+      level: levels[28], // Level 29 (Loop Termination)
+      program: [
+        { type: 'var_set', variable: 'shards', value: 0 },
+        {
+          type: 'while',
+          condition: { type: 'compare', left: { type: 'var_get', var: 'shards' }, op: '<', right: 3 },
+          body: [
+            { type: 'move' },
+            { type: 'move' },
+            { type: 'collect' },
+            { type: 'var_change', variable: 'shards', amount: 1 }
+          ]
+        },
+        { type: 'move' }
+      ]
+    },
+    {
+      name: 'Runaway while loop execution limit',
+      level: levels[28],
+      program: [
+        { type: 'var_set', variable: 'counter', value: 0 },
+        {
+          type: 'while',
+          condition: { type: 'compare', left: { type: 'var_get', var: 'counter' }, op: '<', right: 3 },
+          body: []
+        }
+      ]
     }
   ];
 
@@ -304,12 +334,12 @@ describe('Stage D: Multi-Language Executable Exports Compilation & Semantic Veri
           assert.ok(result, `Subprocess execution for ${lang} must return parsed result`);
 
           // Compare semantics
-          if (scenario.name.includes('Execution limits')) {
+          if (scenario.name.includes('Execution limits') || scenario.name.includes('Runaway while loop')) {
             assert.equal(result.crashed, true, 'Execution limit must trigger crashed state');
             assert.equal(result.passed, false, 'Execution limit must not pass level');
             assert.ok(
-              result.crashReason.includes('150 actions'),
-              `Crash reason must explain action limit: ${result.crashReason}`
+              result.crashReason.includes('150 actions') || result.crashReason.includes('never became false'),
+              `Crash reason must explain limit: ${result.crashReason}`
             );
           } else {
             assert.equal(result.passed, simPassed, 'Passed status must match canonical simulator');

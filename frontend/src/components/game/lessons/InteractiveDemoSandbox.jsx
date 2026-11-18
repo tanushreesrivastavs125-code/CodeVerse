@@ -102,6 +102,10 @@ export function InteractiveDemoSandbox({ workedExample }) {
     setFrameIndex((prev) => Math.min(prev + 1, frames.length - 1));
   }, [frames.length]);
 
+  const handleJumpToEnd = useCallback(() => {
+    setFrameIndex(frames.length - 1);
+  }, [frames.length]);
+
   const handleTogglePlay = useCallback(() => {
     if (isPlaying) {
       if (playTimerRef.current) clearInterval(playTimerRef.current);
@@ -270,6 +274,28 @@ export function InteractiveDemoSandbox({ workedExample }) {
         </div>
       )}
 
+      {/* Runaway Loop Diagnostic Callout */}
+      {currentFrame.event === 'loop_limit' && (
+        <div
+          data-testid="runaway-diagnostic-callout"
+          style={{
+            padding: '0.55rem 0.85rem',
+            backgroundColor: 'rgba(239, 68, 68, 0.15)',
+            border: '1px solid rgba(239, 68, 68, 0.4)',
+            borderRadius: 'var(--radius-sm)',
+            color: '#f87171',
+            fontSize: '0.82rem',
+            fontFamily: 'var(--font-mono)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}
+        >
+          <span>⚠️</span>
+          <span>{currentFrame.message}</span>
+        </div>
+      )}
+
       {/* Action Telemetry & Control Bar */}
       <div
         style={{
@@ -329,7 +355,27 @@ export function InteractiveDemoSandbox({ workedExample }) {
               opacity: frameIndex >= frames.length - 1 || isPlaying ? 0.5 : 1
             }}
           >
-            ⏭ Step
+            ▶ Step
+          </button>
+
+          <button
+            type="button"
+            onClick={handleJumpToEnd}
+            disabled={frameIndex >= frames.length - 1 || isPlaying}
+            style={{
+              padding: '0.3rem 0.6rem',
+              minHeight: '30px',
+              backgroundColor: 'var(--bg-secondary)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-sm)',
+              color: 'var(--text-primary)',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              cursor: frameIndex >= frames.length - 1 || isPlaying ? 'not-allowed' : 'pointer',
+              opacity: frameIndex >= frames.length - 1 || isPlaying ? 0.5 : 1
+            }}
+          >
+            ⏭ End
           </button>
 
           <button

@@ -1,5 +1,5 @@
 import { CodeBuilder } from '../codeBuilder.js';
-import { ACTION_DESCRIPTIONS, SENSOR_DESCRIPTIONS } from '../helpers.js';
+import { ACTION_DESCRIPTIONS, formatOperand, formatCondition } from '../helpers.js';
 
 /**
  * Generates clear, hierarchical Plain-English steps from an AST.
@@ -37,6 +37,8 @@ export function generatePlainEnglish(ast, options = {}) {
 
   let hasLoop = false;
   let hasSensor = false;
+  let hasVariable = false;
+  let hasWhile = false;
 
   function formatSequence(nodes, depth = 0, stepPrefix = '') {
     nodes.forEach((node, idx) => {
@@ -47,7 +49,25 @@ export function generatePlainEnglish(ast, options = {}) {
       const stepNum = depth === 0 ? `${idx + 1}. ` : `${String.fromCharCode(97 + (idx % 26))}. `;
       const fullPrefix = stepNum;
 
-      if (node.type === 'repeat') {
+      if (node.type === 'var_set') {
+        hasVariable = true;
+        const text = `${fullPrefix}Set variable "${node.var}" to ${formatOperand(node.value)}`;
+        builder.addLine(depth, text, node.nodeId, {
+          blockId: node.blockId,
+          type: 'var_set',
+          var: node.var
+        });
+      } else if (node.type === 'var_change') {
+        hasVariable = true;
+        const amount = node.amount ?? 1;
+        const text = `${fullPrefix}Change variable "${node.var}" by ${amount}`;
+        builder.addLine(depth, text, node.nodeId, {
+          blockId: node.blockId,
+          type: 'var_change',
+          var: node.var,
+          amount
+        });
+      } else if (node.type === 'repeat') {
         hasLoop = true;
         const count = node.count;
         const headerText = `${fullPrefix}Repeat ${count} times:`;
@@ -67,10 +87,31 @@ export function generatePlainEnglish(ast, options = {}) {
           blockId: node.blockId,
           type: 'repeat'
         });
+      } else if (node.type === 'while') {
+        hasWhile = true;
+        const condText = formatCondition(node.condition, node.sensor, 'plainEnglish');
+        const headerText = `${fullPrefix}While ${condText}:`;
+        builder.addLine(depth, headerText, node.nodeId, {
+          blockId: node.blockId,
+          type: 'while',
+          condition: condText,
+          isCondition: true
+        });
+
+        if (Array.isArray(node.body) && node.body.length > 0) {
+          formatSequence(node.body, depth + 1, `${stepPrefix}  `);
+        } else {
+          builder.addLine(depth + 1, '(empty while loop body)', node.nodeId);
+        }
+
+        builder.addLine(depth, `End while`, node.nodeId, {
+          blockId: node.blockId,
+          type: 'while'
+        });
       } else if (node.type === 'if') {
         hasSensor = true;
-        const sensorInfo = SENSOR_DESCRIPTIONS[node.sensor] || { english: `${node.sensor} detected` };
-        const headerText = `${fullPrefix}If ${sensorInfo.english}:`;
+        const condText = formatCondition(node.condition, node.sensor, 'plainEnglish');
+        const headerText = `${fullPrefix}If ${condText}:`;
         builder.addLine(depth, headerText, node.nodeId, {
           blockId: node.blockId,
           type: 'if',
@@ -112,6 +153,22 @@ export function generatePlainEnglish(ast, options = {}) {
   }
 
   formatSequence(ast, 0);
+
+  if (hasVariable) {
+    explanations.push({
+      id: 'variables',
+      title: 'Variables & Counters',
+      text: 'Variables store named numeric values in memory that can be inspected, updated, and tested in conditions.'
+    });
+  }
+
+  if (hasWhile) {
+    explanations.push({
+      id: 'while_loops',
+      title: 'While Loops',
+      text: 'While loops repeat an action list as long as their condition evaluates to true, ending when the condition becomes false.'
+    });
+  }
 
   if (hasLoop) {
     explanations.push({

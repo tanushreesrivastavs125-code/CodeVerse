@@ -283,10 +283,10 @@ export function ResultModal({
                 }}
               >
                 <div style={{ color: '#f0abfc', fontWeight: 800, fontSize: '0.95rem', letterSpacing: '0.05em' }}>
-                  🏆 CAMPAIGN COMPLETE // ALL 24 SECTORS CLEARED
+                  🏆 CAMPAIGN COMPLETE // ALL 32 SECTORS CLEARED
                 </div>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', margin: '0.35rem 0 0' }}>
-                  Congratulations! You have completed all 24 sectors across all six districts. Autonomous drone navigation mastery achieved.
+                  Congratulations! You have completed all 32 sectors across all seven districts. Autonomous drone navigation and algorithmic mastery achieved.
                 </p>
               </div>
             )}

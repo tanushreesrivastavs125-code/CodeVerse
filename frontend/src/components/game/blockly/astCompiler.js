@@ -1,22 +1,81 @@
 const SENSOR_MAP = new Set(['wall', 'energy', 'hazard', 'terminal', 'guardian']);
+const COMPARISON_MAP = new Set(['<', '<=', '==', '!=', '>', '>=']);
 
 /**
- * Extracts sensor identifier from a connected sensor block.
+ * Extracts an operand value (variable or number) from a connected block.
+ *
+ * @param {object | null} block
+ * @param {any} [fallback=0]
+ * @returns {object | number | string}
+ */
+function extractOperand(block, fallback = 0) {
+  if (!block) return fallback;
+
+  if (block.type === 'cv_var_get') {
+    const varName = block.getFieldValue('VAR') || 'count';
+    return { type: 'var_get', var: varName };
+  }
+
+  if (block.type === 'math_number' || block.type === 'cv_val_num') {
+    const num = Number.parseInt(block.getFieldValue('NUM'), 10);
+    return Number.isNaN(num) ? 0 : num;
+  }
+
+  return fallback;
+}
+
+/**
+ * Extracts condition (sensor or comparison) from a connected condition block.
+ *
+ * @param {object | null} condBlock
+ * @returns {object} Condition AST node
+ */
+function extractCondition(condBlock) {
+  if (!condBlock) {
+    throw new Error('Condition incomplete: attach a sensor block or comparison condition block.');
+  }
+
+  if (condBlock.type === 'cv_sensor') {
+    const sensorVal = condBlock.getFieldValue('SENSOR');
+    if (sensorVal && SENSOR_MAP.has(sensorVal)) {
+      return { type: 'sensor', sensor: sensorVal };
+    }
+    throw new Error(`Unrecognized sensor value: "${sensorVal || 'none'}".`);
+  }
+
+  if (condBlock.type === 'cv_compare') {
+    const op = condBlock.getFieldValue('OP') || '<';
+    if (!COMPARISON_MAP.has(op)) {
+      throw new Error(`Unsupported comparison operator: "${op}".`);
+    }
+    const leftBlock = condBlock.getInputTargetBlock('LEFT');
+    const rightBlock = condBlock.getInputTargetBlock('RIGHT');
+    const left = extractOperand(leftBlock, { type: 'var_get', var: 'count' });
+    const right = extractOperand(rightBlock, 0);
+
+    return {
+      type: 'compare',
+      left,
+      op,
+      right
+    };
+  }
+
+  throw new Error(`Unrecognized condition block: ${condBlock.type}. Connect a sensor or comparison.`);
+}
+
+/**
+ * Extracts sensor identifier from a connected sensor block (backward compatibility).
  *
  * @param {object | null} sensorBlock
  * @returns {string}
  */
 function extractSensor(sensorBlock) {
-  if (!sensorBlock) {
-    throw new Error('Condition incomplete: attach a sensor block (e.g. "wall ahead") to the if-statement.');
+  const cond = extractCondition(sensorBlock);
+  if (cond.type === 'sensor') {
+    return cond.sensor;
   }
-
-  const sensorVal = sensorBlock.getFieldValue('SENSOR');
-  if (sensorVal && SENSOR_MAP.has(sensorVal)) {
-    return sensorVal;
-  }
-
-  throw new Error(`Unrecognized sensor value: "${sensorVal || 'none'}".`);
+  return 'wall';
 }
 
 /**
@@ -32,7 +91,64 @@ export function compileBlockSequence(block) {
   while (current) {
     const type = current.type;
 
-    if (type.startsWith('cv_') && type !== 'cv_sensor') {
+    if (type === 'cv_var_set') {
+      const varName = current.getFieldValue('VAR') || 'count';
+      const inputValBlock = current.getInputTargetBlock ? current.getInputTargetBlock('VALUE') : null;
+      let value = 0;
+      if (inputValBlock) {
+        value = extractOperand(inputValBlock, 0);
+        if (value && typeof value === 'object' && value.type === 'literal') {
+          value = value.value;
+        }
+      } else {
+        const rawVal = current.getFieldValue('VALUE');
+        const parsed = Number.parseInt(rawVal, 10);
+        value = Number.isNaN(parsed) ? 0 : parsed;
+      }
+      const varSetNode = {
+        type: 'var_set',
+        var: varName,
+        variable: varName,
+        value
+      };
+      if (current.id) {
+        varSetNode.nodeId = current.id;
+        varSetNode.blockId = current.id;
+      }
+      nodes.push(varSetNode);
+    } else if (type === 'cv_var_change') {
+      const varName = current.getFieldValue('VAR') || 'count';
+      const rawAmt = current.getFieldValue('AMOUNT') ?? current.getFieldValue('DELTA');
+      const amount = Number.parseInt(rawAmt, 10);
+      const varChangeNode = {
+        type: 'var_change',
+        var: varName,
+        variable: varName,
+        amount: Number.isNaN(amount) ? 1 : amount
+      };
+      if (current.id) {
+        varChangeNode.nodeId = current.id;
+        varChangeNode.blockId = current.id;
+      }
+      nodes.push(varChangeNode);
+    } else if (type === 'cv_while') {
+      const cond = extractCondition(current.getInputTargetBlock('CONDITION'));
+      const bodyBlock = current.getInputTargetBlock('DO');
+
+      const whileNode = {
+        type: 'while',
+        condition: cond,
+        body: bodyBlock ? compileBlockSequence(bodyBlock) : []
+      };
+      if (cond.type === 'sensor') {
+        whileNode.sensor = cond.sensor;
+      }
+      if (current.id) {
+        whileNode.nodeId = current.id;
+        whileNode.blockId = current.id;
+      }
+      nodes.push(whileNode);
+    } else if (type.startsWith('cv_') && type !== 'cv_sensor' && type !== 'cv_compare' && type !== 'cv_var_get') {
       const actionName = type.slice(3);
 
       if (actionName === 'repeat') {
@@ -58,7 +174,7 @@ export function compileBlockSequence(block) {
         }
         nodes.push(repeatNode);
       } else if (actionName === 'if') {
-        const sensor = extractSensor(current.getInputTargetBlock('SENSOR'));
+        const cond = extractCondition(current.getInputTargetBlock('SENSOR'));
         const bodyBlock = current.getInputTargetBlock('DO');
         if (!bodyBlock) {
           throw new Error('The if-condition block must contain at least one action inside.');
@@ -66,17 +182,21 @@ export function compileBlockSequence(block) {
 
         const ifNode = {
           type: 'if',
-          sensor,
           body: compileBlockSequence(bodyBlock),
           elseBody: []
         };
+        if (cond.type === 'sensor') {
+          ifNode.sensor = cond.sensor;
+        } else {
+          ifNode.condition = cond;
+        }
         if (current.id) {
           ifNode.nodeId = current.id;
           ifNode.blockId = current.id;
         }
         nodes.push(ifNode);
       } else if (actionName === 'if_else') {
-        const sensor = extractSensor(current.getInputTargetBlock('SENSOR'));
+        const cond = extractCondition(current.getInputTargetBlock('SENSOR'));
         const bodyBlock = current.getInputTargetBlock('DO');
         if (!bodyBlock) {
           throw new Error('The then-branch of the if/else block must contain at least one action.');
@@ -87,10 +207,14 @@ export function compileBlockSequence(block) {
 
         const ifElseNode = {
           type: 'if',
-          sensor,
           body: compileBlockSequence(bodyBlock),
           elseBody
         };
+        if (cond.type === 'sensor') {
+          ifElseNode.sensor = cond.sensor;
+        } else {
+          ifElseNode.condition = cond;
+        }
         if (current.id) {
           ifElseNode.nodeId = current.id;
           ifElseNode.blockId = current.id;
@@ -167,7 +291,7 @@ export function compileBlockSequence(block) {
       if (first) {
         nodes.push(first);
       }
-    } else if (type === 'cv_sensor' || type === 'math_number') {
+    } else if (type === 'cv_sensor' || type === 'math_number' || type === 'cv_compare' || type === 'cv_var_get' || type === 'cv_val_num') {
       // Standalone loose value blocks sitting in workspace outside statement stack are ignored
     } else {
       throw new Error(`Unrecognized block in sequence: ${type}. Please replace with a standard CodeVerse action.`);
@@ -238,6 +362,10 @@ export function validateProgramAST(program) {
             throw new Error('Repeat loop cannot be empty.');
           }
           checkNodes(n.body, depth + 1);
+        } else if (n.type === 'while') {
+          if (n.body && n.body.length > 0) {
+            checkNodes(n.body, depth + 1);
+          }
         } else if (n.type === 'if') {
           if (!n.body || n.body.length === 0) {
             throw new Error('If statement cannot be empty.');
@@ -272,14 +400,50 @@ export function programToPreviewCode(ast, depth = 0) {
 
   return ast
     .map((node) => {
+      if (node.type === 'var_set') {
+        const val = typeof node.value === 'object' ? (node.value?.var ?? '0') : node.value;
+        const vName = node.var || node.variable;
+        return `${indent}let ${vName} = ${val};`;
+      }
+
+      if (node.type === 'var_change') {
+        const amt = node.amount ?? 1;
+        const vName = node.var || node.variable;
+        if (amt < 0) {
+          return `${indent}${vName} -= ${Math.abs(amt)};`;
+        }
+        return `${indent}${vName} += ${amt};`;
+      }
+
       if (node.type === 'repeat') {
         const bodyCode = programToPreviewCode(node.body, depth + 1);
         return `${indent}repeat (${node.count} times) {\n${bodyCode}\n${indent}}`;
       }
 
+      if (node.type === 'while') {
+        const bodyCode = programToPreviewCode(node.body || [], depth + 1);
+        let condStr = '';
+        if (node.condition?.type === 'compare') {
+          const left = node.condition.left?.var ?? node.condition.left;
+          const right = node.condition.right?.var ?? node.condition.right;
+          condStr = `${left} ${node.condition.op} ${right}`;
+        } else {
+          condStr = `drone.sensor("${node.sensor || node.condition?.sensor || 'wall'}")`;
+        }
+        return `${indent}while (${condStr}) {\n${bodyCode}\n${indent}}`;
+      }
+
       if (node.type === 'if') {
         const bodyCode = programToPreviewCode(node.body, depth + 1);
-        let result = `${indent}if (drone.sensor("${node.sensor}")) {\n${bodyCode}\n${indent}}`;
+        let condStr = '';
+        if (node.condition?.type === 'compare') {
+          const left = node.condition.left?.var ?? node.condition.left;
+          const right = node.condition.right?.var ?? node.condition.right;
+          condStr = `${left} ${node.condition.op} ${right}`;
+        } else {
+          condStr = `drone.sensor("${node.sensor || node.condition?.sensor || 'wall'}")`;
+        }
+        let result = `${indent}if (${condStr}) {\n${bodyCode}\n${indent}}`;
         if (node.elseBody && node.elseBody.length > 0) {
           const elseCode = programToPreviewCode(node.elseBody, depth + 1);
           result += ` else {\n${elseCode}\n${indent}}`;

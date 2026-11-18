@@ -144,6 +144,46 @@ export const BLOCK_DEFINITIONS = {
     description: 'Reads the robot surroundings: wall ahead, energy on tile, hazard ahead, on terminal, or guardian ahead.',
     syntax: 'sensor(type)',
     tip: 'Snap this into the condition slot of an If or If/Else block.'
+  },
+  cv_var_set: {
+    type: 'cv_var_set',
+    name: 'Set Variable',
+    category: 'Variables',
+    description: 'Assigns an initial or new value to a named variable in memory.',
+    syntax: 'let name = value;',
+    tip: 'Create meaningful variable names like "steps" or "count" to track values.'
+  },
+  cv_var_change: {
+    type: 'cv_var_change',
+    name: 'Change Variable',
+    category: 'Variables',
+    description: 'Increases or decreases a variable by a specific number (e.g. counter increment).',
+    syntax: 'name += amount;',
+    tip: 'Use inside a loop to update counters and prevent infinite loops.'
+  },
+  cv_var_get: {
+    type: 'cv_var_get',
+    name: 'Variable Value',
+    category: 'Variables',
+    description: 'Retrieves the current value stored in a variable for use in comparisons or expressions.',
+    syntax: 'name',
+    tip: 'Snap this into comparison blocks to check its current value.'
+  },
+  cv_compare: {
+    type: 'cv_compare',
+    name: 'Compare Values',
+    category: 'Logic',
+    description: 'Compares two values using operators (<, <=, ==, !=, >, >=) and returns true or false.',
+    syntax: 'left < right',
+    tip: 'Connect to an If condition or While loop to control execution.'
+  },
+  cv_while: {
+    type: 'cv_while',
+    name: 'While Condition',
+    category: 'Control',
+    description: 'Repeats all enclosed blocks as long as the specified condition remains true.',
+    syntax: 'while (condition) { ... }',
+    tip: 'Ensure the loop body updates a variable or state so the condition eventually becomes false.'
   }
 };
 
@@ -1020,8 +1060,279 @@ function generateAdvancedCurriculum() {
   return advancedEntries;
 }
 
-// Populate full 24-level curriculum
+function generateStageECurriculum() {
+  return {
+    25: {
+      id: 25,
+      title: 'Data Genesis',
+      zone: 'Algorithmic Core',
+      objective: 'Initialize variable "target" to 2, then step forward 2 tiles to reach the extraction portal.',
+      learningObjective: 'Understand variables as named storage locations in memory holding integer values.',
+      newConcept: 'Variables & Value Initialization',
+      prerequisites: ['Level 24: Final Singularity', 'Core Control Flow'],
+      practisedSkills: ['Creating variables', 'Setting initial values', 'Observing variable watch panel'],
+      introducedBlocks: [BLOCK_DEFINITIONS.cv_var_set],
+      allowedBlocks: ['cv_move', 'cv_left', 'cv_right', 'cv_collect', 'cv_var_set'],
+      conceptExplanation: 'A variable is a named storage container in computer memory that holds a value (like target = 2). Variables allow programs to store, inspect, and update information dynamically.',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.floor, VISUAL_LEGEND.exit],
+      workedExample: {
+        title: 'Creating and Setting a Variable',
+        explanation: 'Initialize a variable "steps" to 1, then step forward into the extraction portal.',
+        demoLevel: { id: 'demo-25', title: 'Variable Demo', map: ['####', '#S.G#', '####'], direction: 0, bossHealth: 0 },
+        demoMap: ['####', '#S.G#', '####'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [{ type: 'var_set', var: 'steps', value: 1 }, { type: 'move' }, { type: 'move' }],
+        expectedOutcome: { passed: true, finalPosition: { x: 3, y: 1 }, collectedCount: 0 }
+      },
+      commonMistake: {
+        mistake: 'Trying to use a variable before setting it.',
+        correction: 'Always place a "Set Variable" block first to give your variable an initial number.'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'Notice the Variables panel on your screen. What value does the mission ask you to store?' },
+        { level: 2, label: 'Helpful Concept', text: 'Drag a "Set Variable" block to the top of your program, set variable to target and value to 2.' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'Stack "set target to 2" followed by two "Move Forward" blocks.' }
+      ],
+      postSuccessExplanation: 'Great job! You created your first variable in memory. Notice how the Variables panel tracked target = 2 throughout the flight.'
+    },
+    26: {
+      id: 26,
+      title: 'Step Counter',
+      zone: 'Algorithmic Core',
+      objective: 'Collect both energy shards and track each collection with counter variable "count".',
+      learningObjective: 'Learn to update variables using counters (incrementing values by a delta).',
+      newConcept: 'Counters & Variable Updates',
+      prerequisites: ['Level 25: Variables & Values'],
+      practisedSkills: ['Initializing counters to 0', 'Incrementing with change variable', 'Tracking events'],
+      introducedBlocks: [BLOCK_DEFINITIONS.cv_var_change],
+      allowedBlocks: ['cv_move', 'cv_left', 'cv_right', 'cv_collect', 'cv_var_set', 'cv_var_change'],
+      conceptExplanation: 'Variables can be updated as programs run! The "Change Variable by 1" block adds 1 to the current stored value. This is how counters track events like items collected or steps taken.',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.energy, VISUAL_LEGEND.exit],
+      workedExample: {
+        title: 'Counting Collections',
+        explanation: 'Set count to 0, move to shard, collect, change count by 1, then step to exit.',
+        demoLevel: { id: 'demo-26', title: 'Counter Demo', map: ['#####', '#SC.G#', '#####'], direction: 0, bossHealth: 0 },
+        demoMap: ['#####', '#SC.G#', '#####'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [{ type: 'var_set', var: 'count', value: 0 }, { type: 'move' }, { type: 'collect' }, { type: 'var_change', var: 'count', amount: 1 }, { type: 'move' }, { type: 'move' }],
+        expectedOutcome: { passed: true, finalPosition: { x: 4, y: 1 }, collectedCount: 1 }
+      },
+      commonMistake: {
+        mistake: 'Forgetting to initialize the counter to 0 before changing it.',
+        correction: 'Always initialize your counter with "set count to 0" before calling "change count by 1".'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'You have 2 energy shards to collect. How should your counter variable increase as each shard is recovered?' },
+        { level: 2, label: 'Helpful Concept', text: 'Place "change count by 1" immediately after each "collect energy" block.' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'Initialize count to 0. Move onto each shard, collect, change count by 1, and move to extraction.' }
+      ],
+      postSuccessExplanation: 'Notice how the counter variable tracked each recovered shard from 0 to 1 to 2! Counters are essential for counting and loop control.'
+    },
+    27: {
+      id: 27,
+      title: 'Decision Gate',
+      zone: 'Algorithmic Core',
+      objective: 'Compare collected energy with threshold 1. If power >= 1, turn south toward extraction; else stay on path.',
+      learningObjective: 'Understand comparison operators (<, <=, ==, !=, >, >=) to make decisions based on variable values.',
+      newConcept: 'Value Comparisons & Conditional Branches',
+      prerequisites: ['Level 26: Counters', 'Conditional Branching'],
+      practisedSkills: ['Comparing variables to numbers', 'Using comparison in If/Else', 'Relational operators'],
+      introducedBlocks: [BLOCK_DEFINITIONS.cv_var_get, BLOCK_DEFINITIONS.cv_compare],
+      allowedBlocks: ['cv_move', 'cv_left', 'cv_right', 'cv_collect', 'cv_var_set', 'cv_var_change', 'cv_var_get', 'cv_compare', 'cv_if', 'cv_if_else'],
+      conceptExplanation: 'Comparison operators compare two values and produce true or false. In this sector, "power >= 1" evaluates whether you have collected enough power to open the south exit branch.',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.energy, VISUAL_LEGEND.exit],
+      workedExample: {
+        title: 'Comparing Values in an If Block',
+        explanation: 'Initialize count to 1. If count >= 1, turn right to reach the goal.',
+        demoLevel: { id: 'demo-27', title: 'Comparison Demo', map: ['###', '#S#', '#G#', '###'], direction: 0, bossHealth: 0 },
+        demoMap: ['###', '#S#', '#G#', '###'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [{ type: 'var_set', var: 'count', value: 1 }, { type: 'if', condition: { type: 'compare', left: 'count', op: '>=', right: 1 }, body: [{ type: 'right' }, { type: 'move' }] }],
+        expectedOutcome: { passed: true, finalPosition: { x: 1, y: 2 }, collectedCount: 0 }
+      },
+      commonMistake: {
+        mistake: 'Confusing comparison operator >= (greater than or equal) with assignment.',
+        correction: 'Comparison operators compare two values without changing them, returning true or false to guide the If block.'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'Recover the shard and update variable "power" to 1. Which direction should the drone turn when power >= 1?' },
+        { level: 2, label: 'Helpful Concept', text: 'Snap the comparison block into the If condition slot: set left to "power", operator to ">=", right to 1.' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'Inside the If body, turn right and move south 2 tiles to reach the extraction portal.' }
+      ],
+      postSuccessExplanation: 'Comparison expressions give your programs the intelligence to make decisions based on calculated data, not just hardcoded paths!'
+    },
+    28: {
+      id: 28,
+      title: 'While Loop Protocol',
+      zone: 'Algorithmic Core',
+      objective: 'Advance to extraction using a while loop: repeat while step counter is less than 5.',
+      learningObjective: 'Understand while loops: repeated execution governed by a continuing condition.',
+      newConcept: 'While Loops (Repeat While True)',
+      prerequisites: ['Level 27: Comparisons', 'Loops'],
+      practisedSkills: ['While loop condition evaluation', 'Loop body execution', 'Pre-condition checking'],
+      introducedBlocks: [BLOCK_DEFINITIONS.cv_while],
+      allowedBlocks: ['cv_move', 'cv_left', 'cv_right', 'cv_collect', 'cv_var_set', 'cv_var_change', 'cv_var_get', 'cv_compare', 'cv_while'],
+      conceptExplanation: 'A while loop repeats its body as long as its condition is true. Before each iteration, the condition is evaluated. As soon as the condition becomes false, the loop ends immediately.',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.floor, VISUAL_LEGEND.exit],
+      workedExample: {
+        title: 'Stepping with a While Loop',
+        explanation: 'Initialize step = 0. While step < 2, move forward and increment step.',
+        demoLevel: { id: 'demo-28', title: 'While Loop Demo', map: ['####', '#S.G#', '####'], direction: 0, bossHealth: 0 },
+        demoMap: ['####', '#S.G#', '####'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [{ type: 'var_set', var: 'step', value: 0 }, { type: 'while', condition: { type: 'compare', left: 'step', op: '<', right: 2 }, body: [{ type: 'move' }, { type: 'var_change', var: 'step', amount: 1 }] }],
+        expectedOutcome: { passed: true, finalPosition: { x: 3, y: 1 }, collectedCount: 0 }
+      },
+      commonMistake: {
+        mistake: 'Expecting while loop to run if the condition starts false.',
+        correction: 'If the while loop condition is false at the start, the body never runs even once.'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'Count how many steps forward lead to the exit portal (5 steps).' },
+        { level: 2, label: 'Helpful Concept', text: 'Set variable "step" to 0. Add a while loop with condition "step < 5".' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'Inside the loop, place "Move Forward" and "change step by 1".' }
+      ],
+      postSuccessExplanation: 'While loops are the universal loop of computer science! Unlike repeat blocks with fixed numbers, while loops can run as long as any condition remains true.'
+    },
+    29: {
+      id: 29,
+      title: 'Loop Termination',
+      zone: 'Algorithmic Core',
+      objective: 'Recover 3 energy shards. Update counter "shards" inside the while loop so it terminates after 3 shards.',
+      learningObjective: 'Understand loop termination: modifying loop control variables inside the body to prevent infinite execution.',
+      newConcept: 'Counter-Driven Loop Termination',
+      prerequisites: ['Level 28: While Loops'],
+      practisedSkills: ['Loop invariants', 'Guaranteed termination', 'Progress toward termination condition'],
+      introducedBlocks: [],
+      allowedBlocks: ['cv_move', 'cv_left', 'cv_right', 'cv_collect', 'cv_var_set', 'cv_var_change', 'cv_var_get', 'cv_compare', 'cv_while'],
+      conceptExplanation: 'For a while loop to stop, something inside the loop body must change the condition! By incrementing a counter variable like "shards" each time a shard is collected, "shards < 3" eventually becomes false and execution proceeds.',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.energy, VISUAL_LEGEND.exit],
+      workedExample: {
+        title: 'Terminating After Two Items',
+        explanation: 'Initialize items = 0. While items < 2: move, collect, increment counter.',
+        demoLevel: { id: 'demo-29', title: 'Termination Demo', map: ['######', '#SC.CG#', '######'], direction: 0, bossHealth: 0 },
+        demoMap: ['######', '#SC.CG#', '######'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [{ type: 'var_set', var: 'items', value: 0 }, { type: 'while', condition: { type: 'compare', left: 'items', op: '<', right: 2 }, body: [{ type: 'move' }, { type: 'collect' }, { type: 'var_change', var: 'items', amount: 1 }, { type: 'move' }] }],
+        expectedOutcome: { passed: true, finalPosition: { x: 5, y: 1 }, collectedCount: 2 }
+      },
+      commonMistake: {
+        mistake: 'Putting the counter update outside the while loop.',
+        correction: 'The counter update must be INSIDE the while loop body so it increments on every iteration.'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'Notice the corridor pattern: move, move, collect shard. How many shards are there?' },
+        { level: 2, label: 'Helpful Concept', text: 'Set "shards" to 0. Use while condition "shards < 3". Inside the loop: move, move, collect, and change shards by 1.' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'After the while loop finishes, add one final move to enter the extraction portal.' }
+      ],
+      postSuccessExplanation: 'You mastered loop termination! Every well-designed loop must make progress toward its termination condition on every pass.'
+    },
+    30: {
+      id: 30,
+      title: 'Algorithm Fusion',
+      zone: 'Algorithmic Core',
+      objective: 'Restore the bridge, jump the breach, and use a while loop with a counter to traverse the corridor.',
+      learningObjective: 'Combine variables, counter-controlled while loops, and physical robot actions (terminals, jumps, collection).',
+      newConcept: 'Multi-Paradigm Algorithm Fusion',
+      prerequisites: ['Level 29: Loop Termination', 'Terminal & Jump Mechanics'],
+      practisedSkills: ['Interleaving actions and loop logic', 'Bridge deployment', 'Hazard clearing'],
+      introducedBlocks: ['cv_jump', 'cv_activate'],
+      allowedBlocks: ['cv_move', 'cv_left', 'cv_right', 'cv_collect', 'cv_jump', 'cv_activate', 'cv_var_set', 'cv_var_change', 'cv_var_get', 'cv_compare', 'cv_while'],
+      conceptExplanation: 'Real-world software combines many techniques into a single pipeline. In this sector, your code coordinates hardware activation, algorithmic while loops, and spatial jumps.',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.terminal, VISUAL_LEGEND.bridge, VISUAL_LEGEND.hazard, VISUAL_LEGEND.energy, VISUAL_LEGEND.exit],
+      workedExample: {
+        title: 'Switch then Loop',
+        explanation: 'Step on terminal, activate bridge, then while loop across the deployed bridge.',
+        demoLevel: { id: 'demo-30', title: 'Fusion Demo', map: ['######', '#STBBG#', '######'], direction: 0, bossHealth: 0 },
+        demoMap: ['######', '#STBBG#', '######'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [{ type: 'move' }, { type: 'activate' }, { type: 'var_set', var: 'k', value: 0 }, { type: 'while', condition: { type: 'compare', left: 'k', op: '<', right: 3 }, body: [{ type: 'move' }, { type: 'var_change', var: 'k', amount: 1 }] }],
+        expectedOutcome: { passed: true, finalPosition: { x: 5, y: 1 }, collectedCount: 0 }
+      },
+      commonMistake: {
+        mistake: 'Crossing the bridge before activating the terminal.',
+        correction: 'Step onto the terminal (T) and execute "activate" before moving onto bridge (B) tiles.'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'First move to the terminal (T) and activate it to deploy the bridges.' },
+        { level: 2, label: 'Helpful Concept', text: 'Use while "i < 3" to move across the deployed bridge tiles, updating i by 1 each time.' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'After the bridge, jump the red hazard (H), collect the diamond shard, and step to extraction.' }
+      ],
+      postSuccessExplanation: 'Flawless execution! You fused variable tracking, loop repetition, and reactive environment control into a single robust algorithm.'
+    },
+    31: {
+      id: 31,
+      title: 'Infinite Loop Diagnosis',
+      zone: 'Algorithmic Core',
+      objective: 'Diagnose the runaway loop! A loop without counter updates runs forever. Add "change count by 1" inside the loop.',
+      learningObjective: 'Diagnose and repair runaway infinite loops using safe bounded execution limits.',
+      newConcept: 'Debugging Runaway Loops & Execution Limits',
+      prerequisites: ['Level 30: Fusion'],
+      practisedSkills: ['Root-cause analysis', 'Loop condition inspection', 'Safe boundary debugging'],
+      introducedBlocks: [],
+      allowedBlocks: ['cv_move', 'cv_left', 'cv_right', 'cv_collect', 'cv_var_set', 'cv_var_change', 'cv_var_get', 'cv_compare', 'cv_while'],
+      conceptExplanation: 'An infinite loop happens when a loop condition never becomes false. The engine protects your computer with safe execution limits. When a loop exceeds its budget, it safely halts with diagnostic feedback.',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.floor, VISUAL_LEGEND.exit],
+      workedExample: {
+        title: 'Infinite Loop Demonstration (Intentional Failure Demo)',
+        isIntentionalFailure: true,
+        explanation: 'Demonstrates what happens when a while loop condition never becomes false: the engine safely halts execution and returns a diagnostic message.',
+        demoLevel: { id: 'demo-31-fail', title: 'Runaway Loop Demo', map: ['####', '#S.G#', '####'], direction: 0, bossHealth: 0 },
+        demoMap: ['####', '#S.G#', '####'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [{ type: 'var_set', var: 'count', value: 0 }, { type: 'while', condition: { type: 'compare', left: 'count', op: '<', right: 4 }, body: [] }],
+        expectedOutcome: { passed: false, event: 'loop_limit', isIntentionalFailure: true }
+      },
+      commonMistake: {
+        mistake: 'Forgetting to increment the loop control variable.',
+        correction: 'Ensure every while loop has a command inside it that brings the condition closer to becoming false.'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'Look at the loop condition: "count < 4". Does the value of "count" ever change inside the loop?' },
+        { level: 2, label: 'Helpful Concept', text: 'Because "count" stays 0 forever, 0 < 4 is always true! Add "change count by 1" inside the loop.' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'With "change count by 1" inside, count will reach 4 after 4 moves and the loop will cleanly terminate at the goal.' }
+      ],
+      postSuccessExplanation: 'Debugging infinite loops is one of the most critical skills in software engineering! You diagnosed the root cause and implemented the terminating counter update.'
+    },
+    32: {
+      id: 32,
+      title: 'Algorithmic Master',
+      zone: 'Algorithmic Core',
+      objective: 'Final Chapter Mission: Deploy bridges, recover shards, and dismantle the guardian using a counter-driven while loop.',
+      learningObjective: 'Synthesize all computational thinking concepts into an autonomous, bounded drone mission.',
+      newConcept: 'Comprehensive Algorithmic Synthesis',
+      prerequisites: ['Level 31: Runaway Diagnosis', 'Full Campaign Mastery'],
+      practisedSkills: ['Complex variable management', 'Multi-phase algorithmic planning', 'Combat loops'],
+      introducedBlocks: ['cv_pulse'],
+      allowedBlocks: ['cv_move', 'cv_left', 'cv_right', 'cv_collect', 'cv_jump', 'cv_activate', 'cv_pulse', 'cv_var_set', 'cv_var_change', 'cv_var_get', 'cv_compare', 'cv_while', 'cv_if', 'cv_if_else'],
+      conceptExplanation: 'The final challenge of the Algorithmic Core! Orchestrate bridge deployment, shard recovery, and a bounded while loop that fires precision pulse discharges to dismantle the firewall guardian.',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.terminal, VISUAL_LEGEND.bridge, VISUAL_LEGEND.energy, VISUAL_LEGEND.guardian, VISUAL_LEGEND.exit],
+      workedExample: {
+        title: 'Pulse While Loop Combat',
+        explanation: 'Initialize pulses = 0. While pulses < 2, fire pulse and increment pulses.',
+        demoLevel: { id: 'demo-32', title: 'Combat While Demo', map: ['######', '#S..XG#', '######'], direction: 0, bossHealth: 2 },
+        demoMap: ['######', '#S..XG#', '######'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [{ type: 'var_set', var: 'pulses', value: 0 }, { type: 'move' }, { type: 'while', condition: { type: 'compare', left: 'pulses', op: '<', right: 2 }, body: [{ type: 'pulse' }, { type: 'var_change', var: 'pulses', amount: 1 }] }, { type: 'move' }, { type: 'move' }, { type: 'move' }],
+        expectedOutcome: { passed: true, finalPosition: { x: 5, y: 1 }, collectedCount: 0 }
+      },
+      commonMistake: {
+        mistake: 'Trying to pass the guardian before depleting its 3 shield points.',
+        correction: 'Face the guardian from up to 3 tiles away and fire 3 pulse strikes before stepping onto its tile.'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'Activate the terminal first to cross the bridge and collect the energy shard.' },
+        { level: 2, label: 'Helpful Concept', text: 'Position the drone facing the guardian. Use a while loop with condition "pulses < 3" to fire pulse strikes.' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'Once the guardian is defeated, move through the cleared sector to the extraction portal.' }
+      ],
+      postSuccessExplanation: '🏆 ALGORITHMIC CORE CONQUERED! You have mastered variables, counters, comparisons, and while loops, completing the CodeVerse algorithmic expansion.'
+    }
+  };
+}
+
+// Populate full 32-level curriculum
 Object.assign(LEVEL_CURRICULUM, generateAdvancedCurriculum());
+Object.assign(LEVEL_CURRICULUM, generateStageECurriculum());
 
 /**
  * Returns curriculum metadata for a specific level id.
@@ -1034,18 +1345,19 @@ export function getLevelCurriculum(levelId) {
 }
 
 /**
- * Validates that all 24 campaign levels have complete, valid structured lesson content.
+ * Validates that all campaign levels have complete, valid structured lesson content.
  *
  * @param {Array} levelsList
  * @returns {{ valid: boolean, errors: string[] }}
  */
 export function auditCurriculum(levelsList) {
   const errors = [];
-  if (!Array.isArray(levelsList) || levelsList.length !== 24) {
-    errors.push(`Expected 24 levels in campaign list, received ${levelsList?.length}`);
+  const expectedCount = Array.isArray(levelsList) ? levelsList.length : 32;
+  if (!Array.isArray(levelsList) || levelsList.length < 24) {
+    errors.push(`Expected at least 24 levels in campaign list, received ${levelsList?.length}`);
   }
 
-  for (let id = 1; id <= 24; id++) {
+  for (let id = 1; id <= expectedCount; id++) {
     const entry = LEVEL_CURRICULUM[id];
     if (!entry) {
       errors.push(`Missing curriculum entry for Level ${id}`);
@@ -1088,6 +1400,22 @@ export function auditCurriculum(levelsList) {
  */
 export function diagnoseFailure(level, finalState, _program) {
   const curriculum = getLevelCurriculum(level.id);
+
+  if (finalState?.message?.includes('condition never became false') || finalState?.message?.includes('kept repeating')) {
+    return {
+      diagnosis: 'Observed Mistake: The while loop ran continuously without terminating because its condition never became false.',
+      suggestion: 'Suggestion: Add a "Change Variable" block inside the while loop body (e.g. change count by 1) so the loop condition eventually evaluates to false.',
+      hintTier: 2
+    };
+  }
+
+  if (finalState?.message?.includes('used before being set') || finalState?.message?.includes('Undefined variable')) {
+    return {
+      diagnosis: 'Observed Mistake: A variable was referenced or changed before being initialized.',
+      suggestion: 'Suggestion: Place a "Set Variable" block at the start of your program to initialize your variable with a starting value.',
+      hintTier: 2
+    };
+  }
 
   if (finalState?.event === 'crash') {
     if (finalState.message?.includes('Corruption') || finalState.message?.includes('hazard')) {

@@ -166,6 +166,134 @@ export function registerCodeVerseBlocks() {
       nextStatement: null,
       colour: 260,
       tooltip: 'If / Else Branch: Two-way decision. Runs first branch if true, otherwise runs else branch.\nWhen to use: To handle branching paths like wall avoidance.\nSyntax: if (sensor) { ... } else { ... }'
+    },
+    {
+      type: 'cv_var_set',
+      message0: 'set variable %1 to %2',
+      args0: [
+        {
+          type: 'field_input',
+          name: 'VAR',
+          text: 'count'
+        },
+        {
+          type: 'field_number',
+          name: 'VALUE',
+          value: 0,
+          min: -10000,
+          max: 10000,
+          precision: 1
+        }
+      ],
+      previousStatement: null,
+      nextStatement: null,
+      colour: 310,
+      tooltip: 'Set Variable: Store a value in a named variable.\nWhen to use: To initialize or reassign a variable.\nSyntax: let count = 0;'
+    },
+    {
+      type: 'cv_var_change',
+      message0: 'change %1 by %2',
+      args0: [
+        {
+          type: 'field_input',
+          name: 'VAR',
+          text: 'count'
+        },
+        {
+          type: 'field_number',
+          name: 'AMOUNT',
+          value: 1,
+          min: -10000,
+          max: 10000,
+          precision: 1
+        }
+      ],
+      previousStatement: null,
+      nextStatement: null,
+      colour: 310,
+      tooltip: 'Change Variable: Increment or decrement a variable by an integer amount.\nWhen to use: Inside a loop to track progress or steps.\nSyntax: count += 1;'
+    },
+    {
+      type: 'cv_var_get',
+      message0: 'variable %1',
+      args0: [
+        {
+          type: 'field_input',
+          name: 'VAR',
+          text: 'count'
+        }
+      ],
+      output: null,
+      colour: 310,
+      tooltip: 'Variable Value: Read the value currently stored in a variable.\nWhen to use: Plug into comparison blocks.\nSyntax: count'
+    },
+    {
+      type: 'cv_compare',
+      message0: '%1 %2 %3',
+      args0: [
+        {
+          type: 'input_value',
+          name: 'LEFT'
+        },
+        {
+          type: 'field_dropdown',
+          name: 'OP',
+          options: [
+            ['<', '<'],
+            ['<=', '<='],
+            ['==', '=='],
+            ['!=', '!='],
+            ['>', '>'],
+            ['>=', '>=']
+          ]
+        },
+        {
+          type: 'input_value',
+          name: 'RIGHT'
+        }
+      ],
+      output: 'Boolean',
+      colour: 140,
+      tooltip: 'Compare: Compare two values (<, <=, ==, !=, >, >=).\nWhen to use: Snap into the condition slot of an If or While block.\nSyntax: a < b'
+    },
+    {
+      type: 'cv_while',
+      message0: 'repeat while %1 %2 %3',
+      args0: [
+        {
+          type: 'input_value',
+          name: 'CONDITION',
+          check: 'Boolean'
+        },
+        {
+          type: 'input_dummy'
+        },
+        {
+          type: 'input_statement',
+          name: 'DO'
+        }
+      ],
+      previousStatement: null,
+      nextStatement: null,
+      colour: 245,
+      tooltip: 'While Loop: Repeat enclosed actions while condition remains true.\nWhen to use: For repeating actions until a variable counter reaches a threshold.\nSyntax: while (condition) { ... }'
+    },
+    {
+      type: 'cv_val_num',
+      message0: '%1',
+      args0: [
+        {
+          type: 'field_number',
+          name: 'NUM',
+          value: 0,
+          min: -10000,
+          max: 10000,
+          precision: 1
+        }
+      ],
+      output: 'Number',
+      colour: 140,
+      tooltip: 'Number: An integer value to plug into comparison blocks.'
     }
   ];
 
@@ -265,7 +393,7 @@ export function getBlocklyTheme(themeName) {
 }
 
 /**
- * Standard toolbox configuration with Actions, Control, and Sensors.
+ * Standard toolbox configuration with Actions, Variables, Control, and Logic/Sensors.
  */
 export const gameToolbox = {
   kind: 'categoryToolbox',
@@ -286,10 +414,46 @@ export const gameToolbox = {
     },
     {
       kind: 'category',
+      name: 'Variables',
+      colour: '#ec4899',
+      contents: [
+        { kind: 'block', type: 'cv_var_set' },
+        { kind: 'block', type: 'cv_var_change' },
+        { kind: 'block', type: 'cv_var_get' }
+      ]
+    },
+    {
+      kind: 'category',
       name: 'Control',
       colour: '#8b5cf6',
       contents: [
         { kind: 'block', type: 'cv_repeat' },
+        {
+          kind: 'block',
+          type: 'cv_while',
+          inputs: {
+            CONDITION: {
+              shadow: {
+                type: 'cv_compare',
+                fields: { OP: '<' },
+                inputs: {
+                  LEFT: {
+                    shadow: {
+                      type: 'cv_var_get',
+                      fields: { VAR: 'count' }
+                    }
+                  },
+                  RIGHT: {
+                    shadow: {
+                      type: 'math_number',
+                      fields: { NUM: 5 }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         { kind: 'block', type: 'cv_if' },
         { kind: 'block', type: 'cv_if_else' },
         {
@@ -312,7 +476,26 @@ export const gameToolbox = {
       name: 'Sensors',
       colour: '#10b981',
       contents: [
-        { kind: 'block', type: 'cv_sensor' }
+        {
+          kind: 'block',
+          type: 'cv_compare',
+          inputs: {
+            LEFT: {
+              shadow: {
+                type: 'cv_var_get',
+                fields: { VAR: 'count' }
+              }
+            },
+            RIGHT: {
+              shadow: {
+                type: 'math_number',
+                fields: { NUM: 3 }
+              }
+            }
+          }
+        },
+        { kind: 'block', type: 'cv_sensor' },
+        { kind: 'block', type: 'math_number' }
       ]
     }
   ]
@@ -340,9 +523,11 @@ export function getToolboxForLevel(level, showAll = false) {
   for (const cat of gameToolbox.contents) {
     const filteredBlocks = cat.contents.filter((item) => {
       if (item.type && allowed.has(item.type)) return true;
-      // Also allow controls_repeat_ext if cv_repeat is allowed
+      // Allow controls_repeat_ext if cv_repeat is allowed
       if (item.type === 'controls_repeat_ext' && allowed.has('cv_repeat')) return true;
       if (item.type === 'controls_if' && (allowed.has('cv_if') || allowed.has('cv_if_else'))) return true;
+      // Allow math_number if cv_compare or cv_var_set is allowed
+      if (item.type === 'math_number' && (allowed.has('cv_compare') || allowed.has('cv_var_set') || allowed.has('cv_var_change'))) return true;
       return false;
     });
 

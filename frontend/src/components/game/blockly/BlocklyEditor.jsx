@@ -155,6 +155,10 @@ export function BlocklyEditor({
     });
 
     workspaceRef.current = ws;
+    if (typeof window !== 'undefined') {
+      window.__blocklyWorkspace = ws;
+      window.Blockly = Blockly;
+    }
 
     // Load initial blocks if provided
     if (initialXmlRef.current) {

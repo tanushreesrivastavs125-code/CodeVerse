@@ -21,7 +21,7 @@ const repeat = (count, ...body) => ({ type: 'repeat', count, body });
 const ifSensor = (sensor, body, elseBody = []) => ({ type: 'if', sensor, body, elseBody });
 
 test('Level definitions and initial world state', () => {
-  assert.equal(levels.length, 24);
+  assert.equal(levels.length, 32);
   assert.equal(directions.length, 4);
   assert.deepEqual(directions[0], { x: 1, y: 0 }); // East
   assert.deepEqual(directions[1], { x: 0, y: 1 }); // South
@@ -368,12 +368,12 @@ test('Determinism: identical inputs yield identical frame snapshots', () => {
   assert.equal(run1.frames[3].x, 4);
 });
 
-test('24-level campaign structural integrity and district distribution', () => {
-  assert.equal(levels.length, 24);
+test('32-level campaign structural integrity and district distribution', () => {
+  assert.equal(levels.length, 32);
 
-  // Verify unique IDs 1..24
+  // Verify unique IDs 1..32
   const ids = levels.map((l) => l.id);
-  assert.deepEqual(ids, Array.from({ length: 24 }, (_, i) => i + 1));
+  assert.deepEqual(ids, Array.from({ length: 32 }, (_, i) => i + 1));
 
   // Verify map invariants: exactly one 'S', exactly one 'G', valid par
   for (const lvl of levels) {
@@ -385,19 +385,20 @@ test('24-level campaign structural integrity and district distribution', () => {
     assert.ok(lvl.par >= 1, `Level ${lvl.id} must have par >= 1`);
   }
 
-  // Verify districts taxonomy (4 levels per district across 6 districts)
+  // Verify districts taxonomy (7 districts)
   const districts = [
-    { name: 'Neon Outskirts', slice: [0, 4] },
-    { name: 'Cipher District', slice: [4, 8] },
-    { name: 'Firewall Core', slice: [8, 12] },
-    { name: 'Shadow Network', slice: [12, 16] },
-    { name: 'Quantum Grid', slice: [16, 20] },
-    { name: 'Singularity', slice: [20, 24] }
+    { name: 'Neon Outskirts', slice: [0, 4], expectedCount: 4 },
+    { name: 'Cipher District', slice: [4, 8], expectedCount: 4 },
+    { name: 'Firewall Core', slice: [8, 12], expectedCount: 4 },
+    { name: 'Shadow Network', slice: [12, 16], expectedCount: 4 },
+    { name: 'Quantum Grid', slice: [16, 20], expectedCount: 4 },
+    { name: 'Singularity', slice: [20, 24], expectedCount: 4 },
+    { name: 'Algorithmic Core', slice: [24, 32], expectedCount: 8 }
   ];
 
   for (const d of districts) {
     const districtLevels = levels.slice(d.slice[0], d.slice[1]);
-    assert.equal(districtLevels.length, 4);
+    assert.equal(districtLevels.length, d.expectedCount);
     for (const lvl of districtLevels) {
       assert.equal(lvl.zone, d.name);
     }
@@ -414,7 +415,7 @@ test('24-level campaign structural integrity and district distribution', () => {
   assert.equal(levels[20].bossHealth, 6); // Level 21
   assert.equal(levels[21].bossHealth, 6); // Level 22
   assert.equal(levels[22].bossHealth, 7); // Level 23
-  assert.equal(levels[23].bossHealth, 8); // Level 24 (Final Boss)
+  assert.equal(levels[23].bossHealth, 8); // Level 24 (Boss)
 });
 
 test('Advanced sector requirements and dead branch execution guards', () => {
@@ -448,7 +449,7 @@ test('Advanced sector requirements and dead branch execution guards', () => {
   assert.match(noSensorRes.message, /requires an evaluated sensor condition/);
 });
 
-test('Playable solutions for all 24 campaign levels', () => {
+test('Playable solutions for all 32 campaign levels', () => {
   const solutions1to12 = [
     [repeat(3, m)],
     [m, c, m, m, c, m],
@@ -527,9 +528,98 @@ test('Playable solutions for all 24 campaign levels', () => {
     return compact.some(node => node.type === 'repeat') ? compact : [repeat(1, ...compact)];
   }
 
-  for (let i = 0; i < 24; i++) {
+  const stageESolutions = {
+    25: [
+      { type: 'var_set', variable: 'target', value: 2 },
+      m, m
+    ],
+    26: [
+      { type: 'var_set', variable: 'count', value: 0 },
+      m, c, { type: 'var_change', variable: 'count', amount: 1 },
+      m, m, c, { type: 'var_change', variable: 'count', amount: 1 },
+      m
+    ],
+    27: [
+      m, m, c,
+      { type: 'var_set', variable: 'power', value: 1 },
+      {
+        type: 'if',
+        condition: { type: 'compare', left: { type: 'var_get', var: 'power' }, op: '>=', right: 1 },
+        body: [r, m, m]
+      }
+    ],
+    28: [
+      { type: 'var_set', variable: 'step', value: 0 },
+      {
+        type: 'while',
+        condition: { type: 'compare', left: { type: 'var_get', var: 'step' }, op: '<', right: 5 },
+        body: [
+          m,
+          { type: 'var_change', variable: 'step', amount: 1 }
+        ]
+      }
+    ],
+    29: [
+      { type: 'var_set', variable: 'shards', value: 0 },
+      {
+        type: 'while',
+        condition: { type: 'compare', left: { type: 'var_get', var: 'shards' }, op: '<', right: 3 },
+        body: [
+          m, m, c,
+          { type: 'var_change', variable: 'shards', amount: 1 }
+        ]
+      },
+      m
+    ],
+    30: [
+      m, a,
+      { type: 'var_set', variable: 'step', value: 0 },
+      {
+        type: 'while',
+        condition: { type: 'compare', left: { type: 'var_get', var: 'step' }, op: '<', right: 3 },
+        body: [
+          m,
+          { type: 'var_change', variable: 'step', amount: 1 }
+        ]
+      },
+      j, m, c, m, m
+    ],
+    31: [
+      { type: 'var_set', variable: 'count', value: 0 },
+      {
+        type: 'while',
+        condition: { type: 'compare', left: { type: 'var_get', var: 'count' }, op: '<', right: 4 },
+        body: [
+          m,
+          { type: 'var_change', variable: 'count', amount: 1 }
+        ]
+      }
+    ],
+    32: [
+      m, a, m, m, m, m, c,
+      { type: 'var_set', variable: 'pulses', value: 0 },
+      {
+        type: 'while',
+        condition: { type: 'compare', left: { type: 'var_get', var: 'pulses' }, op: '<', right: 3 },
+        body: [
+          p,
+          { type: 'var_change', variable: 'pulses', amount: 1 }
+        ]
+      },
+      m, m, m, m, m
+    ]
+  };
+
+  for (let i = 0; i < 32; i++) {
     const lvl = levels[i];
-    const prog = i < 12 ? solutions1to12[i] : advancedSolver(lvl);
+    let prog;
+    if (i < 12) {
+      prog = solutions1to12[i];
+    } else if (i < 24) {
+      prog = advancedSolver(lvl);
+    } else {
+      prog = stageESolutions[lvl.id];
+    }
     const result = simulate(lvl, prog);
 
     assert.equal(result.passed, true, `Level ${lvl.id} (${lvl.title}) failed: ${result.message}`);
@@ -543,4 +633,46 @@ test('Playable solutions for all 24 campaign levels', () => {
       assert.ok(result.programBlocks <= lvl.maxBlocks, `Level ${lvl.id} exceeded maxBlocks budget`);
     }
   }
+});
+
+test('Stage E: Variable operations, constraints and bounded while loop simulation', () => {
+  // Test runaway while loop bounded iteration limit & friendly error message
+  const runawayLevel = levels[30]; // Level 31
+  const runawayProg = [
+    { type: 'var_set', variable: 'counter', value: 0 },
+    {
+      type: 'while',
+      condition: { type: 'compare', left: { type: 'var_get', var: 'counter' }, op: '<', right: 3 },
+      body: [] // empty body, counter never increments -> loop runs beyond 200 iterations
+    }
+  ];
+
+  const runawayRes = simulate(runawayLevel, runawayProg);
+  assert.equal(runawayRes.passed, false);
+  assert.equal(runawayRes.state.event, 'loop_limit');
+  assert.equal(runawayRes.message, 'This loop kept repeating because its condition never became false. Try updating the counter inside it.');
+
+  // Test requireVariables constraint
+  const lvl25 = levels[24];
+  const noVarProg = [m, m];
+  const noVarRes = simulate(lvl25, noVarProg);
+  assert.equal(noVarRes.passed, false);
+  assert.match(noVarRes.message, /requires initializing and using a variable/);
+
+  // Test requireVarChange constraint
+  const lvl26 = levels[25];
+  const noChangeProg = [
+    { type: 'var_set', variable: 'count', value: 0 },
+    m, c, m, m, c, m
+  ];
+  const noChangeRes = simulate(lvl26, noChangeProg);
+  assert.equal(noChangeRes.passed, false);
+  assert.match(noChangeRes.message, /requires updating a counter variable/);
+
+  // Test requireWhile constraint
+  const lvl28 = levels[27];
+  const noWhileProg = [repeat(5, m)];
+  const noWhileRes = simulate(lvl28, noWhileProg);
+  assert.equal(noWhileRes.passed, false);
+  assert.match(noWhileRes.message, /requires an executed while loop/);
 });

@@ -270,3 +270,61 @@ export function ensureNodeIdentities(nodes, prefix = 'n') {
     return cloned;
   });
 }
+
+/**
+ * Formats an AST operand (variable reference or number literal) into target code string.
+ *
+ * @param {any} operand
+ * @returns {string} Formatted operand
+ */
+export function formatOperand(operand) {
+  if (typeof operand === 'number') return String(operand);
+  if (typeof operand === 'string') return operand;
+  if (operand && typeof operand === 'object') {
+    if (operand.type === 'var_get') return operand.var;
+    if (operand.type === 'literal') return String(operand.value);
+  }
+  return '0';
+}
+
+/**
+ * Formats condition node or sensor string for target language syntax.
+ *
+ * @param {object | string | null} cond
+ * @param {string | null} sensorName
+ * @param {string} [lang='javascript']
+ * @returns {string} Formatted condition
+ */
+export function formatCondition(cond, sensorName, lang = 'javascript') {
+  if (sensorName || (cond && cond.type === 'sensor')) {
+    const s = sensorName || cond.sensor;
+    if (lang === 'c') return `drone_sensor("${s}")`;
+    if (lang === 'plainEnglish') {
+      const sDesc = SENSOR_DESCRIPTIONS[s]?.english || `${s} detected`;
+      return sDesc;
+    }
+    return `drone.sensor("${s}")`;
+  }
+  if (cond && cond.type === 'compare') {
+    const left = formatOperand(cond.left);
+    const right = formatOperand(cond.right);
+    if (lang === 'plainEnglish') {
+      const opNames = {
+        '<': 'is less than',
+        '<=': 'is at most',
+        '==': 'equals',
+        '!=': 'does not equal',
+        '>': 'is greater than',
+        '>=': 'is at least'
+      };
+      return `${left} ${opNames[cond.op] || cond.op} ${right}`;
+    }
+    return `${left} ${cond.op} ${right}`;
+  }
+  if (typeof cond === 'string') {
+    if (lang === 'c') return `drone_sensor("${cond}")`;
+    if (lang === 'plainEnglish') return `${cond} detected`;
+    return `drone.sensor("${cond}")`;
+  }
+  return 'true';
+}

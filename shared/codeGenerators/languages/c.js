@@ -1,5 +1,5 @@
 import { CodeBuilder } from '../codeBuilder.js';
-import { ACTION_DESCRIPTIONS, getLoopVar } from '../helpers.js';
+import { ACTION_DESCRIPTIONS, getLoopVar, formatOperand, formatCondition } from '../helpers.js';
 
 /**
  * Generates standard C99 from a CodeVerse AST.
@@ -37,6 +37,10 @@ export function generateC(ast, options = {}) {
 
   let hasLoop = false;
   let hasSensor = false;
+  let hasWhile = false;
+  let hasVariables = false;
+  let loopGuardCounter = 0;
+  const declaredVars = new Set();
 
   function compileNodes(nodes, depth = 0, loopDepth = 0) {
     for (const node of nodes) {
@@ -64,14 +68,71 @@ export function generateC(ast, options = {}) {
           blockId: node.blockId,
           type: 'repeat'
         });
+      } else if (node.type === 'while') {
+        hasWhile = true;
+        const condStr = formatCondition(node.condition, null, 'c');
+        let guardVar = null;
+        if (options.boundedLoops) {
+          guardVar = `_cv_loop_guard_${++loopGuardCounter}`;
+          builder.addLine(depth, `int ${guardVar} = 0;`);
+        }
+        builder.addLine(depth, `while (${condStr}) {`, node.nodeId, {
+          blockId: node.blockId,
+          type: 'while',
+          isCondition: true
+        });
+
+        if (options.boundedLoops && guardVar) {
+          builder.addLine(depth + 1, `if (++${guardVar} > 200) { drone_fail("This loop kept repeating because its condition never became false. Try updating the counter inside it."); break; }`);
+        }
+
+        if (Array.isArray(node.body) && node.body.length > 0) {
+          compileNodes(node.body, depth + 1, loopDepth);
+        }
+
+        builder.addLine(depth, '}', node.nodeId, {
+          blockId: node.blockId,
+          type: 'while'
+        });
+      } else if (node.type === 'var_set') {
+        hasVariables = true;
+        const varName = node.variable;
+        const valStr = formatOperand(node.value);
+        if (!declaredVars.has(varName)) {
+          builder.addLine(depth, `int ${varName} = ${valStr};`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'var_set',
+            variable: varName,
+            value: valStr
+          });
+          declaredVars.add(varName);
+        } else {
+          builder.addLine(depth, `${varName} = ${valStr};`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'var_set',
+            variable: varName,
+            value: valStr
+          });
+        }
+      } else if (node.type === 'var_change') {
+        hasVariables = true;
+        const varName = node.variable;
+        const amt = typeof node.amount === 'number' ? node.amount : Number(formatOperand(node.amount));
+        const opStr = amt < 0 ? `-= ${Math.abs(amt)}` : `+= ${amt}`;
+        builder.addLine(depth, `${varName} ${opStr};`, node.nodeId, {
+          blockId: node.blockId,
+          type: 'var_change',
+          variable: varName,
+          amount: amt
+        });
       } else if (node.type === 'if') {
         hasSensor = true;
-        const sensorName = node.sensor;
-        const headerText = `if (drone_sensor("${sensorName}")) {`;
+        const condStr = formatCondition(node.condition, node.sensor, 'c');
+        const headerText = `if (${condStr}) {`;
         builder.addLine(depth, headerText, node.nodeId, {
           blockId: node.blockId,
           type: 'if',
-          sensor: sensorName,
+          sensor: node.sensor,
           isCondition: true
         });
 
@@ -115,11 +176,27 @@ export function generateC(ast, options = {}) {
     });
   }
 
+  if (hasWhile) {
+    explanations.push({
+      id: 'while',
+      title: 'C While Loops',
+      text: 'The "while (condition)" loop checks the expression on each pass. Modifying the loop variable inside the body prevents indefinite loops.'
+    });
+  }
+
+  if (hasVariables) {
+    explanations.push({
+      id: 'variables',
+      title: 'C Variables',
+      text: 'In C99, variables are typed and can be declared anywhere in the block: "int counter = 0;". They are updated using assignment operators like "+=".'
+    });
+  }
+
   if (hasSensor) {
     explanations.push({
       id: 'sensor',
       title: 'C Conditionals',
-      text: 'drone_sensor() returns non-zero (true) when detected, or 0 (false) when clear, which drives if-else branching.'
+      text: 'Sensor functions return non-zero (true) when detected, or 0 (false) when clear, which drives if-else branching.'
     });
   }
 
