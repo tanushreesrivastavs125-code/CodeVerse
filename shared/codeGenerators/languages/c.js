@@ -1,5 +1,5 @@
 import { CodeBuilder } from '../codeBuilder.js';
-import { ACTION_DESCRIPTIONS, getLoopVar, formatOperand, formatCondition } from '../helpers.js';
+import { ACTION_DESCRIPTIONS, getLoopVar, formatOperand, formatCondition, collectProgramVariables } from '../helpers.js';
 
 /**
  * Generates standard C99 from a CodeVerse AST.
@@ -40,7 +40,22 @@ export function generateC(ast, options = {}) {
   let hasWhile = false;
   let hasVariables = false;
   let loopGuardCounter = 0;
-  const declaredVars = new Set();
+  const programVars = collectProgramVariables(ast);
+  if (programVars.length > 0) hasVariables = true;
+  const isRunnable = Boolean(options.isRunnable || options.boundedLoops);
+
+  if (programVars.length > 0) {
+    if (isRunnable) {
+      for (const v of programVars) {
+        builder.addLine(0, `CvVar ${v} = _cv_var_init("${v}");`);
+      }
+    } else {
+      for (const v of programVars) {
+        builder.addLine(0, `int ${v};`);
+      }
+      builder.addBlank();
+    }
+  }
 
   function compileNodes(nodes, depth = 0, loopDepth = 0) {
     for (const node of nodes) {
@@ -51,7 +66,7 @@ export function generateC(ast, options = {}) {
       if (node.type === 'repeat') {
         hasLoop = true;
         const count = node.count;
-        const loopVar = getLoopVar(loopDepth);
+        const loopVar = getLoopVar(loopDepth, programVars);
         const headerText = `for (int ${loopVar} = 0; ${loopVar} < ${count}; ++${loopVar}) {`;
         builder.addLine(depth, headerText, node.nodeId, {
           blockId: node.blockId,
@@ -59,6 +74,10 @@ export function generateC(ast, options = {}) {
           count,
           loopVar
         });
+
+        if (isRunnable) {
+          builder.addLine(depth + 1, 'if (g_crashed) break;');
+        }
 
         if (Array.isArray(node.body) && node.body.length > 0) {
           compileNodes(node.body, depth + 1, loopDepth + 1);
@@ -70,7 +89,7 @@ export function generateC(ast, options = {}) {
         });
       } else if (node.type === 'while') {
         hasWhile = true;
-        const condStr = formatCondition(node.condition, null, 'c');
+        const condStr = formatCondition(node.condition, null, 'c', options);
         let guardVar = null;
         if (options.boundedLoops) {
           guardVar = `_cv_loop_guard_${++loopGuardCounter}`;
@@ -81,6 +100,10 @@ export function generateC(ast, options = {}) {
           type: 'while',
           isCondition: true
         });
+
+        if (isRunnable) {
+          builder.addLine(depth + 1, 'if (g_crashed) break;');
+        }
 
         if (options.boundedLoops && guardVar) {
           builder.addLine(depth + 1, `if (++${guardVar} > 200) { drone_fail("This loop kept repeating because its condition never became false. Try updating the counter inside it."); break; }`);
@@ -96,16 +119,15 @@ export function generateC(ast, options = {}) {
         });
       } else if (node.type === 'var_set') {
         hasVariables = true;
-        const varName = node.variable;
-        const valStr = formatOperand(node.value);
-        if (!declaredVars.has(varName)) {
-          builder.addLine(depth, `int ${varName} = ${valStr};`, node.nodeId, {
+        const varName = node.variable || node.var;
+        const valStr = formatOperand(node.value, 'c', options);
+        if (isRunnable) {
+          builder.addLine(depth, `_cv_var_set(&${varName}, ${valStr});`, node.nodeId, {
             blockId: node.blockId,
             type: 'var_set',
             variable: varName,
             value: valStr
           });
-          declaredVars.add(varName);
         } else {
           builder.addLine(depth, `${varName} = ${valStr};`, node.nodeId, {
             blockId: node.blockId,
@@ -116,18 +138,27 @@ export function generateC(ast, options = {}) {
         }
       } else if (node.type === 'var_change') {
         hasVariables = true;
-        const varName = node.variable;
-        const amt = typeof node.amount === 'number' ? node.amount : Number(formatOperand(node.amount));
-        const opStr = amt < 0 ? `-= ${Math.abs(amt)}` : `+= ${amt}`;
-        builder.addLine(depth, `${varName} ${opStr};`, node.nodeId, {
-          blockId: node.blockId,
-          type: 'var_change',
-          variable: varName,
-          amount: amt
-        });
+        const varName = node.variable || node.var;
+        const amt = typeof node.amount === 'number' ? node.amount : Number(formatOperand(node.amount, 'c', options));
+        if (isRunnable) {
+          builder.addLine(depth, `_cv_var_change(&${varName}, ${amt});`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'var_change',
+            variable: varName,
+            amount: amt
+          });
+        } else {
+          const opStr = amt < 0 ? `-= ${Math.abs(amt)}` : `+= ${amt}`;
+          builder.addLine(depth, `${varName} ${opStr};`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'var_change',
+            variable: varName,
+            amount: amt
+          });
+        }
       } else if (node.type === 'if') {
         hasSensor = true;
-        const condStr = formatCondition(node.condition, node.sensor, 'c');
+        const condStr = formatCondition(node.condition, node.sensor, 'c', options);
         const headerText = `if (${condStr}) {`;
         builder.addLine(depth, headerText, node.nodeId, {
           blockId: node.blockId,

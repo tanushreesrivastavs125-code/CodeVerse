@@ -51,20 +51,24 @@ export function generatePlainEnglish(ast, options = {}) {
 
       if (node.type === 'var_set') {
         hasVariable = true;
-        const text = `${fullPrefix}Set variable "${node.var}" to ${formatOperand(node.value)}`;
+        const varName = node.variable || node.var || 'count';
+        const text = `${fullPrefix}Set variable "${varName}" to ${formatOperand(node.value)}`;
         builder.addLine(depth, text, node.nodeId, {
           blockId: node.blockId,
           type: 'var_set',
-          var: node.var
+          var: varName,
+          variable: varName
         });
       } else if (node.type === 'var_change') {
         hasVariable = true;
+        const varName = node.variable || node.var || 'count';
         const amount = node.amount ?? 1;
-        const text = `${fullPrefix}Change variable "${node.var}" by ${amount}`;
+        const text = `${fullPrefix}Change variable "${varName}" by ${amount}`;
         builder.addLine(depth, text, node.nodeId, {
           blockId: node.blockId,
           type: 'var_change',
-          var: node.var,
+          var: varName,
+          variable: varName,
           amount
         });
       } else if (node.type === 'repeat') {

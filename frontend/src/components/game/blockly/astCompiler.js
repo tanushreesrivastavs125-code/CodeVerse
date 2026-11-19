@@ -1,3 +1,5 @@
+import { getIdentifierError, validateProgram } from '../../../../../shared/game.js';
+
 const SENSOR_MAP = new Set(['wall', 'energy', 'hazard', 'terminal', 'guardian']);
 const COMPARISON_MAP = new Set(['<', '<=', '==', '!=', '>', '>=']);
 
@@ -13,6 +15,8 @@ function extractOperand(block, fallback = 0) {
 
   if (block.type === 'cv_var_get') {
     const varName = block.getFieldValue('VAR') || 'count';
+    const err = getIdentifierError(varName);
+    if (err) throw new Error(err);
     return { type: 'var_get', var: varName };
   }
 
@@ -93,6 +97,8 @@ export function compileBlockSequence(block) {
 
     if (type === 'cv_var_set') {
       const varName = current.getFieldValue('VAR') || 'count';
+      const err = getIdentifierError(varName);
+      if (err) throw new Error(err);
       const inputValBlock = current.getInputTargetBlock ? current.getInputTargetBlock('VALUE') : null;
       let value = 0;
       if (inputValBlock) {
@@ -104,6 +110,9 @@ export function compileBlockSequence(block) {
         const rawVal = current.getFieldValue('VALUE');
         const parsed = Number.parseInt(rawVal, 10);
         value = Number.isNaN(parsed) ? 0 : parsed;
+      }
+      if (typeof value === 'number' && (value < -10000 || value > 10000)) {
+        throw new Error('Numeric values must be integers between -10,000 and 10,000.');
       }
       const varSetNode = {
         type: 'var_set',
@@ -118,13 +127,19 @@ export function compileBlockSequence(block) {
       nodes.push(varSetNode);
     } else if (type === 'cv_var_change') {
       const varName = current.getFieldValue('VAR') || 'count';
+      const err = getIdentifierError(varName);
+      if (err) throw new Error(err);
       const rawAmt = current.getFieldValue('AMOUNT') ?? current.getFieldValue('DELTA');
       const amount = Number.parseInt(rawAmt, 10);
+      const delta = Number.isNaN(amount) ? 1 : amount;
+      if (delta < -10000 || delta > 10000) {
+        throw new Error('Counter amount must be an integer between -10,000 and 10,000.');
+      }
       const varChangeNode = {
         type: 'var_change',
         var: varName,
         variable: varName,
-        amount: Number.isNaN(amount) ? 1 : amount
+        amount: delta
       };
       if (current.id) {
         varChangeNode.nodeId = current.id;
@@ -346,6 +361,9 @@ export function validateProgramAST(program) {
   }
 
   try {
+    // Validate AST canonical constraints from shared/game.js (size, variables, commands, ranges)
+    validateProgram(program);
+
     // Recursively count nodes and check depth
     let count = 0;
     const checkNodes = (nodes, depth = 0) => {

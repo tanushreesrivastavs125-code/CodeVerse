@@ -1,5 +1,5 @@
 import { CodeBuilder } from '../codeBuilder.js';
-import { ACTION_DESCRIPTIONS, getLoopVar, formatOperand, formatCondition } from '../helpers.js';
+import { ACTION_DESCRIPTIONS, getLoopVar, formatOperand, formatCondition, collectProgramVariables } from '../helpers.js';
 
 /**
  * Generates idiomatic Java from a CodeVerse AST.
@@ -40,7 +40,22 @@ export function generateJava(ast, options = {}) {
   let hasWhile = false;
   let hasVariables = false;
   let loopGuardCounter = 0;
-  const declaredVars = new Set();
+  const programVars = collectProgramVariables(ast);
+  if (programVars.length > 0) hasVariables = true;
+  const isRunnable = Boolean(options.isRunnable || options.boundedLoops);
+
+  if (programVars.length > 0) {
+    if (isRunnable) {
+      for (const v of programVars) {
+        builder.addLine(0, `Integer ${v} = null;`);
+      }
+    } else {
+      for (const v of programVars) {
+        builder.addLine(0, `int ${v};`);
+      }
+      builder.addBlank();
+    }
+  }
 
   function compileNodes(nodes, depth = 0, loopDepth = 0) {
     for (const node of nodes) {
@@ -51,7 +66,7 @@ export function generateJava(ast, options = {}) {
       if (node.type === 'repeat') {
         hasLoop = true;
         const count = node.count;
-        const loopVar = getLoopVar(loopDepth);
+        const loopVar = getLoopVar(loopDepth, programVars);
         const headerText = `for (int ${loopVar} = 0; ${loopVar} < ${count}; ${loopVar}++) {`;
         builder.addLine(depth, headerText, node.nodeId, {
           blockId: node.blockId,
@@ -70,7 +85,7 @@ export function generateJava(ast, options = {}) {
         });
       } else if (node.type === 'while') {
         hasWhile = true;
-        const condStr = formatCondition(node.condition, null, 'java');
+        const condStr = formatCondition(node.condition, null, 'java', options);
         let guardVar = null;
         if (options.boundedLoops) {
           guardVar = `_cv_loop_guard_${++loopGuardCounter}`;
@@ -96,16 +111,15 @@ export function generateJava(ast, options = {}) {
         });
       } else if (node.type === 'var_set') {
         hasVariables = true;
-        const varName = node.variable;
-        const valStr = formatOperand(node.value);
-        if (!declaredVars.has(varName)) {
-          builder.addLine(depth, `int ${varName} = ${valStr};`, node.nodeId, {
+        const varName = node.variable || node.var;
+        const valStr = formatOperand(node.value, 'java', options);
+        if (isRunnable) {
+          builder.addLine(depth, `${varName} = drone.varSet("${varName}", ${valStr});`, node.nodeId, {
             blockId: node.blockId,
             type: 'var_set',
             variable: varName,
             value: valStr
           });
-          declaredVars.add(varName);
         } else {
           builder.addLine(depth, `${varName} = ${valStr};`, node.nodeId, {
             blockId: node.blockId,
@@ -116,18 +130,27 @@ export function generateJava(ast, options = {}) {
         }
       } else if (node.type === 'var_change') {
         hasVariables = true;
-        const varName = node.variable;
-        const amt = typeof node.amount === 'number' ? node.amount : Number(formatOperand(node.amount));
-        const opStr = amt < 0 ? `-= ${Math.abs(amt)}` : `+= ${amt}`;
-        builder.addLine(depth, `${varName} ${opStr};`, node.nodeId, {
-          blockId: node.blockId,
-          type: 'var_change',
-          variable: varName,
-          amount: amt
-        });
+        const varName = node.variable || node.var;
+        const amt = typeof node.amount === 'number' ? node.amount : Number(formatOperand(node.amount, 'java', options));
+        if (isRunnable) {
+          builder.addLine(depth, `${varName} = drone.varChange("${varName}", ${varName}, ${amt});`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'var_change',
+            variable: varName,
+            amount: amt
+          });
+        } else {
+          const opStr = amt < 0 ? `-= ${Math.abs(amt)}` : `+= ${amt}`;
+          builder.addLine(depth, `${varName} ${opStr};`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'var_change',
+            variable: varName,
+            amount: amt
+          });
+        }
       } else if (node.type === 'if') {
         hasSensor = true;
-        const condStr = formatCondition(node.condition, node.sensor, 'java');
+        const condStr = formatCondition(node.condition, node.sensor, 'java', options);
         const headerText = `if (${condStr}) {`;
         builder.addLine(depth, headerText, node.nodeId, {
           blockId: node.blockId,

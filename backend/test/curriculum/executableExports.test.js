@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { generateRunnableExport } from '../../../shared/codeGenerators/index.js';
-import { simulate, levels } from '../../../shared/game.js';
+import { simulate, levels, validateProgram, isValidIdentifier, getIdentifierError, MAX_VARIABLES } from '../../../shared/game.js';
 
 /**
  * Detect available language runtimes and compilers in the current environment.
@@ -294,8 +294,162 @@ describe('Stage D: Multi-Language Executable Exports Compilation & Semantic Veri
           body: []
         }
       ]
+    },
+    {
+      name: 'Branch initialization followed by use outside',
+      level: levels[0], // Level 1: drone starts at (1,1) facing East (0). (2,1) is empty space (not wall).
+      program: [
+        {
+          type: 'if',
+          sensor: 'wall',
+          body: [
+            { type: 'var_set', variable: 'branch_val', value: 10 }
+          ],
+          elseBody: [
+            { type: 'var_set', variable: 'branch_val', value: 42 }
+          ]
+        },
+        {
+          type: 'if',
+          condition: { type: 'compare', left: 'branch_val', op: '==', right: 42 },
+          body: [
+            { type: 'move' }
+          ]
+        }
+      ]
+    },
+    {
+      name: 'Skipped branch initialization produces uninitialized error',
+      level: levels[0],
+      expectCrash: true,
+      expectedReason: 'used before being set',
+      program: [
+        {
+          type: 'if',
+          sensor: 'wall',
+          body: [
+            { type: 'var_set', variable: 'uninit_val', value: 99 }
+          ]
+        },
+        {
+          type: 'if',
+          condition: { type: 'compare', left: 'uninit_val', op: '>', right: 0 },
+          body: [
+            { type: 'move' }
+          ]
+        }
+      ]
+    },
+    {
+      name: 'Loop initialization and repeated reassignment across iterations',
+      level: levels[0],
+      program: [
+        { type: 'var_set', variable: 'iter', value: 0 },
+        {
+          type: 'repeat',
+          count: 2,
+          body: [
+            { type: 'var_set', variable: 'inner_val', value: 100 },
+            { type: 'var_change', variable: 'iter', amount: 1 },
+            { type: 'var_change', variable: 'inner_val', amount: 5 }
+          ]
+        }
+      ]
+    },
+    {
+      name: 'Learner variable i avoids collision with loop counter',
+      level: levels[0],
+      program: [
+        { type: 'var_set', variable: 'i', value: 7 },
+        {
+          type: 'repeat',
+          count: 2,
+          body: [
+            { type: 'move' }
+          ]
+        },
+        {
+          type: 'if',
+          condition: { type: 'compare', left: 'i', op: '==', right: 7 },
+          body: [
+            { type: 'var_change', variable: 'i', amount: 3 }
+          ]
+        }
+      ]
+    },
+    {
+      name: 'Positive and negative boundary values',
+      level: levels[0],
+      program: [
+        { type: 'var_set', variable: 'max_val', value: 10000 },
+        { type: 'var_set', variable: 'min_val', value: -10000 },
+        { type: 'var_change', variable: 'max_val', amount: 0 },
+        { type: 'var_change', variable: 'min_val', amount: 0 }
+      ]
+    },
+    {
+      name: 'Upper boundary overflow rejected',
+      level: levels[0],
+      expectCrash: true,
+      expectedReason: 'out of bounds',
+      program: [
+        { type: 'var_set', variable: 'bound_overflow', value: 10000 },
+        { type: 'var_change', variable: 'bound_overflow', amount: 1 }
+      ]
+    },
+    {
+      name: 'Lower boundary underflow rejected',
+      level: levels[0],
+      expectCrash: true,
+      expectedReason: 'out of bounds',
+      program: [
+        { type: 'var_set', variable: 'bound_underflow', value: -10000 },
+        { type: 'var_change', variable: 'bound_underflow', amount: -1 }
+      ]
     }
   ];
+
+  test('validates identifier naming policy, reserved keywords, and length bounds', () => {
+    // Valid identifiers
+    assert.equal(isValidIdentifier('i'), true);
+    assert.equal(isValidIdentifier('count'), true);
+    assert.equal(isValidIdentifier('my_var_1'), true);
+    assert.equal(isValidIdentifier('x'), true);
+
+    // Reserved language keywords & helpers
+    assert.equal(isValidIdentifier('drone'), false);
+    assert.match(getIdentifierError('drone'), /reserved keyword or helper identifier/);
+    assert.equal(isValidIdentifier('while'), false);
+    assert.match(getIdentifierError('while'), /reserved keyword or helper identifier/);
+    assert.equal(isValidIdentifier('int'), false);
+    assert.match(getIdentifierError('int'), /reserved keyword or helper identifier/);
+    assert.equal(isValidIdentifier('class'), false);
+    assert.equal(isValidIdentifier('return'), false);
+
+    // Internal reserved prefix (_)
+    assert.equal(isValidIdentifier('_step_0'), false);
+    assert.match(getIdentifierError('_step_0'), /cannot begin with an underscore/);
+    assert.equal(isValidIdentifier('__proto__'), false);
+    assert.match(getIdentifierError('__proto__'), /cannot begin with an underscore/);
+
+    // Length limit (max 24)
+    const longName = 'a'.repeat(25);
+    assert.equal(isValidIdentifier(longName), false);
+    assert.match(getIdentifierError(longName), /too long/);
+  });
+
+  test('enforces maximum 10 variables per program in validateProgram', () => {
+    // Program with 10 variables -> OK
+    const tenVars = [];
+    for (let i = 1; i <= MAX_VARIABLES; i++) {
+      tenVars.push({ type: 'var_set', variable: `var_${i}`, value: i });
+    }
+    assert.equal(validateProgram(tenVars), true);
+
+    // Program with 11 variables -> rejected
+    const elevenVars = [...tenVars, { type: 'var_set', variable: 'var_11', value: 11 }];
+    assert.throws(() => validateProgram(elevenVars), /Program exceeds the limit of 10 variables/);
+  });
 
   const EXECUTABLE_LANGS = ['javascript', 'python', 'java', 'cpp', 'c'];
 
@@ -321,7 +475,7 @@ describe('Stage D: Multi-Language Executable Exports Compilation & Semantic Veri
             simState = sim.state;
             simCrashed = sim.frames.some((f) => f.event === 'crash');
           } catch (err) {
-            if (err.message.includes('150 actions')) {
+            if (scenario.expectCrash || err.message.includes('150 actions')) {
               simCrashed = true;
               simPassed = false;
             } else {
@@ -341,6 +495,15 @@ describe('Stage D: Multi-Language Executable Exports Compilation & Semantic Veri
               result.crashReason.includes('150 actions') || result.crashReason.includes('never became false'),
               `Crash reason must explain limit: ${result.crashReason}`
             );
+          } else if (scenario.expectCrash) {
+            assert.equal(result.crashed, true, 'Failure scenario must trigger crashed state');
+            assert.equal(result.passed, false, 'Failure scenario must not pass level');
+            if (scenario.expectedReason) {
+              assert.ok(
+                result.crashReason.toLowerCase().includes(scenario.expectedReason.toLowerCase()),
+                `Crash reason must explain failure. Got "${result.crashReason}", expected "${scenario.expectedReason}"`
+              );
+            }
           } else {
             assert.equal(result.passed, simPassed, 'Passed status must match canonical simulator');
             assert.equal(result.crashed, simCrashed, 'Crashed status must match canonical simulator');
@@ -361,6 +524,13 @@ describe('Stage D: Multi-Language Executable Exports Compilation & Semantic Veri
             }
             if (typeof simState.bossHP === 'number') {
               assert.equal(result.bossHP, simState.bossHP, 'Boss HP must match canonical simulator');
+            }
+            if (simState.variables && result.variables) {
+              assert.deepEqual(
+                result.variables,
+                simState.variables,
+                `Variables state in ${lang} must match canonical simulator`
+              );
             }
           }
         });

@@ -119,6 +119,7 @@ class ConsoleDroneSimulator {
     this.actionsCount = 0;
     this.crashed = false;
     this.crashReason = null;
+    this.variables = {};
     this.totalEnergy = lvl.map.join('').split('C').length - 1;
   }
 
@@ -276,6 +277,75 @@ class ConsoleDroneSimulator {
 }
 
 // ==========================================
+// RUNTIME VARIABLE SENTINELS & BOUNDS CHECKERS
+// ==========================================
+function _cv_uninit(name, drone) {
+  return {
+    [Symbol.toPrimitive]() {
+      const msg = \`Variable "\${name}" is used before being set.\`;
+      drone.fail(msg);
+      throw new Error(msg);
+    },
+    valueOf() {
+      const msg = \`Variable "\${name}" is used before being set.\`;
+      drone.fail(msg);
+      throw new Error(msg);
+    },
+    toString() {
+      const msg = \`Variable "\${name}" is used before being set.\`;
+      drone.fail(msg);
+      throw new Error(msg);
+    }
+  };
+}
+
+function _cv_set(drone, name, val) {
+  if (val && typeof val === 'object' && typeof val.valueOf === 'function') {
+    val = val.valueOf();
+  }
+  if (typeof val !== 'number' || !Number.isFinite(val)) {
+    const msg = \`Invalid numeric value for variable "\${name}".\`;
+    drone.fail(msg);
+    throw new Error(msg);
+  }
+  const intVal = Math.trunc(val);
+  if (intVal < -10000 || intVal > 10000) {
+    const msg = \`Variable "\${name}" out of bounds (\${intVal}). Must be between -10,000 and 10,000.\`;
+    drone.fail(msg);
+    throw new Error(msg);
+  }
+  if (Object.keys(drone.variables).length >= 10 && !(name in drone.variables)) {
+    const msg = 'Maximum limit of 10 variables exceeded.';
+    drone.fail(msg);
+    throw new Error(msg);
+  }
+  drone.variables[name] = intVal;
+  return intVal;
+}
+
+function _cv_change(drone, name, curVal, amount) {
+  if (curVal && typeof curVal === 'object' && typeof curVal.valueOf === 'function') {
+    const msg = \`Variable "\${name}" must be set before changing it.\`;
+    drone.fail(msg);
+    throw new Error(msg);
+  }
+  if (typeof curVal !== 'number' || !Number.isFinite(curVal)) {
+    const msg = \`Variable "\${name}" must be set before changing it.\`;
+    drone.fail(msg);
+    throw new Error(msg);
+  }
+  const delta = Number.isInteger(amount) ? amount : 1;
+  const nextVal = curVal + delta;
+  if (nextVal < -10000 || nextVal > 10000) {
+    const msg = \`Variable "\${name}" out of bounds (\${nextVal}). Must be between -10,000 and 10,000.\`;
+    drone.fail(msg);
+    throw new Error(msg);
+  }
+  drone.variables[name] = nextVal;
+  return nextVal;
+}
+
+// ==========================================
 // LEARNER PROGRAM ENTRY POINT
 // ==========================================
 function runLearnerProgram(drone) {
@@ -332,7 +402,8 @@ function main() {
     collected: drone.collected.size,
     bridge: drone.bridge,
     bossHP: drone.bossHP,
-    passed: outcome.passed
+    passed: outcome.passed,
+    variables: drone.variables
   }));
 }
 
@@ -394,6 +465,7 @@ class ConsoleDroneSimulator:
         self.actions_count = 0
         self.crashed = False
         self.crash_reason = None
+        self.variables = {}
         self.total_energy = sum(row.count("C") for row in lvl["map"])
 
     def tile(self, x, y):
@@ -533,6 +605,68 @@ class ConsoleDroneSimulator:
         }
 
 # ==========================================
+# RUNTIME VARIABLE SENTINELS & BOUNDS CHECKERS
+# ==========================================
+class _CvUninit:
+    def __init__(self, name, drone):
+        self._name = name
+        self._drone = drone
+    def _fail(self):
+        msg = f'Variable "{self._name}" is used before being set.'
+        self._drone.fail(msg)
+        raise ValueError(msg)
+    def __lt__(self, other): self._fail()
+    def __le__(self, other): self._fail()
+    def __gt__(self, other): self._fail()
+    def __ge__(self, other): self._fail()
+    def __eq__(self, other): self._fail()
+    def __ne__(self, other): self._fail()
+    def __add__(self, other): self._fail()
+    def __radd__(self, other): self._fail()
+    def __sub__(self, other): self._fail()
+    def __rsub__(self, other): self._fail()
+    def __int__(self): self._fail()
+    def __bool__(self): self._fail()
+
+def _cv_uninit(name, drone):
+    return _CvUninit(name, drone)
+
+def _cv_set(drone, name, val):
+    if isinstance(val, _CvUninit):
+        val._fail()
+    if not isinstance(val, int) or isinstance(val, bool):
+        msg = f'Invalid numeric value for variable "{name}".'
+        drone.fail(msg)
+        raise ValueError(msg)
+    if val < -10000 or val > 10000:
+        msg = f'Variable "{name}" out of bounds ({val}). Must be between -10,000 and 10,000.'
+        drone.fail(msg)
+        raise ValueError(msg)
+    if len(drone.variables) >= 10 and name not in drone.variables:
+        msg = 'Maximum limit of 10 variables exceeded.'
+        drone.fail(msg)
+        raise ValueError(msg)
+    drone.variables[name] = val
+    return val
+
+def _cv_change(drone, name, cur_val, amount):
+    if isinstance(cur_val, _CvUninit):
+        msg = f'Variable "{name}" must be set before changing it.'
+        drone.fail(msg)
+        raise ValueError(msg)
+    if not isinstance(cur_val, int) or isinstance(cur_val, bool):
+        msg = f'Variable "{name}" must be set before changing it.'
+        drone.fail(msg)
+        raise ValueError(msg)
+    next_val = cur_val + amount
+    if next_val < -10000 or next_val > 10000:
+        msg = f'Variable "{name}" out of bounds ({next_val}). Must be between -10,000 and 10,000.'
+        drone.fail(msg)
+        raise ValueError(msg)
+    drone.variables[name] = next_val
+    return next_val
+
+# ==========================================
 # LEARNER PROGRAM ENTRY POINT
 # ==========================================
 def run_learner_program(drone):
@@ -588,7 +722,8 @@ def main():
         "collected": len(drone.collected),
         "bridge": drone.bridge,
         "bossHP": drone.boss_hp,
-        "passed": outcome["passed"]
+        "passed": outcome["passed"],
+        "variables": drone.variables
     }))
 
 if __name__ == "__main__":
@@ -678,6 +813,48 @@ ${mapLines}
         public void fail(String reason) {
             this.crashed = true;
             this.crashReason = reason;
+        }
+
+        public Map<String, Integer> variables = new LinkedHashMap<>();
+
+        public int varGet(String name, Integer val) {
+            if (val == null) {
+                String msg = "Variable \\"" + name + "\\" is used before being set.";
+                fail(msg);
+                throw new IllegalStateException(msg);
+            }
+            return val;
+        }
+
+        public int varSet(String name, int val) {
+            if (val < -10000 || val > 10000) {
+                String msg = "Variable \\"" + name + "\\" out of bounds (" + val + "). Must be between -10,000 and 10,000.";
+                fail(msg);
+                throw new IllegalStateException(msg);
+            }
+            if (variables.size() >= 10 && !variables.containsKey(name)) {
+                String msg = "Maximum limit of 10 variables exceeded.";
+                fail(msg);
+                throw new IllegalStateException(msg);
+            }
+            variables.put(name, val);
+            return val;
+        }
+
+        public int varChange(String name, Integer curVal, int amount) {
+            if (curVal == null) {
+                String msg = "Variable \\"" + name + "\\" must be set before changing it.";
+                fail(msg);
+                throw new IllegalStateException(msg);
+            }
+            long next = (long) curVal + (long) amount;
+            if (next < -10000 || next > 10000) {
+                String msg = "Variable \\"" + name + "\\" out of bounds (" + next + "). Must be between -10,000 and 10,000.";
+                fail(msg);
+                throw new IllegalStateException(msg);
+            }
+            variables.put(name, (int) next);
+            return (int) next;
         }
 
         public void move() {
@@ -773,10 +950,18 @@ ${codeRes.lines.map(line => '        ' + line).join('\n')}
         boolean passed = !drone.crashed && drone.tile(drone.x, drone.y) == 'G' && drone.collected.size() == TOTAL_ENERGY && drone.bossHP == 0;
         System.out.println(passed ? "[PASS] MISSION PASSED in " + drone.steps + " steps." : "[FAIL] MISSION FAILED: " + drone.crashReason);
 
+        StringBuilder varsJson = new StringBuilder("{");
+        int vi = 0;
+        for (Map.Entry<String, Integer> entry : drone.variables.entrySet()) {
+            if (vi++ > 0) varsJson.append(",");
+            varsJson.append("\\"").append(entry.getKey()).append("\\":").append(entry.getValue());
+        }
+        varsJson.append("}");
+
         System.out.println(String.format(
             java.util.Locale.US,
-            "__CV_RESULT__={\\"x\\":%d,\\"y\\":%d,\\"dir\\":%d,\\"steps\\":%d,\\"crashed\\":%b,\\"crashReason\\":\\"%s\\",\\"collected\\":%d,\\"bridge\\":%b,\\"bossHP\\":%d,\\"passed\\":%b}",
-            drone.x, drone.y, drone.dir, drone.steps, drone.crashed, (drone.crashReason == null ? "" : drone.crashReason.replace("\\"", "'")), drone.collected.size(), drone.bridge, drone.bossHP, passed
+            "__CV_RESULT__={\\"x\\":%d,\\"y\\":%d,\\"dir\\":%d,\\"steps\\":%d,\\"crashed\\":%b,\\"crashReason\\":\\"%s\\",\\"collected\\":%d,\\"bridge\\":%b,\\"bossHP\\":%d,\\"passed\\":%b,\\"variables\\":%s}",
+            drone.x, drone.y, drone.dir, drone.steps, drone.crashed, (drone.crashReason == null ? "" : drone.crashReason.replace("\\"", "'")), drone.collected.size(), drone.bridge, drone.bossHP, passed, varsJson.toString()
         ));
     }
 }
@@ -811,6 +996,8 @@ export function buildCppRunnable(ast, level = DEFAULT_LEVEL) {
 #include <vector>
 #include <string>
 #include <set>
+#include <map>
+#include <stdexcept>
 
 const std::vector<std::string> LEVEL_MAP = {
 ${mapLines}
@@ -834,6 +1021,12 @@ public:
     std::set<std::pair<int, int>> collected;
     bool bridge = false;
     int bossHP = ${meta.bossHP};
+    std::map<std::string, int> variables;
+
+    void fail(const std::string& reason) {
+        crashed = true;
+        crashReason = reason;
+    }
 
     char tile(int tx, int ty) const {
         if (ty >= 0 && ty < LEVEL_MAP.size() && tx >= 0 && tx < LEVEL_MAP[ty].size()) {
@@ -945,6 +1138,70 @@ public:
     }
 };
 
+class CvVar {
+    std::string name;
+    Drone* drone;
+    bool initialized = false;
+    long long value = 0;
+public:
+    CvVar(const std::string& n, Drone* d) : name(n), drone(d) {}
+
+    CvVar& operator=(long long val) {
+        if (val < -10000 || val > 10000) {
+            std::string msg = "Variable \\"" + name + "\\" out of bounds (" + std::to_string(val) + "). Must be between -10,000 and 10,000.";
+            drone->fail(msg);
+            throw std::runtime_error(msg);
+        }
+        if (drone->variables.size() >= 10 && drone->variables.find(name) == drone->variables.end()) {
+            drone->fail("Maximum limit of 10 variables exceeded.");
+            throw std::runtime_error("Maximum limit of 10 variables exceeded.");
+        }
+        initialized = true;
+        value = val;
+        drone->variables[name] = (int)val;
+        return *this;
+    }
+
+    CvVar& operator=(const CvVar& other) {
+        if (!other.initialized) {
+            std::string msg = "Variable \\"" + other.name + "\\" is used before being set.";
+            drone->fail(msg);
+            throw std::runtime_error(msg);
+        }
+        return *this = other.value;
+    }
+
+    CvVar& operator+=(long long delta) {
+        if (!initialized) {
+            std::string msg = "Variable \\"" + name + "\\" must be set before changing it.";
+            drone->fail(msg);
+            throw std::runtime_error(msg);
+        }
+        long long next = value + delta;
+        if (next < -10000 || next > 10000) {
+            std::string msg = "Variable \\"" + name + "\\" out of bounds (" + std::to_string(next) + "). Must be between -10,000 and 10,000.";
+            drone->fail(msg);
+            throw std::runtime_error(msg);
+        }
+        value = next;
+        drone->variables[name] = (int)next;
+        return *this;
+    }
+
+    CvVar& operator-=(long long delta) {
+        return *this += (-delta);
+    }
+
+    operator long long() const {
+        if (!initialized) {
+            std::string msg = "Variable \\"" + name + "\\" is used before being set.";
+            drone->fail(msg);
+            throw std::runtime_error(msg);
+        }
+        return value;
+    }
+};
+
 void runLearnerProgram(Drone& drone) {
 ${codeRes.lines.map(line => '    ' + line).join('\n')}
 }
@@ -952,13 +1209,26 @@ ${codeRes.lines.map(line => '    ' + line).join('\n')}
 int main() {
     std::cout << "CodeVerse Drone Simulation (C++) | Sector: ${meta.title}" << std::endl;
     Drone drone;
-    runLearnerProgram(drone);
+    try {
+        runLearnerProgram(drone);
+    } catch (const std::exception& e) {
+        drone.crashed = true;
+        drone.crashReason = e.what();
+    }
     bool passed = !drone.crashed && drone.tile(drone.x, drone.y) == 'G' && drone.collected.size() == TOTAL_ENERGY && drone.bossHP == 0;
     if (passed) {
         std::cout << "[PASS] MISSION PASSED in " << drone.steps << " steps." << std::endl;
     } else {
         std::cout << "[FAIL] MISSION FAILED: " << drone.crashReason << std::endl;
     }
+
+    std::string varsJson = "{";
+    int vi = 0;
+    for (const auto& pair : drone.variables) {
+        if (vi++ > 0) varsJson += ",";
+        varsJson += "\\"" + pair.first + "\\":" + std::to_string(pair.second);
+    }
+    varsJson += "}";
 
     std::cout << "__CV_RESULT__={\\"x\\":" << drone.x
               << ",\\"y\\":" << drone.y
@@ -970,6 +1240,7 @@ int main() {
               << ",\\"bridge\\":" << (drone.bridge ? "true" : "false")
               << ",\\"bossHP\\":" << drone.bossHP
               << ",\\"passed\\":" << (passed ? "true" : "false")
+              << ",\\"variables\\":" << varsJson
               << "}" << std::endl;
     return 0;
 }
@@ -1046,6 +1317,92 @@ static void record_action(void) {
 static void drone_fail(const char* reason) {
     g_crashed = true;
     snprintf(g_crash_reason, sizeof(g_crash_reason), "%s", reason);
+}
+
+typedef struct {
+    char name[32];
+    int value;
+} CvVarEntry;
+
+static CvVarEntry g_vars[16];
+static int g_vars_count = 0;
+
+static void set_g_var(const char* name, int val) {
+    for (int i = 0; i < g_vars_count; i++) {
+        if (strcmp(g_vars[i].name, name) == 0) {
+            g_vars[i].value = val;
+            return;
+        }
+    }
+    if (g_vars_count < 16) {
+        strncpy(g_vars[g_vars_count].name, name, sizeof(g_vars[g_vars_count].name) - 1);
+        g_vars[g_vars_count].name[sizeof(g_vars[g_vars_count].name) - 1] = '\0';
+        g_vars[g_vars_count].value = val;
+        g_vars_count++;
+    }
+}
+
+typedef struct {
+    char name[32];
+    bool initialized;
+    int value;
+} CvVar;
+
+static CvVar _cv_var_init(const char* name) {
+    CvVar v;
+    strncpy(v.name, name, sizeof(v.name) - 1);
+    v.name[sizeof(v.name) - 1] = '\0';
+    v.initialized = false;
+    v.value = 0;
+    return v;
+}
+
+static int _cv_var_get(CvVar* v) {
+    if (g_crashed) return 0;
+    if (!v->initialized) {
+        g_crashed = true;
+        snprintf(g_crash_reason, sizeof(g_crash_reason), "Variable \\"%s\\" is used before being set.", v->name);
+        return 0;
+    }
+    return v->value;
+}
+
+static void _cv_var_set(CvVar* v, long long val) {
+    if (g_crashed) return;
+    if (val < -10000 || val > 10000) {
+        g_crashed = true;
+        snprintf(g_crash_reason, sizeof(g_crash_reason), "Variable \\"%s\\" out of bounds (%lld). Must be between -10,000 and 10,000.", v->name, val);
+        return;
+    }
+    bool exists = false;
+    for (int i = 0; i < g_vars_count; i++) {
+        if (strcmp(g_vars[i].name, v->name) == 0) { exists = true; break; }
+    }
+    if (!exists && g_vars_count >= 10) {
+        g_crashed = true;
+        snprintf(g_crash_reason, sizeof(g_crash_reason), "Maximum limit of 10 variables exceeded.");
+        return;
+    }
+    v->initialized = true;
+    v->value = (int)val;
+    set_g_var(v->name, (int)val);
+}
+
+static void _cv_var_change(CvVar* v, long long amount) {
+    if (g_crashed) return;
+    if (!v->initialized) {
+        g_crashed = true;
+        snprintf(g_crash_reason, sizeof(g_crash_reason), "Variable \\"%s\\" must be set before changing it.", v->name);
+        return;
+    }
+    long long next = (long long)v->value + amount;
+    if (next < -10000 || next > 10000) {
+        g_crashed = true;
+        snprintf(g_crash_reason, sizeof(g_crash_reason), "Variable \\"%s\\" out of bounds (%lld). Must be between -10,000 and 10,000.", v->name, next);
+        return;
+    }
+    v->value = (int)next;
+    set_g_var(v->name, (int)next);
 }
 
 int drone_sensor(const char* name) {
@@ -1153,14 +1510,24 @@ int main(void) {
         printf("[FAIL] MISSION FAILED: %s\\n", g_crash_reason);
     }
 
-    printf("__CV_RESULT__={\\"x\\":%d,\\"y\\":%d,\\"dir\\":%d,\\"steps\\":%d,\\"crashed\\":%s,\\"crashReason\\":\\"%s\\",\\"collected\\":%d,\\"bridge\\":%s,\\"bossHP\\":%d,\\"passed\\":%s}\\n",
+    char vars_json[512] = "{";
+    int vi = 0;
+    for (int i = 0; i < g_vars_count; i++) {
+        char entry[64];
+        snprintf(entry, sizeof(entry), "%s\\"%s\\":%d", (vi++ > 0 ? "," : ""), g_vars[i].name, g_vars[i].value);
+        strncat(vars_json, entry, sizeof(vars_json) - strlen(vars_json) - 1);
+    }
+    strncat(vars_json, "}", sizeof(vars_json) - strlen(vars_json) - 1);
+
+    printf("__CV_RESULT__={\\"x\\":%d,\\"y\\":%d,\\"dir\\":%d,\\"steps\\":%d,\\"crashed\\":%s,\\"crashReason\\":\\"%s\\",\\"collected\\":%d,\\"bridge\\":%s,\\"bossHP\\":%d,\\"passed\\":%s,\\"variables\\":%s}\\n",
         g_x, g_y, g_dir, g_steps,
         g_crashed ? "true" : "false",
         g_crash_reason,
         g_collected,
         g_bridge ? "true" : "false",
         g_boss_hp,
-        passed ? "true" : "false"
+        passed ? "true" : "false",
+        vars_json
     );
     return 0;
 }
