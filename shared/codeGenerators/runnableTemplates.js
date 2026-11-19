@@ -1230,12 +1230,17 @@ int main() {
     }
     varsJson += "}";
 
+    std::string safeReason = drone.crashReason;
+    for (size_t i = 0; i < safeReason.size(); ++i) {
+        if (safeReason[i] == '"') safeReason[i] = 39;
+    }
+
     std::cout << "__CV_RESULT__={\\"x\\":" << drone.x
               << ",\\"y\\":" << drone.y
               << ",\\"dir\\":" << drone.dir
               << ",\\"steps\\":" << drone.steps
               << ",\\"crashed\\":" << (drone.crashed ? "true" : "false")
-              << ",\\"crashReason\\":\\"" << drone.crashReason << "\\""
+              << ",\\"crashReason\\":\\"" << safeReason << "\\""
               << ",\\"collected\\":" << drone.collected.size()
               << ",\\"bridge\\":" << (drone.bridge ? "true" : "false")
               << ",\\"bossHP\\":" << drone.bossHP
@@ -1292,7 +1297,7 @@ static int g_dir = START_DIR;
 static int g_steps = 0;
 static int g_actions_count = 0;
 static bool g_crashed = false;
-static char g_crash_reason[128] = "";
+static char g_crash_reason[256] = "";
 static bool g_bridge = false;
 static int g_boss_hp = ${meta.bossHP};
 static int g_collected = 0;
@@ -1519,10 +1524,17 @@ int main(void) {
     }
     strncat(vars_json, "}", sizeof(vars_json) - strlen(vars_json) - 1);
 
+    char safe_reason[256];
+    strncpy(safe_reason, g_crash_reason, sizeof(safe_reason) - 1);
+    safe_reason[sizeof(safe_reason) - 1] = 0;
+    for (int i = 0; safe_reason[i] != 0; i++) {
+        if (safe_reason[i] == '"') safe_reason[i] = 39;
+    }
+
     printf("__CV_RESULT__={\\"x\\":%d,\\"y\\":%d,\\"dir\\":%d,\\"steps\\":%d,\\"crashed\\":%s,\\"crashReason\\":\\"%s\\",\\"collected\\":%d,\\"bridge\\":%s,\\"bossHP\\":%d,\\"passed\\":%s,\\"variables\\":%s}\\n",
         g_x, g_y, g_dir, g_steps,
         g_crashed ? "true" : "false",
-        g_crash_reason,
+        safe_reason,
         g_collected,
         g_bridge ? "true" : "false",
         g_boss_hp,
