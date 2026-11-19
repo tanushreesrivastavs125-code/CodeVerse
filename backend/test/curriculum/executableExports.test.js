@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { generateRunnableExport } from '../../../shared/codeGenerators/index.js';
-import { simulate, levels, validateProgram, isValidIdentifier, getIdentifierError, MAX_VARIABLES } from '../../../shared/game.js';
+import { simulate, levels, validateProgram, isValidIdentifier, getIdentifierError, MAX_VARIABLES, MAX_FUNCTIONS, MAX_PARAMS_PER_FUNCTION, MAX_CALL_DEPTH } from '../../../shared/game.js';
 
 /**
  * Detect available language runtimes and compilers in the current environment.
@@ -406,6 +406,111 @@ describe('Stage D: Multi-Language Executable Exports Compilation & Semantic Veri
         { type: 'var_set', variable: 'bound_underflow', value: -10000 },
         { type: 'var_change', variable: 'bound_underflow', amount: -1 }
       ]
+    },
+    {
+      name: 'Repeated routine calls',
+      level: levels[0],
+      program: [
+        { type: 'fn_def', name: 'step_forward', params: [], body: [{ type: 'move' }] },
+        { type: 'fn_call', name: 'step_forward', args: [] },
+        { type: 'fn_call', name: 'step_forward', args: [] },
+        { type: 'fn_call', name: 'step_forward', args: [] }
+      ]
+    },
+    {
+      name: 'Different parameter values',
+      level: levels[0],
+      program: [
+        {
+          type: 'fn_def',
+          name: 'turn_times',
+          params: ['rotations'],
+          body: [
+            {
+              type: 'while',
+              condition: { type: 'compare', left: 'rotations', op: '>', right: 0 },
+              body: [
+                { type: 'left' },
+                { type: 'var_change', variable: 'rotations', amount: -1 }
+              ]
+            }
+          ]
+        },
+        { type: 'fn_call', name: 'turn_times', args: [1] },
+        { type: 'fn_call', name: 'turn_times', args: [2] }
+      ]
+    },
+    {
+      name: 'Local/global name shadowing',
+      level: levels[0],
+      program: [
+        {
+          type: 'fn_def',
+          name: 'shadow_test',
+          params: [],
+          body: [
+            { type: 'var_set', variable: 'count', value: 99 },
+            { type: 'var_change', variable: 'count', amount: 1 }
+          ]
+        },
+        { type: 'var_set', variable: 'count', value: 10 },
+        { type: 'fn_call', name: 'shadow_test', args: [] },
+        {
+          type: 'if',
+          condition: { type: 'compare', left: 'count', op: '==', right: 10 },
+          body: [{ type: 'move' }]
+        }
+      ]
+    },
+    {
+      name: 'Local-state isolation between calls',
+      level: levels[0],
+      program: [
+        {
+          type: 'fn_def',
+          name: 'accumulate',
+          params: [],
+          body: [
+            { type: 'var_set', variable: 'local_acc', value: 5 },
+            { type: 'var_change', variable: 'local_acc', amount: 1 },
+            { type: 'move' }
+          ]
+        },
+        { type: 'fn_call', name: 'accumulate', args: [] },
+        { type: 'fn_call', name: 'accumulate', args: [] }
+      ]
+    },
+    {
+      name: 'Nested non-recursive routine calls',
+      level: levels[0],
+      program: [
+        { type: 'fn_def', name: 'just_turn', params: [], body: [{ type: 'left' }] },
+        {
+          type: 'fn_def',
+          name: 'step_and_turn',
+          params: [],
+          body: [
+            { type: 'move' },
+            { type: 'fn_call', name: 'just_turn', args: [] }
+          ]
+        },
+        { type: 'fn_call', name: 'step_and_turn', args: [] }
+      ]
+    },
+    {
+      name: 'Forbidden recursion rejected',
+      level: levels[0],
+      expectCrash: true,
+      expectedReason: 'recursion is not permitted',
+      program: [
+        {
+          type: 'fn_def',
+          name: 'bad_fn',
+          params: [],
+          body: [{ type: 'fn_call', name: 'bad_fn', args: [] }]
+        },
+        { type: 'fn_call', name: 'bad_fn', args: [] }
+      ]
     }
   ];
 
@@ -449,6 +554,63 @@ describe('Stage D: Multi-Language Executable Exports Compilation & Semantic Veri
     // Program with 11 variables -> rejected
     const elevenVars = [...tenVars, { type: 'var_set', variable: 'var_11', value: 11 }];
     assert.throws(() => validateProgram(elevenVars), /Program exceeds the limit of 10 variables/);
+  });
+
+  test('enforces function constraints and cycle detection in validateProgram', () => {
+    assert.equal(MAX_FUNCTIONS, 5);
+    assert.equal(MAX_PARAMS_PER_FUNCTION, 3);
+    assert.equal(MAX_CALL_DEPTH, 8);
+
+    // 1. Max 5 functions limit
+    const sixFns = [];
+    for (let i = 1; i <= 6; i++) {
+      sixFns.push({ type: 'fn_def', name: `fn_${i}`, params: [], body: [] });
+    }
+    assert.throws(() => validateProgram(sixFns), /Program exceeds the limit of 5 function definitions/);
+
+    // 2. Max 3 params per function
+    const fourParams = [
+      { type: 'fn_def', name: 'big_fn', params: ['a', 'b', 'c', 'd'], body: [] }
+    ];
+    assert.throws(() => validateProgram(fourParams), /Function "big_fn" exceeds the limit of 3 parameters/);
+
+    // 3. Duplicate function names
+    const dupFns = [
+      { type: 'fn_def', name: 'my_step', params: [], body: [] },
+      { type: 'fn_def', name: 'my_step', params: [], body: [] }
+    ];
+    assert.throws(() => validateProgram(dupFns), /Function "my_step" is already defined/);
+
+    // 4. Duplicate parameter names
+    const dupParams = [
+      { type: 'fn_def', name: 'dup_p', params: ['x', 'x'], body: [] }
+    ];
+    assert.throws(() => validateProgram(dupParams), /Duplicate parameter "x" in function "dup_p"/);
+
+    // 5. Nested function definitions rejected
+    const nestedFn = [
+      {
+        type: 'repeat',
+        count: 2,
+        body: [{ type: 'fn_def', name: 'inner_fn', params: [], body: [] }]
+      }
+    ];
+    assert.throws(() => validateProgram(nestedFn), /Function definitions must be at top-level/);
+
+    // 6. Direct recursion rejected statically
+    const directRec = [
+      { type: 'fn_def', name: 'recurse', params: [], body: [{ type: 'fn_call', name: 'recurse', args: [] }] },
+      { type: 'fn_call', name: 'recurse', args: [] }
+    ];
+    assert.throws(() => validateProgram(directRec), /Recursion is not permitted/);
+
+    // 7. Indirect recursion cycle rejected statically (A -> B -> A)
+    const indirectRec = [
+      { type: 'fn_def', name: 'fn_a', params: [], body: [{ type: 'fn_call', name: 'fn_b', args: [] }] },
+      { type: 'fn_def', name: 'fn_b', params: [], body: [{ type: 'fn_call', name: 'fn_a', args: [] }] },
+      { type: 'fn_call', name: 'fn_a', args: [] }
+    ];
+    assert.throws(() => validateProgram(indirectRec), /Recursion is not permitted/);
   });
 
   const EXECUTABLE_LANGS = ['javascript', 'python', 'java', 'cpp', 'c'];

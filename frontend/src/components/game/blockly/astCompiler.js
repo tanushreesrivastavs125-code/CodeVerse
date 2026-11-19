@@ -163,6 +163,38 @@ export function compileBlockSequence(block) {
         whileNode.blockId = current.id;
       }
       nodes.push(whileNode);
+    } else if (type === 'cv_fn_def' || type === 'cv_fn_def_param') {
+      throw new Error('Function definitions must be at top-level.');
+    } else if (type === 'cv_fn_call') {
+      const fnName = current.getFieldValue('NAME') || 'my_routine';
+      const err = getIdentifierError(fnName);
+      if (err) throw new Error(err);
+      const fnCallNode = {
+        type: 'fn_call',
+        name: fnName,
+        args: []
+      };
+      if (current.id) {
+        fnCallNode.nodeId = current.id;
+        fnCallNode.blockId = current.id;
+      }
+      nodes.push(fnCallNode);
+    } else if (type === 'cv_fn_call_param') {
+      const fnName = current.getFieldValue('NAME') || 'my_routine';
+      const err = getIdentifierError(fnName);
+      if (err) throw new Error(err);
+      const argBlock = current.getInputTargetBlock('ARG');
+      const arg = extractOperand(argBlock, 0);
+      const fnCallNode = {
+        type: 'fn_call',
+        name: fnName,
+        args: [arg]
+      };
+      if (current.id) {
+        fnCallNode.nodeId = current.id;
+        fnCallNode.blockId = current.id;
+      }
+      nodes.push(fnCallNode);
     } else if (type.startsWith('cv_') && type !== 'cv_sensor' && type !== 'cv_compare' && type !== 'cv_var_get') {
       const actionName = type.slice(3);
 
@@ -330,7 +362,8 @@ export function compileWorkspaceToAST(workspace) {
   }
 
   const topBlocks = workspace.getTopBlocks(true);
-  const ast = [];
+  const functions = [];
+  const body = [];
 
   for (const block of topBlocks) {
     // Only top blocks with statements (not standalone value/sensor/math blocks)
@@ -338,11 +371,36 @@ export function compileWorkspaceToAST(workspace) {
       continue;
     }
 
-    const compiledChain = compileBlockSequence(block);
-    ast.push(...compiledChain);
+    if (block.type === 'cv_fn_def' || block.type === 'cv_fn_def_param') {
+      const fnName = block.getFieldValue('NAME') || 'my_routine';
+      const nameErr = getIdentifierError(fnName);
+      if (nameErr) throw new Error(nameErr);
+      const params = [];
+      if (block.type === 'cv_fn_def_param') {
+        const pName = block.getFieldValue('PARAM') || 'steps';
+        const pErr = getIdentifierError(pName);
+        if (pErr) throw new Error(pErr);
+        params.push(pName);
+      }
+      const bodyBlock = block.getInputTargetBlock('DO');
+      const fnNode = {
+        type: 'fn_def',
+        name: fnName,
+        params,
+        body: bodyBlock ? compileBlockSequence(bodyBlock) : []
+      };
+      if (block.id) {
+        fnNode.nodeId = block.id;
+        fnNode.blockId = block.id;
+      }
+      functions.push(fnNode);
+    } else {
+      const compiledChain = compileBlockSequence(block);
+      body.push(...compiledChain);
+    }
   }
 
-  return ast;
+  return [...functions, ...body];
 }
 
 /**
@@ -375,7 +433,11 @@ export function validateProgramAST(program) {
         if (count > 300) {
           throw new Error('Program exceeds the 300-command limit.');
         }
-        if (n.type === 'repeat') {
+        if (n.type === 'fn_def') {
+          if (n.body && n.body.length > 0) {
+            checkNodes(n.body, depth + 1);
+          }
+        } else if (n.type === 'repeat') {
           if (!n.body || n.body.length === 0) {
             throw new Error('Repeat loop cannot be empty.');
           }
@@ -467,6 +529,17 @@ export function programToPreviewCode(ast, depth = 0) {
           result += ` else {\n${elseCode}\n${indent}}`;
         }
         return result;
+      }
+
+      if (node.type === 'fn_def') {
+        const bodyCode = programToPreviewCode(node.body || [], depth + 1);
+        const paramStr = (node.params || []).join(', ');
+        return `${indent}function ${node.name}(${paramStr}) {\n${bodyCode}\n${indent}}`;
+      }
+
+      if (node.type === 'fn_call') {
+        const argStr = (node.args || []).map(a => typeof a === 'object' ? (a?.var ?? '0') : a).join(', ');
+        return `${indent}${node.name}(${argStr});`;
       }
 
       return `${indent}drone.${node.type}();`;

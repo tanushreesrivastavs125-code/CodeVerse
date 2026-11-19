@@ -142,6 +142,32 @@ export function generatePlainEnglish(ast, options = {}) {
           blockId: node.blockId,
           type: 'if'
         });
+      } else if (node.type === 'fn_def') {
+        const paramText = node.params?.length ? ` with parameter "${node.params.join(', ')}"` : '';
+        builder.addLine(depth, `Define routine "${node.name}"${paramText}:`, node.nodeId, {
+          blockId: node.blockId,
+          type: 'fn_def',
+          name: node.name
+        });
+        if (Array.isArray(node.body) && node.body.length > 0) {
+          formatSequence(node.body, depth + 1, `${stepPrefix}  `);
+        } else {
+          builder.addLine(depth + 1, '(empty routine body)', node.nodeId);
+        }
+        builder.addLine(depth, `End routine "${node.name}"`, node.nodeId, {
+          blockId: node.blockId,
+          type: 'fn_def'
+        });
+      } else if (node.type === 'fn_call') {
+        const argText = node.args?.length
+          ? ` passing ${node.args.map(a => formatOperand(a, 'plainEnglish')).join(', ')}`
+          : '';
+        const text = `${fullPrefix}Call routine "${node.name}"${argText}`;
+        builder.addLine(depth, text, node.nodeId, {
+          blockId: node.blockId,
+          type: 'fn_call',
+          name: node.name
+        });
       } else {
         const actionInfo = ACTION_DESCRIPTIONS[node.type];
         if (!actionInfo) {

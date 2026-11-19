@@ -294,6 +294,85 @@ export function registerCodeVerseBlocks() {
       output: 'Number',
       colour: 140,
       tooltip: 'Number: An integer value to plug into comparison blocks.'
+    },
+    {
+      type: 'cv_fn_def',
+      message0: 'define routine %1 %2 %3',
+      args0: [
+        {
+          type: 'field_input',
+          name: 'NAME',
+          text: 'my_routine'
+        },
+        {
+          type: 'input_dummy'
+        },
+        {
+          type: 'input_statement',
+          name: 'DO'
+        }
+      ],
+      colour: 285,
+      tooltip: 'Define Routine: Bundle reusable instructions under a name.\nWhen to use: To eliminate repeated command sequences.\nSyntax: function name() { ... }'
+    },
+    {
+      type: 'cv_fn_def_param',
+      message0: 'define routine %1 with parameter %2 %3 %4',
+      args0: [
+        {
+          type: 'field_input',
+          name: 'NAME',
+          text: 'my_routine'
+        },
+        {
+          type: 'field_input',
+          name: 'PARAM',
+          text: 'steps'
+        },
+        {
+          type: 'input_dummy'
+        },
+        {
+          type: 'input_statement',
+          name: 'DO'
+        }
+      ],
+      colour: 285,
+      tooltip: 'Define Routine with Parameter: Reusable instructions receiving a numeric parameter.\nWhen to use: To parameterize distance, repeats, or comparisons.\nSyntax: function name(param) { ... }'
+    },
+    {
+      type: 'cv_fn_call',
+      message0: 'call routine %1',
+      args0: [
+        {
+          type: 'field_input',
+          name: 'NAME',
+          text: 'my_routine'
+        }
+      ],
+      previousStatement: null,
+      nextStatement: null,
+      colour: 285,
+      tooltip: 'Call Routine: Execute a defined routine from your program.\nWhen to use: When you want to run your routine.\nSyntax: name();'
+    },
+    {
+      type: 'cv_fn_call_param',
+      message0: 'call routine %1 with %2',
+      args0: [
+        {
+          type: 'field_input',
+          name: 'NAME',
+          text: 'my_routine'
+        },
+        {
+          type: 'input_value',
+          name: 'ARG'
+        }
+      ],
+      previousStatement: null,
+      nextStatement: null,
+      colour: 285,
+      tooltip: 'Call Routine with Argument: Pass a numeric argument into a routine.\nWhen to use: To invoke a parameterized routine with different values.\nSyntax: name(value);'
     }
   ];
 
@@ -497,6 +576,28 @@ export const gameToolbox = {
         { kind: 'block', type: 'cv_sensor' },
         { kind: 'block', type: 'math_number' }
       ]
+    },
+    {
+      kind: 'category',
+      name: 'Routines',
+      colour: '#a855f7',
+      contents: [
+        { kind: 'block', type: 'cv_fn_def' },
+        { kind: 'block', type: 'cv_fn_def_param' },
+        { kind: 'block', type: 'cv_fn_call' },
+        {
+          kind: 'block',
+          type: 'cv_fn_call_param',
+          inputs: {
+            ARG: {
+              shadow: {
+                type: 'math_number',
+                fields: { NUM: 3 }
+              }
+            }
+          }
+        }
+      ]
     }
   ]
 };
@@ -527,7 +628,7 @@ export function getToolboxForLevel(level, showAll = false) {
       if (item.type === 'controls_repeat_ext' && allowed.has('cv_repeat')) return true;
       if (item.type === 'controls_if' && (allowed.has('cv_if') || allowed.has('cv_if_else'))) return true;
       // Allow math_number if cv_compare or cv_var_set is allowed
-      if (item.type === 'math_number' && (allowed.has('cv_compare') || allowed.has('cv_var_set') || allowed.has('cv_var_change'))) return true;
+      if (item.type === 'math_number' && (allowed.has('cv_compare') || allowed.has('cv_var_set') || allowed.has('cv_var_change') || allowed.has('cv_fn_call_param') || allowed.has('cv_val_num'))) return true;
       return false;
     });
 

@@ -43,7 +43,8 @@ export const DISTRICTS = [
   { id: 4, name: 'Shadow Network', sectors: [13, 14, 15, 16], focus: 'Longer routes, multiple objectives & advanced loops' },
   { id: 5, name: 'Quantum Grid', sectors: [17, 18, 19, 20], focus: 'Adaptive programs, sensor decisions & tight efficiency' },
   { id: 6, name: 'Singularity', sectors: [21, 22, 23, 24], focus: 'Expert combinations, demanding routes & final 8-point guardian' },
-  { id: 7, name: 'Algorithmic Core', sectors: [25, 26, 27, 28, 29, 30, 31, 32], focus: 'Variables, counters, comparisons & while loops' }
+  { id: 7, name: 'Algorithmic Core', sectors: [25, 26, 27, 28, 29, 30, 31, 32], focus: 'Variables, counters, comparisons & while loops' },
+  { id: 8, name: 'Procedural Matrix', sectors: [33, 34, 35, 36, 37, 38], focus: 'Named routines, parameters, arguments & procedural composition' }
 ];
 
 function generateAdvancedLevels() {
@@ -400,6 +401,81 @@ export const levels = [
     0,
     15,
     { bossHealth: 3, difficulty: 32, requireWhile: true, requireVariables: true }
+  ),
+
+  // District 8: Procedural Matrix (Levels 33–38)
+  // Stage E2: Beginner-friendly functions, parameters, and reusable robot routines
+  createLevel(
+    33,
+    'Routine Protocol',
+    'Procedural Matrix',
+    'Defining & Calling Routines',
+    'Define routine "walkThree" and call it to guide the drone to the extraction portal.',
+    'A routine definition teaches the drone instructions. Drag a "call routine" block into main to execute it.',
+    ['######', '#S..G#', '######'],
+    0,
+    3,
+    { difficulty: 33, requireFunction: true }
+  ),
+  createLevel(
+    34,
+    'Echo Corridor',
+    'Procedural Matrix',
+    'Routine Reusability',
+    'Define reusable routine "advance" and call it at least twice to collect shards in both corridors.',
+    'Write the common movement steps once in your routine, then call it twice to traverse both lanes.',
+    ['#######', '#SC.###', '###.###', '#GC.###', '#######'],
+    0,
+    8,
+    { difficulty: 34, requireFunctionCalls: 2 }
+  ),
+  createLevel(
+    35,
+    'Parameter Matrix',
+    'Procedural Matrix',
+    'Numeric Parameters & Arguments',
+    'Define routine "march" with parameter "steps", and call it with argument 5 to advance across the corridor.',
+    'A parameter lets a routine accept a dynamic value. Call march with argument 5 to repeat movement 5 times.',
+    ['########', '#S....G#', '########'],
+    0,
+    5,
+    { difficulty: 35, requireParameter: true }
+  ),
+  createLevel(
+    36,
+    'Modulated Strides',
+    'Procedural Matrix',
+    'Varying Arguments Across Calls',
+    'Call parameterized routine "march" twice with different arguments (2, then 4) to navigate both straight corridors.',
+    'Call march with argument 2 for the upper lane, collect the shard, turn, and call march with 4 for the long stretch.',
+    ['#######', '#S.C###', '###.###', '###.###', '###.###', '###G###', '#######'],
+    0,
+    6,
+    { difficulty: 36, requireDifferentArguments: true }
+  ),
+  createLevel(
+    37,
+    'Procedural Composition',
+    'Procedural Matrix',
+    'Composing Routines in Loops',
+    'Compose routine "clearSection" inside a loop to leap corruption hazards and recover energy shards along the route.',
+    'Place your "call clearSection" block inside a repeat loop so the drone vaults breaches and gathers shards repeatedly.',
+    ['############', '#S.H.C.H.CG#', '############'],
+    0,
+    7,
+    { difficulty: 37, requireComposedFunction: true }
+  ),
+  createLevel(
+    38,
+    'Procedural Architect',
+    'Procedural Matrix',
+    'Comprehensive Procedural Mastery',
+    'Final Chapter Mission: Deploy bridges, leap hazards, recover shards, and dismantle the guardian using parameterized routines.',
+    'Combine reusable routines for traversal and pulse strikes to conquer every sector objective and extract safely.',
+    ['################', '#STBB.H.C..X.G##', '################'],
+    0,
+    16,
+    { bossHealth: 3, difficulty: 38, requireFunction: true, requireDifferentArguments: true }
   )
 ];
 
@@ -423,7 +499,9 @@ export const VALID_COMMANDS = new Set([
   'if',
   'var_set',
   'var_change',
-  'while'
+  'while',
+  'fn_def',
+  'fn_call'
 ]);
 
 export const VALID_SENSORS = new Set([
@@ -444,6 +522,9 @@ export const VALID_COMPARISONS = new Set([
 ]);
 
 export const MAX_VARIABLES = 10;
+export const MAX_FUNCTIONS = 5;
+export const MAX_PARAMS_PER_FUNCTION = 3;
+export const MAX_CALL_DEPTH = 8;
 export const IDENTIFIER_REGEX = /^[a-zA-Z][a-zA-Z0-9_]{0,23}$/;
 
 export const RESERVED_IDENTIFIERS = new Set([
@@ -594,6 +675,94 @@ export function validateProgram(program, maxDepth = 8) {
 
   let totalNodes = 0;
   const declaredVars = new Set();
+  const definedFunctions = new Map();
+
+  // First pass: collect and validate program-level function definitions
+  for (const node of program) {
+    if (node && node.type === 'fn_def') {
+      const fnName = node.name;
+      const nameErr = getIdentifierError(fnName);
+      if (nameErr) throw new Error(nameErr);
+      if (definedFunctions.has(fnName)) {
+        throw new Error(`Function "${fnName}" is already defined. Function names must be unique.`);
+      }
+
+      const params = node.params || [];
+      if (!Array.isArray(params)) {
+        throw new Error(`Parameters for function "${fnName}" must be a list of names.`);
+      }
+      if (params.length > MAX_PARAMS_PER_FUNCTION) {
+        throw new Error(`Function "${fnName}" exceeds the limit of ${MAX_PARAMS_PER_FUNCTION} parameters.`);
+      }
+
+      const seenParams = new Set();
+      for (const p of params) {
+        const pErr = getIdentifierError(p);
+        if (pErr) throw new Error(pErr);
+        if (seenParams.has(p)) {
+          throw new Error(`Duplicate parameter "${p}" in function "${fnName}".`);
+        }
+        seenParams.add(p);
+      }
+
+      definedFunctions.set(fnName, {
+        name: fnName,
+        params,
+        body: node.body || []
+      });
+    }
+  }
+
+  if (definedFunctions.size > MAX_FUNCTIONS) {
+    throw new Error(`Program exceeds the limit of ${MAX_FUNCTIONS} function definitions.`);
+  }
+
+  // Check call graph for direct or indirect recursion
+  const callGraph = new Map();
+  for (const [name, fn] of definedFunctions) {
+    const callees = new Set();
+    const findCalls = (nodes) => {
+      if (!Array.isArray(nodes)) return;
+      for (const n of nodes) {
+        if (!n || typeof n !== 'object') continue;
+        if (n.type === 'fn_call') {
+          callees.add(n.name);
+        }
+        if (Array.isArray(n.body)) findCalls(n.body);
+        if (Array.isArray(n.elseBody)) findCalls(n.elseBody);
+      }
+    };
+    findCalls(fn.body);
+    callGraph.set(name, callees);
+  }
+
+  // Check cycles in call graph
+  for (const [name] of definedFunctions) {
+    const visited = new Set();
+    const stack = new Set();
+
+    const hasCycle = (curr) => {
+      visited.add(curr);
+      stack.add(curr);
+      const targets = callGraph.get(curr) || new Set();
+      for (const target of targets) {
+        if (stack.has(target)) {
+          return target;
+        }
+        if (!visited.has(target)) {
+          const cycleTarget = hasCycle(target);
+          if (cycleTarget) return cycleTarget;
+        }
+      }
+      stack.delete(curr);
+      return null;
+    };
+
+    const cycleFn = hasCycle(name);
+    if (cycleFn) {
+      throw new Error(`Recursion is not permitted in this stage. Function "${cycleFn}" cannot call itself directly or indirectly.`);
+    }
+  }
 
   function traverse(nodes, depth) {
     if (depth > maxDepth) {
@@ -615,7 +784,33 @@ export function validateProgram(program, maxDepth = 8) {
         throw new Error('Program exceeds the 300-instruction limit.');
       }
 
-      if (node.type === 'var_set') {
+      if (node.type === 'fn_def') {
+        if (depth > 0) {
+          throw new Error('Function definitions must be at top-level.');
+        }
+        if (!Array.isArray(node.body)) {
+          throw new Error(`Function "${node.name}" body must be a list of commands.`);
+        }
+        traverse(node.body, depth + 1);
+      } else if (node.type === 'fn_call') {
+        const fnName = node.name;
+        const err = getIdentifierError(fnName);
+        if (err) throw new Error(err);
+        if (!definedFunctions.has(fnName)) {
+          throw new Error(`Undefined function "${fnName}". Define the function before calling it.`);
+        }
+        const fnDef = definedFunctions.get(fnName);
+        const args = node.args || [];
+        if (!Array.isArray(args)) {
+          throw new Error(`Arguments for function "${fnName}" must be a list.`);
+        }
+        if (args.length !== fnDef.params.length) {
+          throw new Error(`Function "${fnName}" expects ${fnDef.params.length} argument(s), but received ${args.length}.`);
+        }
+        for (const arg of args) {
+          validateOperand(arg);
+        }
+      } else if (node.type === 'var_set') {
         const varName = node.var || node.variable;
         const err = getIdentifierError(varName);
         if (err) throw new Error(err);
@@ -737,6 +932,18 @@ export function initialState(level) {
 export function simulate(level, program, options = {}) {
   validateProgram(program);
 
+  // Collect program-level function definitions before execution
+  const functionsMap = new Map();
+  for (const node of program) {
+    if (node && node.type === 'fn_def') {
+      functionsMap.set(node.name, {
+        name: node.name,
+        params: node.params || [],
+        body: node.body || []
+      });
+    }
+  }
+
   let state = initialState(level);
   state.variables = Object.create(null);
 
@@ -746,7 +953,30 @@ export function simulate(level, program, options = {}) {
   let executedWhileLoops = 0;
   let executedSensors = 0;
   let executedVarUpdates = 0;
-  const frames = [{ ...state, collected: [...state.collected], variables: { ...state.variables } }];
+  let executedFunctionCalls = 0;
+  const executedFunctions = new Set();
+  const executedArgValues = new Set();
+  let executedInsideLoopOrCond = false;
+  let hasParameterizedCall = false;
+
+  const callStack = [];
+
+  const getCallStackSnapshot = () =>
+    callStack.map(f => ({
+      name: f.name,
+      caller: f.caller,
+      params: { ...f.params },
+      locals: { ...f.locals },
+      returnNodeId: f.returnNodeId
+    }));
+
+  const frames = [{
+    ...state,
+    collected: [...state.collected],
+    variables: { ...state.variables },
+    callStack: [],
+    activeRoutine: null
+  }];
   const totalEnergy = level.map.join('').split('C').length - 1;
 
   const tile = (x, y) => level.map[y]?.[x] || '#';
@@ -762,6 +992,8 @@ export function simulate(level, program, options = {}) {
     frames.push({
       ...state,
       ...meta,
+      callStack: getCallStackSnapshot(),
+      activeRoutine: callStack.length > 0 ? callStack[callStack.length - 1].name : null,
       variables: { ...state.variables },
       collected: [...state.collected]
     });
@@ -807,25 +1039,13 @@ export function simulate(level, program, options = {}) {
       }
       return intVal;
     }
+    let vName = null;
     if (typeof operand === 'string') {
-      const err = getIdentifierError(operand);
-      if (err) throw new Error(err);
-      if (!(operand in state.variables)) {
-        throw new Error(`Variable "${operand}" is used before being set.`);
-      }
-      return state.variables[operand];
-    }
-    if (operand && typeof operand === 'object') {
+      vName = operand;
+    } else if (operand && typeof operand === 'object') {
       if (operand.type === 'var_get') {
-        const vName = operand.var || operand.variable;
-        const err = getIdentifierError(vName);
-        if (err) throw new Error(err);
-        if (!(vName in state.variables)) {
-          throw new Error(`Variable "${vName}" is used before being set.`);
-        }
-        return state.variables[vName];
-      }
-      if (operand.type === 'literal') {
+        vName = operand.var || operand.variable;
+      } else if (operand.type === 'literal') {
         const intVal = Math.trunc(operand.value);
         if (intVal < -10000 || intVal > 10000) {
           throw new Error(`Value out of bounds (${intVal}). Numbers must be between -10,000 and 10,000.`);
@@ -833,6 +1053,26 @@ export function simulate(level, program, options = {}) {
         return intVal;
       }
     }
+
+    if (vName) {
+      const err = getIdentifierError(vName);
+      if (err) throw new Error(err);
+
+      // Check active routine call frame local variables & parameters first
+      if (callStack.length > 0) {
+        const currentFrame = callStack[callStack.length - 1];
+        if (vName in currentFrame.locals) {
+          return currentFrame.locals[vName];
+        }
+      }
+
+      // Check program-wide global variables
+      if (vName in state.variables) {
+        return state.variables[vName];
+      }
+      throw new Error(`Variable "${vName}" is used before being set.`);
+    }
+
     throw new Error(`Invalid operand in expression: ${JSON.stringify(operand)}`);
   }
 
@@ -899,29 +1139,137 @@ export function simulate(level, program, options = {}) {
       if (stopped) return;
       if (++ticks > 1000) throw new Error('Program exceeds the 1000-instruction execution limit.');
 
+      if (node.type === 'fn_def') {
+        // Function definitions are collected prior to execution and do not execute inline
+        continue;
+      }
+
+      if (node.type === 'fn_call') {
+        executedFunctionCalls++;
+        executedFunctions.add(node.name);
+        if (depth > 0) executedInsideLoopOrCond = true;
+
+        const fnDef = functionsMap.get(node.name);
+        if (!fnDef) {
+          throw new Error(`Undefined function "${node.name}". Define the function before calling it.`);
+        }
+
+        const expectedParams = fnDef.params || [];
+        const passedArgs = node.args || [];
+        if (passedArgs.length !== expectedParams.length) {
+          throw new Error(`Function "${node.name}" expects ${expectedParams.length} argument(s), but received ${passedArgs.length}.`);
+        }
+
+        if (callStack.length >= MAX_CALL_DEPTH) {
+          throw new Error(`Call stack depth limit exceeded (maximum ${MAX_CALL_DEPTH} frames).`);
+        }
+
+        if (callStack.some(f => f.name === node.name)) {
+          throw new Error(`Recursion is not permitted in this stage. Function "${node.name}" cannot call itself directly or indirectly.`);
+        }
+
+        // Arguments evaluated left-to-right in caller scope (pass-by-value)
+        const evaluatedArgs = passedArgs.map(arg => resolveOperand(arg));
+        if (evaluatedArgs.length > 0) {
+          hasParameterizedCall = true;
+          for (const v of evaluatedArgs) executedArgValues.add(v);
+        }
+
+        const callerName = callStack.length > 0 ? callStack[callStack.length - 1].name : 'main';
+        const newFrame = {
+          name: node.name,
+          params: Object.create(null),
+          locals: Object.create(null),
+          caller: callerName,
+          returnNodeId: node.nodeId || null
+        };
+
+        for (let i = 0; i < expectedParams.length; i++) {
+          const pName = expectedParams[i];
+          newFrame.params[pName] = evaluatedArgs[i];
+          newFrame.locals[pName] = evaluatedArgs[i];
+        }
+
+        callStack.push(newFrame);
+
+        const callMeta = {
+          callStack: getCallStackSnapshot(),
+          activeRoutine: node.name,
+          fnCall: {
+            name: node.name,
+            args: evaluatedArgs,
+            caller: callerName,
+            explanation: `"${node.name}" runs these instructions whenever you call it.`
+          }
+        };
+        if (node.nodeId) callMeta.nodeId = node.nodeId;
+        if (node.blockId) callMeta.blockId = node.blockId;
+
+        snapshot('fn_call', `Calling routine "${node.name}"${evaluatedArgs.length ? `(${evaluatedArgs.join(', ')})` : ''}.`, true, callMeta);
+
+        if (Array.isArray(fnDef.body) && fnDef.body.length > 0) {
+          run(fnDef.body, depth + 1);
+        }
+
+        callStack.pop();
+
+        const returnMeta = {
+          callStack: getCallStackSnapshot(),
+          activeRoutine: callStack.length > 0 ? callStack[callStack.length - 1].name : null,
+          fnReturn: {
+            name: node.name,
+            caller: callerName
+          }
+        };
+        if (node.nodeId) returnMeta.nodeId = node.nodeId;
+        if (node.blockId) returnMeta.blockId = node.blockId;
+
+        snapshot('fn_return', `Routine "${node.name}" completed. Returning to ${callerName}.`, true, returnMeta);
+        continue;
+      }
+
       if (node.type === 'var_set') {
         const varName = node.var || node.variable;
         const err = getIdentifierError(varName);
         if (err) throw new Error(err);
-        if (Object.keys(state.variables).length >= MAX_VARIABLES && !(varName in state.variables)) {
-          throw new Error(`Maximum limit of ${MAX_VARIABLES} variables exceeded.`);
-        }
         const val = resolveOperand(node.value !== undefined ? node.value : 0);
         if (val < -10000 || val > 10000) {
           throw new Error(`Variable "${varName}" out of bounds (${val}). Must be between -10,000 and 10,000.`);
         }
-        const prevVal = state.variables[varName];
-        state.variables[varName] = val;
-        const changeText = prevVal !== undefined
-          ? `${varName} changed from ${prevVal} to ${val}.`
-          : `Set ${varName} to ${val}.`;
-        const varMeta = {
-          varMutation: { varName, prevVal: prevVal ?? null, val, changeText },
-          variables: { ...state.variables }
-        };
-        if (node.nodeId) varMeta.nodeId = node.nodeId;
-        if (node.blockId) varMeta.blockId = node.blockId;
-        snapshot('var_set', changeText, true, varMeta);
+
+        if (callStack.length > 0) {
+          // Inside routine: assignment strictly affects local frame
+          const currentFrame = callStack[callStack.length - 1];
+          const prevVal = currentFrame.locals[varName];
+          currentFrame.locals[varName] = val;
+          const changeText = prevVal !== undefined
+            ? `Local ${varName} changed from ${prevVal} to ${val} in ${currentFrame.name}.`
+            : `Set local ${varName} to ${val} in ${currentFrame.name}.`;
+          const varMeta = {
+            varMutation: { varName, prevVal: prevVal ?? null, val, changeText, isLocal: true, routine: currentFrame.name },
+            variables: { ...state.variables }
+          };
+          if (node.nodeId) varMeta.nodeId = node.nodeId;
+          if (node.blockId) varMeta.blockId = node.blockId;
+          snapshot('var_set', changeText, true, varMeta);
+        } else {
+          // Program-wide global assignment
+          if (Object.keys(state.variables).length >= MAX_VARIABLES && !(varName in state.variables)) {
+            throw new Error(`Maximum limit of ${MAX_VARIABLES} variables exceeded.`);
+          }
+          const prevVal = state.variables[varName];
+          state.variables[varName] = val;
+          const changeText = prevVal !== undefined
+            ? `${varName} changed from ${prevVal} to ${val}.`
+            : `Set ${varName} to ${val}.`;
+          const varMeta = {
+            varMutation: { varName, prevVal: prevVal ?? null, val, changeText, isLocal: false },
+            variables: { ...state.variables }
+          };
+          if (node.nodeId) varMeta.nodeId = node.nodeId;
+          if (node.blockId) varMeta.blockId = node.blockId;
+          snapshot('var_set', changeText, true, varMeta);
+        }
         continue;
       }
 
@@ -930,24 +1278,63 @@ export function simulate(level, program, options = {}) {
         const varName = node.var || node.variable;
         const err = getIdentifierError(varName);
         if (err) throw new Error(err);
-        if (!(varName in state.variables)) {
-          throw new Error(`Variable "${varName}" must be set before changing it.`);
-        }
         const amount = Number.isInteger(node.amount) ? node.amount : 1;
-        const prevVal = state.variables[varName];
-        const newVal = prevVal + amount;
-        if (newVal < -10000 || newVal > 10000) {
-          throw new Error(`Variable "${varName}" out of bounds (${newVal}). Must be between -10,000 and 10,000.`);
+
+        if (callStack.length > 0) {
+          const currentFrame = callStack[callStack.length - 1];
+          if (varName in currentFrame.locals) {
+            const prevVal = currentFrame.locals[varName];
+            const newVal = prevVal + amount;
+            if (newVal < -10000 || newVal > 10000) {
+              throw new Error(`Variable "${varName}" out of bounds (${newVal}). Must be between -10,000 and 10,000.`);
+            }
+            currentFrame.locals[varName] = newVal;
+            const changeText = `Local ${varName} changed from ${prevVal} to ${newVal} in ${currentFrame.name}.`;
+            const varMeta = {
+              varMutation: { varName, prevVal, val: newVal, changeText, isLocal: true, routine: currentFrame.name },
+              variables: { ...state.variables }
+            };
+            if (node.nodeId) varMeta.nodeId = node.nodeId;
+            if (node.blockId) varMeta.blockId = node.blockId;
+            snapshot('var_change', changeText, true, varMeta);
+          } else if (varName in state.variables) {
+            // Assignment/mutation inside routine initializes local shadow
+            const prevVal = state.variables[varName];
+            const newVal = prevVal + amount;
+            if (newVal < -10000 || newVal > 10000) {
+              throw new Error(`Variable "${varName}" out of bounds (${newVal}). Must be between -10,000 and 10,000.`);
+            }
+            currentFrame.locals[varName] = newVal;
+            const changeText = `Local ${varName} initialized from global to ${newVal} in ${currentFrame.name}.`;
+            const varMeta = {
+              varMutation: { varName, prevVal, val: newVal, changeText, isLocal: true, routine: currentFrame.name },
+              variables: { ...state.variables }
+            };
+            if (node.nodeId) varMeta.nodeId = node.nodeId;
+            if (node.blockId) varMeta.blockId = node.blockId;
+            snapshot('var_change', changeText, true, varMeta);
+          } else {
+            throw new Error(`Variable "${varName}" must be set before changing it.`);
+          }
+        } else {
+          if (!(varName in state.variables)) {
+            throw new Error(`Variable "${varName}" must be set before changing it.`);
+          }
+          const prevVal = state.variables[varName];
+          const newVal = prevVal + amount;
+          if (newVal < -10000 || newVal > 10000) {
+            throw new Error(`Variable "${varName}" out of bounds (${newVal}). Must be between -10,000 and 10,000.`);
+          }
+          state.variables[varName] = newVal;
+          const changeText = `${varName} changed from ${prevVal} to ${newVal}.`;
+          const varMeta = {
+            varMutation: { varName, prevVal, val: newVal, changeText, isLocal: false },
+            variables: { ...state.variables }
+          };
+          if (node.nodeId) varMeta.nodeId = node.nodeId;
+          if (node.blockId) varMeta.blockId = node.blockId;
+          snapshot('var_change', changeText, true, varMeta);
         }
-        state.variables[varName] = newVal;
-        const changeText = `${varName} changed from ${prevVal} to ${newVal}.`;
-        const varMeta = {
-          varMutation: { varName, prevVal, val: newVal, changeText },
-          variables: { ...state.variables }
-        };
-        if (node.nodeId) varMeta.nodeId = node.nodeId;
-        if (node.blockId) varMeta.blockId = node.blockId;
-        snapshot('var_change', changeText, true, varMeta);
         continue;
       }
 
@@ -1123,7 +1510,9 @@ export function simulate(level, program, options = {}) {
     }
   }
 
-  run(program);
+  // Execute top-level non-function statements sequentially
+  const mainStatements = program.filter(n => n && n.type !== 'fn_def');
+  run(mainStatements);
 
   const countBlocks = nodes =>
     nodes.reduce(
@@ -1145,7 +1534,17 @@ export function simulate(level, program, options = {}) {
 
   const programBlocks = countBlocks(program);
   const constraintMessage =
-    level.requireVariables && Object.keys(state.variables).length === 0
+    level.requireFunction && (executedFunctionCalls === 0 || executedFunctions.size === 0)
+      ? 'This sector requires defining and calling a routine.'
+      : level.requireFunctionCalls && executedFunctionCalls < level.requireFunctionCalls
+      ? `This sector requires calling a routine at least ${level.requireFunctionCalls} times to demonstrate reuse.`
+      : level.requireParameter && !hasParameterizedCall
+      ? 'This sector requires defining a routine with a parameter and passing an argument.'
+      : level.requireDifferentArguments && executedArgValues.size < 2
+      ? 'This sector requires calling a parameterized routine with at least two different argument values.'
+      : level.requireComposedFunction && !executedInsideLoopOrCond
+      ? 'This sector requires composing a routine inside a loop or conditional statement.'
+      : level.requireVariables && Object.keys(state.variables).length === 0
       ? 'This sector requires initializing and using a variable.'
       : level.requireVarChange && executedVarUpdates === 0
       ? 'This sector requires updating a counter variable.'
