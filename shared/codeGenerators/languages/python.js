@@ -1,5 +1,5 @@
 import { CodeBuilder } from '../codeBuilder.js';
-import { ACTION_DESCRIPTIONS, getLoopVar, formatOperand, formatCondition } from '../helpers.js';
+import { ACTION_DESCRIPTIONS, getLoopVar, formatOperand, formatCondition, collectProgramVariables } from '../helpers.js';
 
 /**
  * Generates idiomatic Python 3 from a CodeVerse AST.
@@ -40,6 +40,15 @@ export function generatePython(ast, options = {}) {
   let hasWhile = false;
   let hasVariables = false;
   let loopGuardCounter = 0;
+  const programVars = collectProgramVariables(ast);
+  if (programVars.length > 0) hasVariables = true;
+  const isRunnable = Boolean(options.isRunnable || options.boundedLoops);
+
+  if (isRunnable && programVars.length > 0) {
+    for (const v of programVars) {
+      builder.addLine(0, `${v} = _cv_uninit('${v}', drone)`);
+    }
+  }
 
   function compileNodes(nodes, depth = 0, loopDepth = 0) {
     for (const node of nodes) {
@@ -50,7 +59,7 @@ export function generatePython(ast, options = {}) {
       if (node.type === 'repeat') {
         hasLoop = true;
         const count = node.count;
-        const loopVar = getLoopVar(loopDepth);
+        const loopVar = getLoopVar(loopDepth, programVars);
         const headerText = `for ${loopVar} in range(${count}):`;
         builder.addLine(depth, headerText, node.nodeId, {
           blockId: node.blockId,
@@ -66,7 +75,7 @@ export function generatePython(ast, options = {}) {
         }
       } else if (node.type === 'while') {
         hasWhile = true;
-        const condStr = formatCondition(node.condition, null, 'python');
+        const condStr = formatCondition(node.condition, null, 'python', options);
         let guardVar = null;
         if (options.boundedLoops) {
           guardVar = `_cv_loop_guard_${++loopGuardCounter}`;
@@ -92,28 +101,46 @@ export function generatePython(ast, options = {}) {
         }
       } else if (node.type === 'var_set') {
         hasVariables = true;
-        const varName = node.variable;
-        const valStr = formatOperand(node.value);
-        builder.addLine(depth, `${varName} = ${valStr}`, node.nodeId, {
-          blockId: node.blockId,
-          type: 'var_set',
-          variable: varName,
-          value: valStr
-        });
+        const varName = node.variable || node.var;
+        const valStr = formatOperand(node.value, 'python', options);
+        if (isRunnable) {
+          builder.addLine(depth, `${varName} = _cv_set(drone, '${varName}', ${valStr})`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'var_set',
+            variable: varName,
+            value: valStr
+          });
+        } else {
+          builder.addLine(depth, `${varName} = ${valStr}`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'var_set',
+            variable: varName,
+            value: valStr
+          });
+        }
       } else if (node.type === 'var_change') {
         hasVariables = true;
-        const varName = node.variable;
-        const amt = typeof node.amount === 'number' ? node.amount : Number(formatOperand(node.amount));
-        const opStr = amt < 0 ? `-= ${Math.abs(amt)}` : `+= ${amt}`;
-        builder.addLine(depth, `${varName} ${opStr}`, node.nodeId, {
-          blockId: node.blockId,
-          type: 'var_change',
-          variable: varName,
-          amount: amt
-        });
+        const varName = node.variable || node.var;
+        const amt = typeof node.amount === 'number' ? node.amount : Number(formatOperand(node.amount, 'python', options));
+        if (isRunnable) {
+          builder.addLine(depth, `${varName} = _cv_change(drone, '${varName}', ${varName}, ${amt})`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'var_change',
+            variable: varName,
+            amount: amt
+          });
+        } else {
+          const opStr = amt < 0 ? `-= ${Math.abs(amt)}` : `+= ${amt}`;
+          builder.addLine(depth, `${varName} ${opStr}`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'var_change',
+            variable: varName,
+            amount: amt
+          });
+        }
       } else if (node.type === 'if') {
         hasSensor = true;
-        const condStr = formatCondition(node.condition, node.sensor, 'python');
+        const condStr = formatCondition(node.condition, node.sensor, 'python', options);
         const headerText = `if ${condStr}:`;
         builder.addLine(depth, headerText, node.nodeId, {
           blockId: node.blockId,

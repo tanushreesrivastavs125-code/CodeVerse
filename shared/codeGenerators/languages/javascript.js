@@ -1,5 +1,5 @@
 import { CodeBuilder } from '../codeBuilder.js';
-import { ACTION_DESCRIPTIONS, getLoopVar, formatOperand, formatCondition } from '../helpers.js';
+import { ACTION_DESCRIPTIONS, getLoopVar, formatOperand, formatCondition, collectProgramVariables } from '../helpers.js';
 
 /**
  * Generates idiomatic JavaScript from a CodeVerse AST.
@@ -40,7 +40,20 @@ export function generateJavaScript(ast, options = {}) {
   let hasWhile = false;
   let hasVariables = false;
   let loopGuardCounter = 0;
-  const declaredVars = new Set();
+  const programVars = collectProgramVariables(ast);
+  if (programVars.length > 0) hasVariables = true;
+  const isRunnable = Boolean(options.isRunnable || options.boundedLoops);
+
+  if (programVars.length > 0) {
+    if (isRunnable) {
+      for (const v of programVars) {
+        builder.addLine(0, `let ${v} = _cv_uninit('${v}', drone);`);
+      }
+    } else {
+      builder.addLine(0, `let ${programVars.join(', ')};`);
+      builder.addBlank();
+    }
+  }
 
   function compileNodes(nodes, depth = 0, loopDepth = 0) {
     for (const node of nodes) {
@@ -51,7 +64,7 @@ export function generateJavaScript(ast, options = {}) {
       if (node.type === 'repeat') {
         hasLoop = true;
         const count = node.count;
-        const loopVar = getLoopVar(loopDepth);
+        const loopVar = getLoopVar(loopDepth, programVars);
         const headerText = `for (let ${loopVar} = 0; ${loopVar} < ${count}; ${loopVar}++) {`;
         builder.addLine(depth, headerText, node.nodeId, {
           blockId: node.blockId,
@@ -70,7 +83,7 @@ export function generateJavaScript(ast, options = {}) {
         });
       } else if (node.type === 'while') {
         hasWhile = true;
-        const condStr = formatCondition(node.condition, null, 'javascript');
+        const condStr = formatCondition(node.condition, null, 'javascript', options);
         let guardVar = null;
         if (options.boundedLoops) {
           guardVar = `_cv_loop_guard_${++loopGuardCounter}`;
@@ -96,16 +109,15 @@ export function generateJavaScript(ast, options = {}) {
         });
       } else if (node.type === 'var_set') {
         hasVariables = true;
-        const varName = node.variable;
-        const valStr = formatOperand(node.value);
-        if (!declaredVars.has(varName)) {
-          builder.addLine(depth, `let ${varName} = ${valStr};`, node.nodeId, {
+        const varName = node.variable || node.var;
+        const valStr = formatOperand(node.value, 'javascript', options);
+        if (isRunnable) {
+          builder.addLine(depth, `${varName} = _cv_set(drone, '${varName}', ${valStr});`, node.nodeId, {
             blockId: node.blockId,
             type: 'var_set',
             variable: varName,
             value: valStr
           });
-          declaredVars.add(varName);
         } else {
           builder.addLine(depth, `${varName} = ${valStr};`, node.nodeId, {
             blockId: node.blockId,
@@ -116,17 +128,18 @@ export function generateJavaScript(ast, options = {}) {
         }
       } else if (node.type === 'var_change') {
         hasVariables = true;
-        const varName = node.variable;
-        const amt = typeof node.amount === 'number' ? node.amount : Number(formatOperand(node.amount));
-        if (amt < 0) {
-          builder.addLine(depth, `${varName} -= ${Math.abs(amt)};`, node.nodeId, {
+        const varName = node.variable || node.var;
+        const amt = typeof node.amount === 'number' ? node.amount : Number(formatOperand(node.amount, 'javascript', options));
+        if (isRunnable) {
+          builder.addLine(depth, `${varName} = _cv_change(drone, '${varName}', ${varName}, ${amt});`, node.nodeId, {
             blockId: node.blockId,
             type: 'var_change',
             variable: varName,
             amount: amt
           });
         } else {
-          builder.addLine(depth, `${varName} += ${amt};`, node.nodeId, {
+          const opStr = amt < 0 ? `-= ${Math.abs(amt)}` : `+= ${amt}`;
+          builder.addLine(depth, `${varName} ${opStr};`, node.nodeId, {
             blockId: node.blockId,
             type: 'var_change',
             variable: varName,
@@ -135,7 +148,7 @@ export function generateJavaScript(ast, options = {}) {
         }
       } else if (node.type === 'if') {
         hasSensor = true;
-        const condStr = formatCondition(node.condition, node.sensor, 'javascript');
+        const condStr = formatCondition(node.condition, node.sensor, 'javascript', options);
         const headerText = `if (${condStr}) {`;
         builder.addLine(depth, headerText, node.nodeId, {
           blockId: node.blockId,
@@ -180,7 +193,7 @@ export function generateJavaScript(ast, options = {}) {
     explanations.push({
       id: 'loop',
       title: 'Counting For-Loops',
-      text: 'A "for (let i = 0; i < count; i++)" loop creates a counter variable and repeats the code enclosed inside curly braces { } exactly count times.'
+      text: 'A "for" loop creates a loop counter and repeats the code enclosed inside curly braces { } exactly count times.'
     });
   }
 

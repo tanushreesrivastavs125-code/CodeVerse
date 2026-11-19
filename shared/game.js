@@ -443,11 +443,69 @@ export const VALID_COMPARISONS = new Set([
   '>='
 ]);
 
-export const IDENTIFIER_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]{0,31}$/;
-export const FORBIDDEN_VAR_NAMES = new Set(['__proto__', 'constructor', 'prototype']);
+export const MAX_VARIABLES = 10;
+export const IDENTIFIER_REGEX = /^[a-zA-Z][a-zA-Z0-9_]{0,23}$/;
+
+export const RESERVED_IDENTIFIERS = new Set([
+  // JavaScript keywords & builtins
+  'break', 'case', 'catch', 'class', 'const', 'continue', 'debugger', 'default',
+  'delete', 'do', 'else', 'export', 'extends', 'finally', 'for', 'function',
+  'if', 'import', 'in', 'instanceof', 'new', 'return', 'super', 'switch',
+  'this', 'throw', 'try', 'typeof', 'var', 'void', 'while', 'with', 'yield',
+  'let', 'static', 'enum', 'await', 'async', 'null', 'true', 'false',
+  'undefined', 'nan', 'infinity', 'window', 'document', 'global', 'globalthis',
+  'process', 'console', 'math', 'string', 'number', 'object', 'array', 'boolean',
+
+  // Python keywords
+  'and', 'as', 'assert', 'def', 'del', 'elif', 'except', 'from', 'global',
+  'is', 'lambda', 'nonlocal', 'not', 'or', 'pass', 'raise', 'none',
+
+  // Java keywords
+  'abstract', 'byte', 'char', 'double', 'final', 'float', 'goto', 'implements',
+  'int', 'interface', 'long', 'native', 'package', 'private', 'protected',
+  'public', 'short', 'strictfp', 'synchronized', 'throws', 'transient',
+  'volatile', 'record', 'sealed', 'permits', 'system',
+
+  // C / C++ keywords
+  'auto', 'extern', 'inline', 'register', 'restrict', 'signed', 'sizeof',
+  'struct', 'typedef', 'union', 'unsigned', 'bool', 'const_cast', 'dynamic_cast',
+  'explicit', 'friend', 'mutable', 'namespace', 'operator', 'reinterpret_cast',
+  'static_cast', 'template', 'typeid', 'typename', 'using', 'virtual', 'wchar_t',
+  'concept', 'requires', 'co_await', 'co_return', 'co_yield', 'char8_t',
+  'char16_t', 'char32_t', 'constexpr', 'consteval', 'constinit', 'decltype',
+  'noexcept', 'nullptr', 'static_assert', 'thread_local', 'printf', 'malloc',
+  'free', 'exit', 'stdio', 'stdlib', 'iostream', 'vector', 'map',
+
+  // CodeVerse helper identifiers & models
+  'drone', 'level', 'main', 'program', 'cvvar', 'consoledronesimulator',
+  'console_drone_simulator', 'run_learner_program', 'runlearnerprogram',
+
+  // Object prototype properties
+  '__proto__', 'constructor', 'prototype', 'tostring', 'valueof',
+  'hasownproperty', 'isprototypeof', 'propertyisenumerable', 'tolocalestring'
+]);
+
+export function getIdentifierError(name) {
+  if (typeof name !== 'string' || name.length === 0) {
+    return 'Variable name cannot be empty.';
+  }
+  if (name.startsWith('_')) {
+    return `Variable "${name}" cannot begin with an underscore ("_"). Underscores at the start are reserved for system internals.`;
+  }
+  if (name.length > 24) {
+    return `Variable "${name}" is too long (${name.length} characters). Variable names must be 24 characters or fewer.`;
+  }
+  if (!IDENTIFIER_REGEX.test(name)) {
+    return `Variable "${name}" must start with a letter and contain only alphanumeric characters and underscores.`;
+  }
+  if (RESERVED_IDENTIFIERS.has(name.toLowerCase())) {
+    return `"${name}" is a reserved keyword or helper identifier in CodeVerse and cannot be used as a variable name.`;
+  }
+  return null;
+}
 
 export function isValidIdentifier(name) {
-  return typeof name === 'string' && IDENTIFIER_REGEX.test(name) && !FORBIDDEN_VAR_NAMES.has(name);
+  return getIdentifierError(name) === null;
 }
 
 function validateOperand(operand) {
@@ -458,17 +516,15 @@ function validateOperand(operand) {
     return;
   }
   if (typeof operand === 'string') {
-    if (!isValidIdentifier(operand)) {
-      throw new Error(`Invalid identifier: "${operand}". Variables must start with a letter or underscore (up to 32 characters).`);
-    }
+    const err = getIdentifierError(operand);
+    if (err) throw new Error(err);
     return;
   }
   if (operand && typeof operand === 'object') {
     if (operand.type === 'var_get') {
       const v = operand.var || operand.variable;
-      if (!isValidIdentifier(v)) {
-        throw new Error(`Invalid variable identifier: "${v}".`);
-      }
+      const err = getIdentifierError(v);
+      if (err) throw new Error(err);
       return;
     }
     if (operand.type === 'literal') {
@@ -561,15 +617,20 @@ export function validateProgram(program, maxDepth = 8) {
 
       if (node.type === 'var_set') {
         const varName = node.var || node.variable;
-        if (!isValidIdentifier(varName)) {
-          throw new Error(`Invalid variable name: "${varName}". Names must start with a letter or underscore and contain only alphanumeric characters (up to 32 characters).`);
-        }
+        const err = getIdentifierError(varName);
+        if (err) throw new Error(err);
         declaredVars.add(varName);
+        if (declaredVars.size > MAX_VARIABLES) {
+          throw new Error(`Program exceeds the limit of ${MAX_VARIABLES} variables.`);
+        }
         validateOperand(node.value !== undefined ? node.value : 0);
       } else if (node.type === 'var_change') {
         const varName = node.var || node.variable;
-        if (!isValidIdentifier(varName)) {
-          throw new Error(`Invalid variable name: "${varName}".`);
+        const err = getIdentifierError(varName);
+        if (err) throw new Error(err);
+        declaredVars.add(varName);
+        if (declaredVars.size > MAX_VARIABLES) {
+          throw new Error(`Program exceeds the limit of ${MAX_VARIABLES} variables.`);
         }
         if (node.amount !== undefined) {
           if (!Number.isInteger(node.amount) || node.amount < -10000 || node.amount > 10000) {
@@ -586,6 +647,15 @@ export function validateProgram(program, maxDepth = 8) {
         traverse(node.body, depth + 1);
       } else if (node.type === 'while') {
         validateCondition(node.condition, node.sensor);
+        if (node.condition && typeof node.condition === 'object' && node.condition.type === 'compare') {
+          if (typeof node.condition.left === 'string') declaredVars.add(node.condition.left);
+          else if (node.condition.left && (node.condition.left.var || node.condition.left.variable)) declaredVars.add(node.condition.left.var || node.condition.left.variable);
+          if (typeof node.condition.right === 'string') declaredVars.add(node.condition.right);
+          else if (node.condition.right && (node.condition.right.var || node.condition.right.variable)) declaredVars.add(node.condition.right.var || node.condition.right.variable);
+          if (declaredVars.size > MAX_VARIABLES) {
+            throw new Error(`Program exceeds the limit of ${MAX_VARIABLES} variables.`);
+          }
+        }
         if (!Array.isArray(node.body)) {
           throw new Error('While block must contain a body array of commands.');
         }
@@ -594,6 +664,15 @@ export function validateProgram(program, maxDepth = 8) {
         }
       } else if (node.type === 'if') {
         validateCondition(node.condition, node.sensor);
+        if (node.condition && typeof node.condition === 'object' && node.condition.type === 'compare') {
+          if (typeof node.condition.left === 'string') declaredVars.add(node.condition.left);
+          else if (node.condition.left && (node.condition.left.var || node.condition.left.variable)) declaredVars.add(node.condition.left.var || node.condition.left.variable);
+          if (typeof node.condition.right === 'string') declaredVars.add(node.condition.right);
+          else if (node.condition.right && (node.condition.right.var || node.condition.right.variable)) declaredVars.add(node.condition.right.var || node.condition.right.variable);
+          if (declaredVars.size > MAX_VARIABLES) {
+            throw new Error(`Program exceeds the limit of ${MAX_VARIABLES} variables.`);
+          }
+        }
         if (!Array.isArray(node.body)) {
           throw new Error('If block must contain a body array of commands.');
         }
@@ -722,10 +801,15 @@ export function simulate(level, program, options = {}) {
   function resolveOperand(operand) {
     if (typeof operand === 'number') {
       if (!Number.isFinite(operand)) throw new Error('Invalid numeric value.');
-      return Math.trunc(operand);
+      const intVal = Math.trunc(operand);
+      if (intVal < -10000 || intVal > 10000) {
+        throw new Error(`Value out of bounds (${intVal}). Numbers must be between -10,000 and 10,000.`);
+      }
+      return intVal;
     }
     if (typeof operand === 'string') {
-      if (!isValidIdentifier(operand)) throw new Error(`Invalid identifier: "${operand}".`);
+      const err = getIdentifierError(operand);
+      if (err) throw new Error(err);
       if (!(operand in state.variables)) {
         throw new Error(`Variable "${operand}" is used before being set.`);
       }
@@ -734,14 +818,19 @@ export function simulate(level, program, options = {}) {
     if (operand && typeof operand === 'object') {
       if (operand.type === 'var_get') {
         const vName = operand.var || operand.variable;
-        if (!isValidIdentifier(vName)) throw new Error(`Invalid identifier: "${vName}".`);
+        const err = getIdentifierError(vName);
+        if (err) throw new Error(err);
         if (!(vName in state.variables)) {
           throw new Error(`Variable "${vName}" is used before being set.`);
         }
         return state.variables[vName];
       }
       if (operand.type === 'literal') {
-        return Math.trunc(operand.value);
+        const intVal = Math.trunc(operand.value);
+        if (intVal < -10000 || intVal > 10000) {
+          throw new Error(`Value out of bounds (${intVal}). Numbers must be between -10,000 and 10,000.`);
+        }
+        return intVal;
       }
     }
     throw new Error(`Invalid operand in expression: ${JSON.stringify(operand)}`);
@@ -812,10 +901,15 @@ export function simulate(level, program, options = {}) {
 
       if (node.type === 'var_set') {
         const varName = node.var || node.variable;
-        if (!isValidIdentifier(varName)) {
-          throw new Error(`Invalid identifier: "${varName}".`);
+        const err = getIdentifierError(varName);
+        if (err) throw new Error(err);
+        if (Object.keys(state.variables).length >= MAX_VARIABLES && !(varName in state.variables)) {
+          throw new Error(`Maximum limit of ${MAX_VARIABLES} variables exceeded.`);
         }
         const val = resolveOperand(node.value !== undefined ? node.value : 0);
+        if (val < -10000 || val > 10000) {
+          throw new Error(`Variable "${varName}" out of bounds (${val}). Must be between -10,000 and 10,000.`);
+        }
         const prevVal = state.variables[varName];
         state.variables[varName] = val;
         const changeText = prevVal !== undefined
@@ -834,15 +928,17 @@ export function simulate(level, program, options = {}) {
       if (node.type === 'var_change') {
         executedVarUpdates++;
         const varName = node.var || node.variable;
-        if (!isValidIdentifier(varName)) {
-          throw new Error(`Invalid identifier: "${varName}".`);
-        }
+        const err = getIdentifierError(varName);
+        if (err) throw new Error(err);
         if (!(varName in state.variables)) {
           throw new Error(`Variable "${varName}" must be set before changing it.`);
         }
         const amount = Number.isInteger(node.amount) ? node.amount : 1;
         const prevVal = state.variables[varName];
         const newVal = prevVal + amount;
+        if (newVal < -10000 || newVal > 10000) {
+          throw new Error(`Variable "${varName}" out of bounds (${newVal}). Must be between -10,000 and 10,000.`);
+        }
         state.variables[varName] = newVal;
         const changeText = `${varName} changed from ${prevVal} to ${newVal}.`;
         const varMeta = {
