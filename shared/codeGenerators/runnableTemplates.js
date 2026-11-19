@@ -1056,11 +1056,6 @@ public:
         }
     }
 
-    void fail(const std::string& reason) {
-        crashed = true;
-        crashReason = reason;
-    }
-
     void move() {
         if (crashed) return;
         recordAction();
