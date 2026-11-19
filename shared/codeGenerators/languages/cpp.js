@@ -57,6 +57,7 @@ export function generateCpp(ast, options = {}) {
   if (globalVars.length > 0) hasVariables = true;
   const isRunnable = Boolean(options.isRunnable || options.boundedLoops);
 
+  const prototypesBuilder = new CodeBuilder('    ');
   const functionsBuilder = new CodeBuilder('    ');
   const bodyBuilder = new CodeBuilder('    ');
 
@@ -71,6 +72,17 @@ export function generateCpp(ast, options = {}) {
       }
       builder.addBlank();
     }
+  }
+
+  // Forward declarations (prototypes) for functions
+  for (const fn of functions) {
+    const paramDecls = (fn.params || []).map(p => `int ${p}`).join(', ');
+    builder.addLine(0, `void ${fn.name}(${paramDecls});`);
+    prototypesBuilder.addLine(0, `void ${fn.name}(${paramDecls});`);
+  }
+  if (functions.length > 0) {
+    builder.addBlank();
+    prototypesBuilder.addBlank();
   }
 
   // Compile function definitions first
@@ -292,6 +304,7 @@ export function generateCpp(ast, options = {}) {
     ...builder.getResult(),
     language: 'cpp',
     explanations,
+    prototypesCode: prototypesBuilder.getCode(),
     functionsCode: functionsBuilder.getCode(),
     bodyCode: bodyBuilder.getCode(),
     globalVars

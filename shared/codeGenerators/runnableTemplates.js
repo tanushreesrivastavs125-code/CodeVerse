@@ -1228,6 +1228,31 @@ public:
     }
 };
 
+static Drone drone;
+
+static std::vector<std::string> _cv_call_stack;
+static void _cv_enter_fn(const std::string& name) {
+    for (const auto& item : _cv_call_stack) {
+        if (item == name) {
+            std::string msg = "Recursion is not permitted in this stage. Function \\"" + name + "\\" cannot call itself directly or indirectly.";
+            drone.fail(msg);
+            throw std::runtime_error(msg);
+        }
+    }
+    if (_cv_call_stack.size() >= 8) {
+        std::string msg = "Maximum call stack depth (8) exceeded.";
+        drone.fail(msg);
+        throw std::runtime_error(msg);
+    }
+    _cv_call_stack.push_back(name);
+}
+
+static void _cv_exit_fn() {
+    if (!_cv_call_stack.empty()) {
+        _cv_call_stack.pop_back();
+    }
+}
+
 class CvVar {
     std::string name;
     Drone* drone;
@@ -1301,30 +1326,7 @@ public:
     }
 };
 
-static Drone drone;
-
-static std::vector<std::string> _cv_call_stack;
-static void _cv_enter_fn(const std::string& name) {
-    for (const auto& item : _cv_call_stack) {
-        if (item == name) {
-            std::string msg = "Recursion is not permitted in this stage. Function \\"" + name + "\\" cannot call itself directly or indirectly.";
-            drone.fail(msg);
-            throw std::runtime_error(msg);
-        }
-    }
-    if (_cv_call_stack.size() >= 8) {
-        std::string msg = "Maximum call stack depth (8) exceeded.";
-        drone.fail(msg);
-        throw std::runtime_error(msg);
-    }
-    _cv_call_stack.push_back(name);
-}
-
-static void _cv_exit_fn() {
-    if (!_cv_call_stack.empty()) {
-        _cv_call_stack.pop_back();
-    }
-}
+${codeRes.prototypesCode || ''}
 
 ${codeRes.globalVars && codeRes.globalVars.length ? codeRes.globalVars.map(v => `static CvVar ${v}("${v}", &drone);`).join('\n') : ''}
 
@@ -1470,9 +1472,36 @@ static void set_g_var(const char* name, int val) {
     }
     if (g_vars_count < 16) {
         strncpy(g_vars[g_vars_count].name, name, sizeof(g_vars[g_vars_count].name) - 1);
-        g_vars[g_vars_count].name[sizeof(g_vars[g_vars_count].name) - 1] = '\0';
+        g_vars[g_vars_count].name[sizeof(g_vars[g_vars_count].name) - 1] = '\\0';
         g_vars[g_vars_count].value = val;
         g_vars_count++;
+    }
+}
+
+static char g_cv_call_stack[8][64];
+static int g_cv_call_depth = 0;
+
+static void _cv_enter_fn(const char* name) {
+    for (int i = 0; i < g_cv_call_depth; i++) {
+        if (strcmp(g_cv_call_stack[i], name) == 0) {
+            snprintf(g_crash_reason, sizeof(g_crash_reason), "Recursion is not permitted in this stage. Function \\"%s\\" cannot call itself directly or indirectly.", name);
+            g_crashed = true;
+            return;
+        }
+    }
+    if (g_cv_call_depth >= 8) {
+        snprintf(g_crash_reason, sizeof(g_crash_reason), "Maximum call stack depth (8) exceeded.");
+        g_crashed = true;
+        return;
+    }
+    strncpy(g_cv_call_stack[g_cv_call_depth], name, 63);
+    g_cv_call_stack[g_cv_call_depth][63] = '\\0';
+    g_cv_call_depth++;
+}
+
+static void _cv_exit_fn(void) {
+    if (g_cv_call_depth > 0) {
+        g_cv_call_depth--;
     }
 }
 
@@ -1485,7 +1514,7 @@ typedef struct {
 static CvVar _cv_var_init(const char* name) {
     CvVar v;
     strncpy(v.name, name, sizeof(v.name) - 1);
-    v.name[sizeof(v.name) - 1] = '\0';
+    v.name[sizeof(v.name) - 1] = '\\0';
     v.initialized = false;
     v.value = 0;
     return v;
@@ -1634,36 +1663,9 @@ void drone_pulse(void) {
     }
 }
 
-static char g_cv_call_stack[8][64];
-static int g_cv_call_depth = 0;
-
-static void _cv_enter_fn(const char* name) {
-    for (int i = 0; i < g_cv_call_depth; i++) {
-        if (strcmp(g_cv_call_stack[i], name) == 0) {
-            snprintf(g_crash_reason, sizeof(g_crash_reason), "Recursion is not permitted in this stage. Function \\"%s\\" cannot call itself directly or indirectly.", name);
-            g_crashed = true;
-            return;
-        }
-    }
-    if (g_cv_call_depth >= 8) {
-        snprintf(g_crash_reason, sizeof(g_crash_reason), "Maximum call stack depth (8) exceeded.");
-        g_crashed = true;
-        return;
-    }
-    strncpy(g_cv_call_stack[g_cv_call_depth], name, 63);
-    g_cv_call_stack[g_cv_call_depth][63] = '\\0';
-    g_cv_call_depth++;
-}
-
-static void _cv_exit_fn(void) {
-    if (g_cv_call_depth > 0) {
-        g_cv_call_depth--;
-    }
-}
+${codeRes.prototypesCode || ''}
 
 ${codeRes.globalVars && codeRes.globalVars.length ? codeRes.globalVars.map(v => `static CvVar ${v};`).join('\n') : ''}
-
-${codeRes.prototypesCode || ''}
 
 ${codeRes.functionsCode || ''}
 
