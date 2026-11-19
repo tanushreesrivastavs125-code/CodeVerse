@@ -76,7 +76,9 @@ export function generateC(ast, options = {}) {
 
   // Prototypes for functions
   for (const fn of functions) {
-    const paramDecls = fn.params?.length ? fn.params.map(p => `int ${p}`).join(', ') : 'void';
+    const paramDecls = fn.params?.length
+      ? (isRunnable ? fn.params.map(p => `int _cv_param_${p}`).join(', ') : fn.params.map(p => `int ${p}`).join(', '))
+      : 'void';
     builder.addLine(0, `void ${fn.name}(${paramDecls});`);
     prototypesBuilder.addLine(0, `void ${fn.name}(${paramDecls});`);
   }
@@ -88,7 +90,9 @@ export function generateC(ast, options = {}) {
   // Function definitions
   for (const fn of functions) {
     const fnLocals = collectFunctionLocals(fn);
-    const paramDecls = fn.params?.length ? fn.params.map(p => `int ${p}`).join(', ') : 'void';
+    const paramDecls = fn.params?.length
+      ? (isRunnable ? fn.params.map(p => `int _cv_param_${p}`).join(', ') : fn.params.map(p => `int ${p}`).join(', '))
+      : 'void';
     builder.addLine(0, `void ${fn.name}(${paramDecls}) {`, fn.nodeId, {
       blockId: fn.blockId,
       type: 'fn_def',
@@ -101,6 +105,16 @@ export function generateC(ast, options = {}) {
       functionsBuilder.addLine(1, `_cv_enter_fn("${fn.name}");`);
       builder.addLine(1, 'if (g_crashed) return;');
       functionsBuilder.addLine(1, 'if (g_crashed) return;');
+
+      if (fn.params?.length) {
+        hasVariables = true;
+        for (const p of fn.params) {
+          builder.addLine(1, `CvVar ${p} = _cv_var_init("${p}");`);
+          functionsBuilder.addLine(1, `CvVar ${p} = _cv_var_init("${p}");`);
+          builder.addLine(1, `_cv_var_set(&${p}, _cv_param_${p});`);
+          functionsBuilder.addLine(1, `_cv_var_set(&${p}, _cv_param_${p});`);
+        }
+      }
     }
 
     if (fnLocals.length > 0) {
