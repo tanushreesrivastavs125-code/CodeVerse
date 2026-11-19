@@ -57,6 +57,16 @@ function detectEnvironmentToolchains() {
       const res = spawnSync(c, ['--version'], { encoding: 'utf8' });
       if (res.status === 0) {
         toolchains.cpp = { cmd: c, version: res.stdout.split('\n')[0].trim() };
+        // Pre-warm C++ standard header resolution to populate filesystem cache for cold runners
+        try {
+          spawnSync(c, ['-std=c++17', '-E', '-x', 'c++', '-'], {
+            input: '#include <iostream>\n#include <vector>\n#include <string>\n#include <map>\n#include <set>\n',
+            encoding: 'utf8',
+            timeout: 25000
+          });
+        } catch {
+          /* ignore pre-warm failure */
+        }
         break;
       }
     } catch {
@@ -70,6 +80,16 @@ function detectEnvironmentToolchains() {
       const res = spawnSync(c, ['--version'], { encoding: 'utf8' });
       if (res.status === 0) {
         toolchains.c = { cmd: c, version: res.stdout.split('\n')[0].trim() };
+        // Pre-warm C standard header resolution
+        try {
+          spawnSync(c, ['-std=c99', '-E', '-x', 'c', '-'], {
+            input: '#include <stdio.h>\n#include <string.h>\n#include <stdbool.h>\n',
+            encoding: 'utf8',
+            timeout: 20000
+          });
+        } catch {
+          /* ignore pre-warm failure */
+        }
         break;
       }
     } catch {
@@ -104,6 +124,9 @@ describe('Stage D: Multi-Language Executable Exports Compilation & Semantic Veri
     }
   });
 
+  const COMPILER_TIMEOUT_MS = process.platform === 'win32' ? 35000 : 20000;
+  const EXEC_TIMEOUT_MS = 10000;
+
   /**
    * Helper function to execute downloadable export in isolated temporary directory
    * using bounded subprocess execution and argument-based process spawning.
@@ -121,47 +144,56 @@ describe('Stage D: Multi-Language Executable Exports Compilation & Semantic Veri
       let proc;
 
       if (lang === 'javascript') {
-        proc = spawnSync(tc.cmd, [srcPath], { timeout: 10000, encoding: 'utf8' });
+        proc = spawnSync(tc.cmd, [srcPath], { timeout: EXEC_TIMEOUT_MS, encoding: 'utf8' });
       } else if (lang === 'python') {
         proc = spawnSync(tc.cmd, [srcPath], {
-          timeout: 10000,
+          timeout: EXEC_TIMEOUT_MS,
           encoding: 'utf8',
           env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1' }
         });
       } else if (lang === 'java') {
         const compile = spawnSync(tc.javacCmd, [srcPath], {
-          timeout: 12000,
+          timeout: COMPILER_TIMEOUT_MS,
           encoding: 'utf8',
           cwd: tempDir
         });
+        if (compile.error) {
+          throw new Error(`Java compilation process error:\n${compile.error.message}`);
+        }
         if (compile.status !== 0) {
-          throw new Error(`Java compilation failed:\n${compile.stderr || compile.stdout}`);
+          throw new Error(`Java compilation failed (exit code ${compile.status}):\n${compile.stderr || compile.stdout}`);
         }
         proc = spawnSync(tc.javaCmd, ['DroneMission'], {
-          timeout: 10000,
+          timeout: EXEC_TIMEOUT_MS,
           encoding: 'utf8',
           cwd: tempDir
         });
       } else if (lang === 'cpp') {
         const binPath = path.join(tempDir, process.platform === 'win32' ? 'mission.exe' : 'mission');
         const compile = spawnSync(tc.cmd, ['-std=c++17', '-O2', '-o', binPath, srcPath], {
-          timeout: 15000,
+          timeout: COMPILER_TIMEOUT_MS,
           encoding: 'utf8'
         });
-        if (compile.status !== 0) {
-          throw new Error(`C++ compilation failed:\n${compile.stderr || compile.stdout}`);
+        if (compile.error) {
+          throw new Error(`C++ compilation process error:\n${compile.error.message}`);
         }
-        proc = spawnSync(binPath, [], { timeout: 10000, encoding: 'utf8' });
+        if (compile.status !== 0) {
+          throw new Error(`C++ compilation failed (exit code ${compile.status}):\n${compile.stderr || compile.stdout}`);
+        }
+        proc = spawnSync(binPath, [], { timeout: EXEC_TIMEOUT_MS, encoding: 'utf8' });
       } else if (lang === 'c') {
         const binPath = path.join(tempDir, process.platform === 'win32' ? 'mission.exe' : 'mission');
         const compile = spawnSync(tc.cmd, ['-std=c99', '-O2', '-o', binPath, srcPath], {
-          timeout: 15000,
+          timeout: COMPILER_TIMEOUT_MS,
           encoding: 'utf8'
         });
-        if (compile.status !== 0) {
-          throw new Error(`C compilation failed:\n${compile.stderr || compile.stdout}`);
+        if (compile.error) {
+          throw new Error(`C compilation process error:\n${compile.error.message}`);
         }
-        proc = spawnSync(binPath, [], { timeout: 10000, encoding: 'utf8' });
+        if (compile.status !== 0) {
+          throw new Error(`C compilation failed (exit code ${compile.status}):\n${compile.stderr || compile.stdout}`);
+        }
+        proc = spawnSync(binPath, [], { timeout: EXEC_TIMEOUT_MS, encoding: 'utf8' });
       }
 
       if (proc.error) throw proc.error;
