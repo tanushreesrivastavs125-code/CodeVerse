@@ -388,9 +388,10 @@ Stage E: Expand the Actual Learning Game
 ### Stage E — Expand the Actual Learning Game
 - **Goal:** Broaden the curriculum beyond movement puzzles into full computational thinking.
 
-#### Stage E (Part 1) — Variables, Counters, Comparisons, and While Loops (Current)
+#### Stage E1 — Variables, Counters, Comparisons, and While Loops (Completed)
 - **Branch:** `codex/variables-while-levels`
-- **Sectors:** Append stable Levels 25–32 (District 7: *Algorithmic Core*):
+- **PR:** #34 / #36 (Merged to `main`)
+- **Sectors:** Appended stable Levels 25–32 (District 7: *Algorithmic Core*):
   - **Level 25 (Data Genesis):** Create a named variable and observe its value.
   - **Level 26 (Step Counter):** Update a variable and use a counter.
   - **Level 27 (Decision Gate):** Compare values with comparison operators (`<`, `<=`, `==`, `!=`, `>`, `>=`) and make an if/else decision.
@@ -401,19 +402,35 @@ Stage E: Expand the Actual Learning Game
   - **Level 32 (Algorithmic Master):** Independent mastery challenge applying variables, counters, comparisons, and while loops.
 - **Execution Guardrails & Language Subset:**
   - Typed AST nodes: `var_set`, `var_change`, `compare`, `while`.
-  - Strict validation: safe identifier naming (`^[a-zA-Z_][a-zA-Z0-9_]{0,31}$`, no `__proto__`), integer range check, rejection of undefined variables and unsupported operators.
-  - Deterministic evaluation without `eval()` or arbitrary JavaScript.
+  - Comprehensive identifier validation: strict allowlist regex (`^[a-zA-Z][a-zA-Z0-9_]{0,23}$`), 80+ reserved keywords across all 5 executable target languages, integer boundaries (-10,000 to 10,000).
+  - Deterministic evaluation without `eval()` or arbitrary dynamic evaluation.
   - Bounded interpreter execution budgets: max 1000 interpreter ticks, bounded loop iterations, 150 drone action limit, and friendly non-terminating loop diagnosis: *"This loop kept repeating because its condition never became false. Try updating the counter inside it."*
   - Frame-isolated Variables Watch Panel with live mutation highlight, while condition inspection, and snapshot isolation during playback.
-  - Updated multi-language code generators (Plain-English, JavaScript, Python, Java, C++, C) and bounded standalone runnable exports.
-  - Server-authoritative progression: completing Level 24 unlocks Level 25; Level 32 is the new campaign final; idempotent duplicate reward prevention preserved.
+  - Multi-language code generators (Plain-English, JavaScript, Python, Java, C++, C) and bounded standalone runnable exports.
+
+#### Stage E2 — Beginner-Friendly Functions, Parameters, and Reusable Routines (Current)
+- **Branch:** `codex/functions-parameters`
+- **Sectors:** Append stable Levels 33–38 (District 8: *Procedural Matrix*):
+  - **Level 33 (Routine Inception):** Define a named routine and call it (`requireFunction: true`).
+  - **Level 34 (Echo Corridor):** Call the same routine at least twice to demonstrate code reuse (`requireFunctionCalls: 2`).
+  - **Level 35 (Parameter Matrix):** Introduce one numeric parameter (`requireParameter: true`).
+  - **Level 36 (Modulated Strides):** Call a parameterized routine with different argument values (`requireDifferentArguments: true`).
+  - **Level 37 (Procedural Composition):** Compose routines using loops and conditionals (`requireComposedFunction: true`).
+  - **Level 38 (Procedural Architect):** Comprehensive reuse challenge integrating parameterized routines, terminal bridge activation, hazard leaps, and boss combat (`bossHealth: 3`).
+- **Semantic & Execution Model:**
+  - Program-level top-level procedure definitions collected before execution; definitions do not execute until called.
+  - Strict limits: max 5 functions, max 3 parameters per function, max call stack depth 8.
+  - Direct and indirect recursion strictly rejected both statically (AST cycle detection) and dynamically.
+  - Activation frame per call: local variables and parameters isolated to call frame; global variable reads supported; assignments inside routine mutate local frame.
+  - Blockly blocks: `cv_fn_def`, `cv_fn_def_param`, `cv_fn_call`, `cv_fn_call_param`, with synchronized identifier renaming across callers.
+  - Live Call Stack Panel: bounded depth indicator (`0/8` to `8/8`), active routine explanation banner (`"<name>" runs these instructions whenever you call it.`), caller, return point, and local variable/parameter badges.
+  - Multi-language code generators & standalone runnable templates across Plain-English, JavaScript, Python, Java, C++, and C with identical execution semantics and local state isolation.
 
 #### Later Stage E Concepts (Roadmap Queue)
 The remaining computational thinking curriculum will be delivered across subsequent targeted milestones:
-1. **Functions & Parameters (Stage E Part 2):** User-defined callable procedures, parameter passing, return values, and modular decomposition.
-2. **Arrays & Indexing (Stage E Part 3):** Sequential linear data structures, zero-indexed access, bounds checking, visible memory cells, and pointer indicators.
-3. **Searching Algorithms (Stage E Part 4):** Linear search, early termination, sorted array properties, and binary search state tracing.
-4. **Sorting Algorithms (Stage E Part 5):** Concrete compare-and-swap interactive mechanics, bubble sort, selection sort, and visual array element swaps.
-5. **Recursion & Call Stacks (Stage E Part 6):** Self-referential procedures, base cases, call frame stacking, stack overflow bounds, and unwind tracing.
+1. **Arrays & Indexing (Stage E3):** Sequential linear data structures, zero-indexed access, bounds checking, visible memory cells, and pointer indicators.
+2. **Searching Algorithms (Stage E4):** Linear search, early termination, sorted array properties, and binary search state tracing.
+3. **Sorting Algorithms (Stage E5):** Concrete compare-and-swap interactive mechanics, bubble sort, selection sort, and visual array element swaps.
+4. **Recursion & Call Stacks (Stage E6):** Self-referential procedures, base cases, call frame stacking, stack overflow bounds, and unwind tracing.
 
 

@@ -314,12 +314,14 @@ function _cv_set(drone, name, val) {
     drone.fail(msg);
     throw new Error(msg);
   }
-  if (Object.keys(drone.variables).length >= 10 && !(name in drone.variables)) {
-    const msg = 'Maximum limit of 10 variables exceeded.';
-    drone.fail(msg);
-    throw new Error(msg);
+  if (_cv_call_stack.length === 0) {
+    if (Object.keys(drone.variables).length >= 10 && !(name in drone.variables)) {
+      const msg = 'Maximum limit of 10 variables exceeded.';
+      drone.fail(msg);
+      throw new Error(msg);
+    }
+    drone.variables[name] = intVal;
   }
-  drone.variables[name] = intVal;
   return intVal;
 }
 
@@ -341,14 +343,44 @@ function _cv_change(drone, name, curVal, amount) {
     drone.fail(msg);
     throw new Error(msg);
   }
-  drone.variables[name] = nextVal;
+  if (_cv_call_stack.length === 0) {
+    drone.variables[name] = nextVal;
+  }
   return nextVal;
+}
+
+// ==========================================
+// CALL STACK & RECURSION MANAGEMENT
+// ==========================================
+const _cv_call_stack = [];
+let _cv_current_drone = null;
+
+function _cv_enter_fn(name) {
+  if (_cv_call_stack.includes(name)) {
+    const msg = \`Recursion is not permitted in this stage. Function "\${name}" cannot call itself directly or indirectly.\`;
+    if (_cv_current_drone) _cv_current_drone.fail(msg);
+    throw new Error(msg);
+  }
+  if (_cv_call_stack.length >= 8) {
+    const msg = 'Maximum call stack depth (8) exceeded.';
+    if (_cv_current_drone) _cv_current_drone.fail(msg);
+    throw new Error(msg);
+  }
+  _cv_call_stack.push(name);
+}
+
+function _cv_exit_fn() {
+  if (_cv_call_stack.length > 0) {
+    _cv_call_stack.pop();
+  }
 }
 
 // ==========================================
 // LEARNER PROGRAM ENTRY POINT
 // ==========================================
 function runLearnerProgram(drone) {
+  _cv_current_drone = drone;
+  _cv_call_stack.length = 0;
 ${codeRes.lines.map(line => '  ' + line).join('\n')}
 }
 
@@ -642,11 +674,12 @@ def _cv_set(drone, name, val):
         msg = f'Variable "{name}" out of bounds ({val}). Must be between -10,000 and 10,000.'
         drone.fail(msg)
         raise ValueError(msg)
-    if len(drone.variables) >= 10 and name not in drone.variables:
-        msg = 'Maximum limit of 10 variables exceeded.'
-        drone.fail(msg)
-        raise ValueError(msg)
-    drone.variables[name] = val
+    if len(_cv_call_stack) == 0:
+        if len(drone.variables) >= 10 and name not in drone.variables:
+            msg = 'Maximum limit of 10 variables exceeded.'
+            drone.fail(msg)
+            raise ValueError(msg)
+        drone.variables[name] = val
     return val
 
 def _cv_change(drone, name, cur_val, amount):
@@ -663,13 +696,41 @@ def _cv_change(drone, name, cur_val, amount):
         msg = f'Variable "{name}" out of bounds ({next_val}). Must be between -10,000 and 10,000.'
         drone.fail(msg)
         raise ValueError(msg)
-    drone.variables[name] = next_val
+    if len(_cv_call_stack) == 0:
+        drone.variables[name] = next_val
     return next_val
+
+# ==========================================
+# CALL STACK & RECURSION MANAGEMENT
+# ==========================================
+_cv_call_stack = []
+_cv_current_drone = None
+
+def _cv_enter_fn(name):
+    global _cv_current_drone
+    if name in _cv_call_stack:
+        msg = f'Recursion is not permitted in this stage. Function "{name}" cannot call itself directly or indirectly.'
+        if _cv_current_drone:
+            _cv_current_drone.fail(msg)
+        raise RuntimeError(msg)
+    if len(_cv_call_stack) >= 8:
+        msg = 'Maximum call stack depth (8) exceeded.'
+        if _cv_current_drone:
+            _cv_current_drone.fail(msg)
+        raise RuntimeError(msg)
+    _cv_call_stack.append(name)
+
+def _cv_exit_fn():
+    if _cv_call_stack:
+        _cv_call_stack.pop()
 
 # ==========================================
 # LEARNER PROGRAM ENTRY POINT
 # ==========================================
 def run_learner_program(drone):
+    global _cv_current_drone
+    _cv_current_drone = drone
+    _cv_call_stack.clear()
 ${codeRes.lines.map(line => '    ' + line).join('\n')}
 
 # ==========================================
@@ -832,12 +893,14 @@ ${mapLines}
                 fail(msg);
                 throw new IllegalStateException(msg);
             }
-            if (variables.size() >= 10 && !variables.containsKey(name)) {
-                String msg = "Maximum limit of 10 variables exceeded.";
-                fail(msg);
-                throw new IllegalStateException(msg);
+            if (_cv_call_stack.isEmpty()) {
+                if (variables.size() >= 10 && !variables.containsKey(name)) {
+                    String msg = "Maximum limit of 10 variables exceeded.";
+                    fail(msg);
+                    throw new IllegalStateException(msg);
+                }
+                variables.put(name, val);
             }
-            variables.put(name, val);
             return val;
         }
 
@@ -853,7 +916,9 @@ ${mapLines}
                 fail(msg);
                 throw new IllegalStateException(msg);
             }
-            variables.put(name, (int) next);
+            if (_cv_call_stack.isEmpty()) {
+                variables.put(name, (int) next);
+            }
             return (int) next;
         }
 
@@ -934,8 +999,38 @@ ${mapLines}
         }
     }
 
-    public static void runLearnerProgram(Drone drone) {
-${codeRes.lines.map(line => '        ' + line).join('\n')}
+    public static Drone drone;
+    public static List<String> _cv_call_stack = new ArrayList<>();
+
+    public static void _cv_enter_fn(String name) {
+        if (_cv_call_stack.contains(name)) {
+            String msg = "Recursion is not permitted in this stage. Function \\"" + name + "\\" cannot call itself directly or indirectly.";
+            if (drone != null) drone.fail(msg);
+            throw new IllegalStateException(msg);
+        }
+        if (_cv_call_stack.size() >= 8) {
+            String msg = "Maximum call stack depth (8) exceeded.";
+            if (drone != null) drone.fail(msg);
+            throw new IllegalStateException(msg);
+        }
+        _cv_call_stack.add(name);
+    }
+
+    public static void _cv_exit_fn() {
+        if (!_cv_call_stack.isEmpty()) {
+            _cv_call_stack.remove(_cv_call_stack.size() - 1);
+        }
+    }
+
+${codeRes.globalVars && codeRes.globalVars.length ? codeRes.globalVars.map(v => `    public static Integer ${v} = null;`).join('\n') : ''}
+
+${codeRes.functionsCode ? codeRes.functionsCode.split('\n').map(l => '    ' + l).join('\n') : ''}
+
+    public static void runLearnerProgram(Drone droneArg) {
+        drone = droneArg;
+        _cv_call_stack.clear();
+${codeRes.globalVars && codeRes.globalVars.length ? codeRes.globalVars.map(v => `        ${v} = null;`).join('\n') : ''}
+${codeRes.bodyCode ? codeRes.bodyCode.split('\n').map(line => '        ' + line).join('\n') : ''}
     }
 
     public static void main(String[] args) {
@@ -1147,13 +1242,15 @@ public:
             drone->fail(msg);
             throw std::runtime_error(msg);
         }
-        if (drone->variables.size() >= 10 && drone->variables.find(name) == drone->variables.end()) {
-            drone->fail("Maximum limit of 10 variables exceeded.");
-            throw std::runtime_error("Maximum limit of 10 variables exceeded.");
+        if (_cv_call_stack.empty()) {
+            if (drone->variables.size() >= 10 && drone->variables.find(name) == drone->variables.end()) {
+                drone->fail("Maximum limit of 10 variables exceeded.");
+                throw std::runtime_error("Maximum limit of 10 variables exceeded.");
+            }
+            drone->variables[name] = (int)val;
         }
         initialized = true;
         value = val;
-        drone->variables[name] = (int)val;
         return *this;
     }
 
@@ -1179,7 +1276,9 @@ public:
             throw std::runtime_error(msg);
         }
         value = next;
-        drone->variables[name] = (int)next;
+        if (_cv_call_stack.empty()) {
+            drone->variables[name] = (int)next;
+        }
         return *this;
     }
 
@@ -1195,17 +1294,52 @@ public:
         }
         return value;
     }
+
+    void reset() {
+        initialized = false;
+        value = 0;
+    }
 };
 
-void runLearnerProgram(Drone& drone) {
-${codeRes.lines.map(line => '    ' + line).join('\n')}
+static Drone drone;
+
+static std::vector<std::string> _cv_call_stack;
+static void _cv_enter_fn(const std::string& name) {
+    for (const auto& item : _cv_call_stack) {
+        if (item == name) {
+            std::string msg = "Recursion is not permitted in this stage. Function \\"" + name + "\\" cannot call itself directly or indirectly.";
+            drone.fail(msg);
+            throw std::runtime_error(msg);
+        }
+    }
+    if (_cv_call_stack.size() >= 8) {
+        std::string msg = "Maximum call stack depth (8) exceeded.";
+        drone.fail(msg);
+        throw std::runtime_error(msg);
+    }
+    _cv_call_stack.push_back(name);
+}
+
+static void _cv_exit_fn() {
+    if (!_cv_call_stack.empty()) {
+        _cv_call_stack.pop_back();
+    }
+}
+
+${codeRes.globalVars && codeRes.globalVars.length ? codeRes.globalVars.map(v => `static CvVar ${v}("${v}", &drone);`).join('\n') : ''}
+
+${codeRes.functionsCode || ''}
+
+void runLearnerProgram() {
+    _cv_call_stack.clear();
+${codeRes.globalVars && codeRes.globalVars.length ? codeRes.globalVars.map(v => `    ${v}.reset();`).join('\n') : ''}
+${codeRes.bodyCode ? codeRes.bodyCode.split('\n').map(line => '    ' + line).join('\n') : ''}
 }
 
 int main() {
     std::cout << "CodeVerse Drone Simulation (C++) | Sector: ${meta.title}" << std::endl;
-    Drone drone;
     try {
-        runLearnerProgram(drone);
+        runLearnerProgram();
     } catch (const std::exception& e) {
         drone.crashed = true;
         drone.crashReason = e.what();
@@ -1385,7 +1519,9 @@ static void _cv_var_set(CvVar* v, long long val) {
     }
     v->initialized = true;
     v->value = (int)val;
-    set_g_var(v->name, (int)val);
+    if (g_cv_call_depth == 0) {
+        set_g_var(v->name, (int)val);
+    }
 }
 
 static void _cv_var_change(CvVar* v, long long amount) {
@@ -1402,7 +1538,9 @@ static void _cv_var_change(CvVar* v, long long amount) {
         return;
     }
     v->value = (int)next;
-    set_g_var(v->name, (int)next);
+    if (g_cv_call_depth == 0) {
+        set_g_var(v->name, (int)next);
+    }
 }
 
 int drone_sensor(const char* name) {
@@ -1496,8 +1634,43 @@ void drone_pulse(void) {
     }
 }
 
+static char g_cv_call_stack[8][64];
+static int g_cv_call_depth = 0;
+
+static void _cv_enter_fn(const char* name) {
+    for (int i = 0; i < g_cv_call_depth; i++) {
+        if (strcmp(g_cv_call_stack[i], name) == 0) {
+            snprintf(g_crash_reason, sizeof(g_crash_reason), "Recursion is not permitted in this stage. Function \\"%s\\" cannot call itself directly or indirectly.", name);
+            g_crashed = true;
+            return;
+        }
+    }
+    if (g_cv_call_depth >= 8) {
+        snprintf(g_crash_reason, sizeof(g_crash_reason), "Maximum call stack depth (8) exceeded.");
+        g_crashed = true;
+        return;
+    }
+    strncpy(g_cv_call_stack[g_cv_call_depth], name, 63);
+    g_cv_call_stack[g_cv_call_depth][63] = '\\0';
+    g_cv_call_depth++;
+}
+
+static void _cv_exit_fn(void) {
+    if (g_cv_call_depth > 0) {
+        g_cv_call_depth--;
+    }
+}
+
+${codeRes.globalVars && codeRes.globalVars.length ? codeRes.globalVars.map(v => `static CvVar ${v};`).join('\n') : ''}
+
+${codeRes.prototypesCode || ''}
+
+${codeRes.functionsCode || ''}
+
 void run_learner_program(void) {
-${codeRes.lines.map(line => '    ' + line).join('\n')}
+    g_cv_call_depth = 0;
+${codeRes.globalVars && codeRes.globalVars.length ? codeRes.globalVars.map(v => `    ${v} = _cv_var_init("${v}");`).join('\n') : ''}
+${codeRes.bodyCode ? codeRes.bodyCode.split('\n').map(line => '    ' + line).join('\n') : ''}
 }
 
 int main(void) {

@@ -170,7 +170,33 @@ export function BlocklyEditor({
       }
     }
 
-    const handleWorkspaceChange = () => {
+    const handleWorkspaceChange = (event) => {
+      // Synchronize routine name changes across matching call blocks
+      if (
+        event &&
+        event.type === Blockly.Events.BLOCK_CHANGE &&
+        event.name === 'NAME' &&
+        event.oldValue &&
+        event.newValue &&
+        event.oldValue !== event.newValue
+      ) {
+        const changedBlock = ws.getBlockById(event.blockId);
+        if (
+          changedBlock &&
+          (changedBlock.type === 'cv_fn_def' || changedBlock.type === 'cv_fn_def_param')
+        ) {
+          const allBlocks = ws.getAllBlocks(false);
+          for (const b of allBlocks) {
+            if (
+              (b.type === 'cv_fn_call' || b.type === 'cv_fn_call_param') &&
+              b.getFieldValue('NAME') === event.oldValue
+            ) {
+              b.setFieldValue(event.newValue, 'NAME');
+            }
+          }
+        }
+      }
+
       if (ws.isDragging()) return;
 
       try {
@@ -178,9 +204,11 @@ export function BlocklyEditor({
         setCurrentAst(ast);
         setCompilationError(null);
 
-        // Check for disconnected blocks
+        // Check for disconnected blocks (excluding top-level routine definitions)
         const topBlocks = ws.getTopBlocks(false);
-        const statementStacks = topBlocks.filter((b) => !b.outputConnection);
+        const statementStacks = topBlocks.filter(
+          (b) => !b.outputConnection && b.type !== 'cv_fn_def' && b.type !== 'cv_fn_def_param'
+        );
         const looseSensors = topBlocks.filter((b) => b.outputConnection && !b.getParent());
 
         let nextWarning = null;

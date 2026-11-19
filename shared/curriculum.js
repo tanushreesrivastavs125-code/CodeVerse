@@ -184,6 +184,38 @@ export const BLOCK_DEFINITIONS = {
     description: 'Repeats all enclosed blocks as long as the specified condition remains true.',
     syntax: 'while (condition) { ... }',
     tip: 'Ensure the loop body updates a variable or state so the condition eventually becomes false.'
+  },
+  cv_fn_def: {
+    type: 'cv_fn_def',
+    name: 'Define Routine',
+    category: 'Routines',
+    description: 'Bundles a series of instructions into a reusable named routine that executes only when called.',
+    syntax: 'function name() { ... }',
+    tip: 'Define a routine once, then call it as many times as you need.'
+  },
+  cv_fn_def_param: {
+    type: 'cv_fn_def_param',
+    name: 'Define Routine with Parameter',
+    category: 'Routines',
+    description: 'Defines a routine that accepts a numeric parameter for dynamic, customizable actions.',
+    syntax: 'function name(param) { ... }',
+    tip: 'Use parameters inside repeat loops or comparisons to make routines adaptable.'
+  },
+  cv_fn_call: {
+    type: 'cv_fn_call',
+    name: 'Call Routine',
+    category: 'Routines',
+    description: 'Executes a defined routine from your main program.',
+    syntax: 'name();',
+    tip: 'Snap this into your program wherever you want to run the routine.'
+  },
+  cv_fn_call_param: {
+    type: 'cv_fn_call_param',
+    name: 'Call Routine with Argument',
+    category: 'Routines',
+    description: 'Executes a parameterized routine, supplying a specific numeric argument.',
+    syntax: 'name(argument);',
+    tip: 'Pass numbers or variable values into the parameter.'
   }
 };
 
@@ -1330,9 +1362,257 @@ function generateStageECurriculum() {
   };
 }
 
-// Populate full 32-level curriculum
+function generateStageE2Curriculum() {
+  return {
+    33: {
+      id: 33,
+      title: 'Routine Protocol',
+      zone: 'Procedural Matrix',
+      objective: 'Define routine "walkThree" and call it to guide the drone to the extraction portal.',
+      learningObjective: 'Understand named routines as reusable blocks of instructions that only run when called.',
+      newConcept: 'Named Routines (Procedures)',
+      prerequisites: ['Level 32: Algorithmic Master', 'While Loops & Variables'],
+      practisedSkills: ['Defining a routine', 'Calling a routine', 'Call stack inspection'],
+      introducedBlocks: [BLOCK_DEFINITIONS.cv_fn_def, BLOCK_DEFINITIONS.cv_fn_call],
+      allowedBlocks: ['cv_move', 'cv_left', 'cv_right', 'cv_collect', 'cv_fn_def', 'cv_fn_call'],
+      conceptExplanation: 'A routine (or procedure/function) is a named sequence of instructions bundled together. Defining a routine teaches the drone what to do, but the routine only runs when you call it with a "call routine" block.',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.floor, VISUAL_LEGEND.exit],
+      workedExample: {
+        title: 'Defining and Calling a Routine',
+        explanation: 'Define routine walkThree containing 3 move blocks, then call walkThree from main.',
+        demoLevel: { id: 'demo-33', title: 'Routine Demo', map: ['#####', '#S..G#', '#####'], direction: 0, bossHealth: 0 },
+        demoMap: ['#####', '#S..G#', '#####'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [
+          { type: 'fn_def', name: 'walkThree', params: [], body: [{ type: 'move' }, { type: 'move' }, { type: 'move' }] },
+          { type: 'fn_call', name: 'walkThree', args: [] }
+        ],
+        expectedOutcome: { passed: true, finalPosition: { x: 4, y: 1 }, collectedCount: 0 }
+      },
+      commonMistake: {
+        mistake: 'Defining a routine but forgetting to call it.',
+        correction: 'A definition only creates the routine. Add a "call routine [walkThree]" block in your main program to execute it.'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'You need to advance 3 tiles into the portal. The mission requires defining and calling a routine.' },
+        { level: 2, label: 'Helpful Concept', text: 'Drag a "define routine" block and name it walkThree. Place 3 "move" blocks inside it.' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'Below your definition, place a "call routine walkThree" block.' }
+      ],
+      postSuccessExplanation: 'walkThree runs these instructions whenever you call it. You defined your first routine and called it successfully!'
+    },
+    34: {
+      id: 34,
+      title: 'Echo Corridor',
+      zone: 'Procedural Matrix',
+      objective: 'Define reusable routine "advance" and call it at least twice to collect shards in both corridors.',
+      learningObjective: 'Apply routine reusability: write instructions once and call the routine multiple times.',
+      newConcept: 'Routine Reusability & Multiple Calls',
+      prerequisites: ['Level 33: Routine Protocol'],
+      practisedSkills: ['Routine reusability', 'Multiple calls', 'Code deduplication'],
+      introducedBlocks: [],
+      allowedBlocks: ['cv_move', 'cv_left', 'cv_right', 'cv_collect', 'cv_fn_def', 'cv_fn_call'],
+      conceptExplanation: 'The true power of routines is reusability! Instead of copying identical sequences of blocks, define a single routine and call it multiple times from different points in your program.',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.energy, VISUAL_LEGEND.floor, VISUAL_LEGEND.exit],
+      workedExample: {
+        title: 'Calling a Routine Multiple Times',
+        explanation: 'Define routine advance (move, collect, move) and call it twice to clear both corridors.',
+        demoLevel: { id: 'demo-34', title: 'Echo Demo', map: ['#####', '#SC.#', '#GC.#', '#####'], direction: 0, bossHealth: 0 },
+        demoMap: ['#####', '#SC.#', '#GC.#', '#####'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [
+          { type: 'fn_def', name: 'advance', params: [], body: [{ type: 'move' }, { type: 'collect' }, { type: 'move' }] },
+          { type: 'fn_call', name: 'advance', args: [] },
+          { type: 'right' },
+          { type: 'move' },
+          { type: 'right' },
+          { type: 'fn_call', name: 'advance', args: [] }
+        ],
+        expectedOutcome: { passed: true, finalPosition: { x: 1, y: 2 }, collectedCount: 2 }
+      },
+      commonMistake: {
+        mistake: 'Creating two separate identical routines instead of calling the same routine twice.',
+        correction: 'Use one routine definition and place two "call routine advance" blocks in your program.'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'Both corridors have a shard and need to be traversed. Notice the repeated pattern.' },
+        { level: 2, label: 'Helpful Concept', text: 'Define routine "advance" with: move, collect, move. Call it for the top corridor, navigate down, and call it again.' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'Call advance, turn right, move 2, turn right, and call advance again to extract.' }
+      ],
+      postSuccessExplanation: 'Brilliant reuse! Calling advance twice saved blocks and eliminated duplicate instructions.'
+    },
+    35: {
+      id: 35,
+      title: 'Parameter Matrix',
+      zone: 'Procedural Matrix',
+      objective: 'Define routine "march" with parameter "steps", and call it with argument 5 to advance across the corridor.',
+      learningObjective: 'Pass numeric values into routines via parameters to make them dynamic and adaptable.',
+      newConcept: 'Numeric Parameters & Pass-by-Value Arguments',
+      prerequisites: ['Level 34: Echo Corridor'],
+      practisedSkills: ['Parameter definition', 'Argument passing', 'Dynamic routine execution'],
+      introducedBlocks: [BLOCK_DEFINITIONS.cv_fn_def_param, BLOCK_DEFINITIONS.cv_fn_call_param],
+      allowedBlocks: ['cv_move', 'cv_left', 'cv_right', 'cv_repeat', 'cv_val_num', 'cv_var_get', 'cv_fn_def', 'cv_fn_def_param', 'cv_fn_call', 'cv_fn_call_param'],
+      conceptExplanation: 'Parameters allow routines to accept inputs. When calling march(5), the number 5 is passed into parameter "steps", allowing the routine to repeat movement dynamically.',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.floor, VISUAL_LEGEND.exit],
+      workedExample: {
+        title: 'Parameterized Routine Execution',
+        explanation: 'Define march with parameter steps. Call march with argument 4 to cover the distance.',
+        demoLevel: { id: 'demo-35', title: 'Parameter Demo', map: ['#######', '#S...G#', '#######'], direction: 0, bossHealth: 0 },
+        demoMap: ['#######', '#S...G#', '#######'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [
+          { type: 'fn_def', name: 'march', params: ['steps'], body: [{ type: 'repeat', count: 4, body: [{ type: 'move' }] }] },
+          { type: 'fn_call', name: 'march', args: [4] }
+        ],
+        expectedOutcome: { passed: true, finalPosition: { x: 5, y: 1 }, collectedCount: 0 }
+      },
+      commonMistake: {
+        mistake: 'Calling a parameterized routine without supplying an argument.',
+        correction: 'Ensure you snap a number block (5) into the argument socket of the "call routine with" block.'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'The corridor requires 5 steps forward. Define a parameterized routine named march.' },
+        { level: 2, label: 'Helpful Concept', text: 'Use "define routine march with parameter steps". Inside, use a repeat loop to move.' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'Call march with argument 5 to complete the traversal in one clean procedure call.' }
+      ],
+      postSuccessExplanation: 'Parameters mastered! The routine received argument 5, ran the loop 5 times, and returned to main.'
+    },
+    36: {
+      id: 36,
+      title: 'Modulated Strides',
+      zone: 'Procedural Matrix',
+      objective: 'Call parameterized routine "march" twice with different arguments (2, then 4) to navigate both straight corridors.',
+      learningObjective: 'Reuse a single routine across varying distances by modulating argument values.',
+      newConcept: 'Varying Arguments across Repeated Calls',
+      prerequisites: ['Level 35: Parameter Matrix'],
+      practisedSkills: ['Argument modulation', 'Multi-distance navigation', 'Procedural abstraction'],
+      introducedBlocks: [],
+      allowedBlocks: ['cv_move', 'cv_left', 'cv_right', 'cv_collect', 'cv_repeat', 'cv_val_num', 'cv_var_get', 'cv_fn_def', 'cv_fn_def_param', 'cv_fn_call', 'cv_fn_call_param'],
+      conceptExplanation: 'One routine, many uses! By changing the argument in each call (march with 2, then march with 4), the same routine effortlessly handles corridors of completely different lengths.',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.energy, VISUAL_LEGEND.floor, VISUAL_LEGEND.exit],
+      workedExample: {
+        title: 'Calling with Different Arguments',
+        explanation: 'Call march with 1 to reach shard, then call march with 2 to reach extraction.',
+        demoLevel: { id: 'demo-36', title: 'Modulated Demo', map: ['#####', '#SC##', '##.##', '##G##', '#####'], direction: 0, bossHealth: 0 },
+        demoMap: ['#####', '#SC##', '##.##', '##G##', '#####'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [
+          { type: 'fn_def', name: 'march', params: ['steps'], body: [
+            { type: 'var_set', variable: 'cnt', value: 0 },
+            { type: 'while', condition: { type: 'compare', left: 'cnt', op: '<', right: 'steps' }, body: [
+              { type: 'move' },
+              { type: 'var_change', variable: 'cnt', amount: 1 }
+            ]}
+          ]},
+          { type: 'fn_call', name: 'march', args: [1] },
+          { type: 'collect' },
+          { type: 'right' },
+          { type: 'fn_call', name: 'march', args: [2] }
+        ],
+        expectedOutcome: { passed: true, finalPosition: { x: 2, y: 3 }, collectedCount: 1 }
+      },
+      commonMistake: {
+        mistake: 'Hardcoding separate routines for distance 2 and distance 4.',
+        correction: 'Define one routine "march(steps)" and modulate the argument: call march(2), then call march(4).'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'First lane is 2 steps to the shard. Second lane is 4 steps down to the portal.' },
+        { level: 2, label: 'Helpful Concept', text: 'Define routine march(steps). Call march with argument 2, collect the shard, turn right, and call march with argument 4.' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'Call march(2), collect, turn right, call march(4).' }
+      ],
+      postSuccessExplanation: 'Dynamic procedures in action! One routine adapted to two different corridor lengths.'
+    },
+    37: {
+      id: 37,
+      title: 'Procedural Composition',
+      zone: 'Procedural Matrix',
+      objective: 'Compose routine "clearSection" inside a loop to leap corruption hazards and recover energy shards along the route.',
+      learningObjective: 'Combine routines with loops and conditionals to structure complex algorithms.',
+      newConcept: 'Routine Composition with Loops & Conditions',
+      prerequisites: ['Level 36: Modulated Strides', 'Repeat Loops'],
+      practisedSkills: ['Routine composition', 'Nested execution', 'Algorithmic flow'],
+      introducedBlocks: [],
+      allowedBlocks: ['cv_move', 'cv_left', 'cv_right', 'cv_jump', 'cv_collect', 'cv_repeat', 'cv_if', 'cv_fn_def', 'cv_fn_def_param', 'cv_fn_call', 'cv_fn_call_param'],
+      conceptExplanation: 'Routines can be composed cleanly inside repeat loops and if conditions. Calling a routine inside a loop repeats the entire procedure on every iteration.',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.hazard, VISUAL_LEGEND.energy, VISUAL_LEGEND.exit],
+      workedExample: {
+        title: 'Routine Called Inside a Loop',
+        explanation: 'Define vault (jump, move, collect) and call it inside a repeat loop.',
+        demoLevel: { id: 'demo-37', title: 'Composition Demo', map: ['########', '#S.H.CG#', '########'], direction: 0, bossHealth: 0 },
+        demoMap: ['########', '#S.H.CG#', '########'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [
+          { type: 'fn_def', name: 'vault', params: [], body: [{ type: 'jump' }, { type: 'move' }, { type: 'collect' }] },
+          { type: 'move' },
+          { type: 'repeat', count: 1, body: [{ type: 'fn_call', name: 'vault', args: [] }] },
+          { type: 'move' }
+        ],
+        expectedOutcome: { passed: true, finalPosition: { x: 6, y: 1 }, collectedCount: 1 }
+      },
+      commonMistake: {
+        mistake: 'Putting the repeat loop inside the routine instead of calling the routine inside the loop.',
+        correction: 'Keep the routine focused on clearing one section, then place "call clearSection" inside your repeat loop.'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'Notice the two repeating hazard-and-shard sections. Compose a routine inside a loop.' },
+        { level: 2, label: 'Helpful Concept', text: 'Define clearSection with: move, jump, move, collect. Call clearSection inside a repeat 2 loop.' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'Repeat 2 times: call clearSection. Then take 1 step into the exit portal.' }
+      ],
+      postSuccessExplanation: 'Seamless composition! Combining routines with loops creates compact, readable programs.'
+    },
+    38: {
+      id: 38,
+      title: 'Procedural Architect',
+      zone: 'Procedural Matrix',
+      objective: 'Final Chapter Mission: Deploy bridges, leap hazards, recover shards, and dismantle the guardian using parameterized routines.',
+      learningObjective: 'Integrate routines, parameters, loops, and conditions to solve a multi-phase system challenge.',
+      newConcept: 'Comprehensive Procedural Mastery',
+      prerequisites: ['Level 37: Procedural Composition', 'Guardian Combat', 'Terminal Activation'],
+      practisedSkills: ['System decomposition', 'Multiple parameterized routines', 'End-to-end procedural architecture'],
+      introducedBlocks: ['cv_pulse'],
+      allowedBlocks: ['cv_move', 'cv_left', 'cv_right', 'cv_jump', 'cv_collect', 'cv_activate', 'cv_pulse', 'cv_repeat', 'cv_while', 'cv_if', 'cv_val_num', 'cv_var_get', 'cv_var_set', 'cv_var_change', 'cv_compare', 'cv_fn_def', 'cv_fn_def_param', 'cv_fn_call', 'cv_fn_call_param'],
+      conceptExplanation: 'The ultimate procedural challenge! Decompose the mission into reusable routines: one for traversal (march), one for pulse combat (firePulses). Orchestrate them to activate terminals, leap hazards, recover energy, and defeat the guardian.',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.terminal, VISUAL_LEGEND.bridge, VISUAL_LEGEND.hazard, VISUAL_LEGEND.energy, VISUAL_LEGEND.guardian, VISUAL_LEGEND.exit],
+      workedExample: {
+        title: 'Multi-Routine Architectural Climax',
+        explanation: 'Decompose traversal and combat into separate parameterized routines.',
+        demoLevel: { id: 'demo-38', title: 'Mastery Demo', map: ['#########', '#STB.X.G#', '#########'], direction: 0, bossHealth: 1 },
+        demoMap: ['#########', '#STB.X.G#', '#########'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [
+          { type: 'fn_def', name: 'strike', params: ['pulses'], body: [{ type: 'repeat', count: 1, body: [{ type: 'pulse' }] }] },
+          { type: 'fn_def', name: 'march', params: ['steps'], body: [
+            { type: 'var_set', variable: 'c', value: 0 },
+            { type: 'while', condition: { type: 'compare', left: 'c', op: '<', right: 'steps' }, body: [
+              { type: 'move' },
+              { type: 'var_change', variable: 'c', amount: 1 }
+            ]}
+          ]},
+          { type: 'move' },
+          { type: 'activate' },
+          { type: 'fn_call', name: 'march', args: [2] },
+          { type: 'fn_call', name: 'strike', args: [1] },
+          { type: 'fn_call', name: 'march', args: [3] }
+        ],
+        expectedOutcome: { passed: true, bridgeDeployed: true, bossHP: 0, finalPosition: { x: 7, y: 1 } }
+      },
+      commonMistake: {
+        mistake: 'Trying to solve the entire complex route without defining reusable routines.',
+        correction: 'Break the route into phases: march(3) to cross the bridge, vault the breach, and firePulses(3) to dismantle the guardian shield.'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'Check off each mission phase: Activate terminal, cross bridge, jump breach, collect shard, pulse guardian 3 times, extract.' },
+        { level: 2, label: 'Helpful Concept', text: 'Define march(steps) for repeated movement and firePulses(count) for guardian combat.' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'Move, activate, call march(3), jump, move, collect, move, call firePulses(3), call march(4).' }
+      ],
+      postSuccessExplanation: '🏆 PROCEDURAL MATRIX CONQUERED! You have mastered routines, parameters, arguments, and procedural architecture. Outstanding computational mastery!'
+    }
+  };
+}
+
+// Populate full 38-level curriculum
 Object.assign(LEVEL_CURRICULUM, generateAdvancedCurriculum());
 Object.assign(LEVEL_CURRICULUM, generateStageECurriculum());
+Object.assign(LEVEL_CURRICULUM, generateStageE2Curriculum());
 
 /**
  * Returns curriculum metadata for a specific level id.
@@ -1352,7 +1632,7 @@ export function getLevelCurriculum(levelId) {
  */
 export function auditCurriculum(levelsList) {
   const errors = [];
-  const expectedCount = Array.isArray(levelsList) ? levelsList.length : 32;
+  const expectedCount = Array.isArray(levelsList) ? levelsList.length : 38;
   if (!Array.isArray(levelsList) || levelsList.length < 24) {
     errors.push(`Expected at least 24 levels in campaign list, received ${levelsList?.length}`);
   }
@@ -1400,6 +1680,78 @@ export function auditCurriculum(levelsList) {
  */
 export function diagnoseFailure(level, finalState, _program) {
   const curriculum = getLevelCurriculum(level.id);
+
+  if (finalState?.message?.includes('requires defining and calling a routine')) {
+    return {
+      diagnosis: 'Observed Mistake: A routine was defined or required, but was never executed in your program.',
+      suggestion: 'Suggestion: Add a "call routine [name]" block to your main program so the routine instructions run.',
+      hintTier: 2
+    };
+  }
+
+  if (finalState?.message?.includes('requires calling a routine at least')) {
+    return {
+      diagnosis: 'Observed Mistake: The routine was not reused enough times.',
+      suggestion: 'Suggestion: Call the routine again from another location in your program to navigate both sections.',
+      hintTier: 2
+    };
+  }
+
+  if (finalState?.message?.includes('requires defining a routine with a parameter')) {
+    return {
+      diagnosis: 'Observed Mistake: The routine was called without a parameter or argument.',
+      suggestion: 'Suggestion: Use "define routine with parameter" and supply an argument in your "call routine with" block.',
+      hintTier: 2
+    };
+  }
+
+  if (finalState?.message?.includes('at least two different argument values')) {
+    return {
+      diagnosis: 'Observed Mistake: The parameterized routine was called with identical arguments.',
+      suggestion: 'Suggestion: Modulate the argument between calls (e.g. march with 2 for lane 1, march with 4 for lane 2).',
+      hintTier: 2
+    };
+  }
+
+  if (finalState?.message?.includes('composing a routine inside a loop')) {
+    return {
+      diagnosis: 'Observed Mistake: The routine was called outside a loop or conditional block.',
+      suggestion: 'Suggestion: Drag your "call routine" block inside a repeat loop or conditional statement.',
+      hintTier: 2
+    };
+  }
+
+  if (finalState?.message?.includes('Undefined function')) {
+    return {
+      diagnosis: 'Observed Mistake: A routine was called before being defined.',
+      suggestion: 'Suggestion: Place a "define routine" block in your workspace with matching routine name.',
+      hintTier: 2
+    };
+  }
+
+  if (finalState?.message?.includes('expects') && finalState?.message?.includes('argument')) {
+    return {
+      diagnosis: 'Observed Mistake: The number of arguments passed did not match the routine definition.',
+      suggestion: 'Suggestion: Check the parameter count in your routine definition and pass the matching number of arguments.',
+      hintTier: 2
+    };
+  }
+
+  if (finalState?.message?.includes('Recursion is not permitted')) {
+    return {
+      diagnosis: 'Observed Mistake: A routine attempted to call itself directly or indirectly.',
+      suggestion: 'Suggestion: CodeVerse routines in this stage do not use recursion. Use loops instead of recursive calls.',
+      hintTier: 2
+    };
+  }
+
+  if (finalState?.message?.includes('Call stack depth limit')) {
+    return {
+      diagnosis: 'Observed Mistake: The routine call stack exceeded the maximum depth limit of 8.',
+      suggestion: 'Suggestion: Avoid deeply nested routine calls. Use loops for repeating actions.',
+      hintTier: 2
+    };
+  }
 
   if (finalState?.message?.includes('condition never became false') || finalState?.message?.includes('kept repeating')) {
     return {

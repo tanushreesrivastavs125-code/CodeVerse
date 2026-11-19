@@ -21,7 +21,7 @@ const repeat = (count, ...body) => ({ type: 'repeat', count, body });
 const ifSensor = (sensor, body, elseBody = []) => ({ type: 'if', sensor, body, elseBody });
 
 test('Level definitions and initial world state', () => {
-  assert.equal(levels.length, 32);
+  assert.equal(levels.length, 38);
   assert.equal(directions.length, 4);
   assert.deepEqual(directions[0], { x: 1, y: 0 }); // East
   assert.deepEqual(directions[1], { x: 0, y: 1 }); // South
@@ -368,12 +368,12 @@ test('Determinism: identical inputs yield identical frame snapshots', () => {
   assert.equal(run1.frames[3].x, 4);
 });
 
-test('32-level campaign structural integrity and district distribution', () => {
-  assert.equal(levels.length, 32);
+test('38-level campaign structural integrity and district distribution', () => {
+  assert.equal(levels.length, 38);
 
-  // Verify unique IDs 1..32
+  // Verify unique IDs 1..38
   const ids = levels.map((l) => l.id);
-  assert.deepEqual(ids, Array.from({ length: 32 }, (_, i) => i + 1));
+  assert.deepEqual(ids, Array.from({ length: 38 }, (_, i) => i + 1));
 
   // Verify map invariants: exactly one 'S', exactly one 'G', valid par
   for (const lvl of levels) {
@@ -385,7 +385,7 @@ test('32-level campaign structural integrity and district distribution', () => {
     assert.ok(lvl.par >= 1, `Level ${lvl.id} must have par >= 1`);
   }
 
-  // Verify districts taxonomy (7 districts)
+  // Verify districts taxonomy (8 districts)
   const districts = [
     { name: 'Neon Outskirts', slice: [0, 4], expectedCount: 4 },
     { name: 'Cipher District', slice: [4, 8], expectedCount: 4 },
@@ -393,7 +393,8 @@ test('32-level campaign structural integrity and district distribution', () => {
     { name: 'Shadow Network', slice: [12, 16], expectedCount: 4 },
     { name: 'Quantum Grid', slice: [16, 20], expectedCount: 4 },
     { name: 'Singularity', slice: [20, 24], expectedCount: 4 },
-    { name: 'Algorithmic Core', slice: [24, 32], expectedCount: 8 }
+    { name: 'Algorithmic Core', slice: [24, 32], expectedCount: 8 },
+    { name: 'Procedural Matrix', slice: [32, 38], expectedCount: 6 }
   ];
 
   for (const d of districts) {
@@ -449,7 +450,7 @@ test('Advanced sector requirements and dead branch execution guards', () => {
   assert.match(noSensorRes.message, /requires an evaluated sensor condition/);
 });
 
-test('Playable solutions for all 32 campaign levels', () => {
+test('Playable solutions for all 38 campaign levels', () => {
   const solutions1to12 = [
     [repeat(3, m)],
     [m, c, m, m, c, m],
@@ -607,10 +608,87 @@ test('Playable solutions for all 32 campaign levels', () => {
         ]
       },
       m, m, m, m, m
+    ],
+    33: [
+      { type: 'fn_def', name: 'go', params: [], body: [{ type: 'repeat', count: 3, body: [m] }] },
+      { type: 'fn_call', name: 'go', args: [] }
+    ],
+    34: [
+      { type: 'fn_def', name: 'sweep', params: [], body: [m, c, m] },
+      { type: 'fn_call', name: 'sweep', args: [] },
+      r, m, m, r,
+      { type: 'fn_call', name: 'sweep', args: [] }
+    ],
+    35: [
+      {
+        type: 'fn_def',
+        name: 'march',
+        params: ['steps'],
+        body: [
+          { type: 'var_set', variable: 'i', value: 0 },
+          {
+            type: 'while',
+            condition: { type: 'compare', left: 'i', op: '<', right: 'steps' },
+            body: [
+              m,
+              { type: 'var_change', variable: 'i', amount: 1 }
+            ]
+          }
+        ]
+      },
+      { type: 'fn_call', name: 'march', args: [5] }
+    ],
+    36: [
+      {
+        type: 'fn_def',
+        name: 'walk',
+        params: ['dist'],
+        body: [
+          { type: 'var_set', variable: 'd', value: 0 },
+          {
+            type: 'while',
+            condition: { type: 'compare', left: 'd', op: '<', right: 'dist' },
+            body: [
+              m,
+              { type: 'var_change', variable: 'd', amount: 1 }
+            ]
+          }
+        ]
+      },
+      { type: 'fn_call', name: 'walk', args: [2] },
+      c, r,
+      { type: 'fn_call', name: 'walk', args: [4] }
+    ],
+    37: [
+      { type: 'fn_def', name: 'clearSection', params: [], body: [m, j, m, c] },
+      { type: 'repeat', count: 2, body: [{ type: 'fn_call', name: 'clearSection', args: [] }] },
+      m
+    ],
+    38: [
+      {
+        type: 'fn_def',
+        name: 'strike',
+        params: ['count'],
+        body: [
+          { type: 'var_set', variable: 'k', value: 0 },
+          {
+            type: 'while',
+            condition: { type: 'compare', left: 'k', op: '<', right: 'count' },
+            body: [
+              p,
+              { type: 'var_change', variable: 'k', amount: 1 }
+            ]
+          }
+        ]
+      },
+      m, a, m, m, m, j, m, c,
+      { type: 'fn_call', name: 'strike', args: [1] },
+      { type: 'fn_call', name: 'strike', args: [2] },
+      m, m, m, m, m
     ]
   };
 
-  for (let i = 0; i < 32; i++) {
+  for (let i = 0; i < 38; i++) {
     const lvl = levels[i];
     let prog;
     if (i < 12) {
@@ -675,4 +753,67 @@ test('Stage E: Variable operations, constraints and bounded while loop simulatio
   const noWhileRes = simulate(lvl28, noWhileProg);
   assert.equal(noWhileRes.passed, false);
   assert.match(noWhileRes.message, /requires an executed while loop/);
+});
+
+test('Stage E2: Function routine execution, parameter passing, and constraints', () => {
+  // Test requireFunction constraint on Level 33
+  const lvl33 = levels[32];
+  // 1. Unused routine definition must NOT satisfy requireFunction
+  const unusedProg = [
+    { type: 'fn_def', name: 'unused', params: [], body: [m] },
+    repeat(3, m)
+  ];
+  const unusedRes = simulate(lvl33, unusedProg);
+  assert.equal(unusedRes.passed, false);
+  assert.match(unusedRes.message, /requires defining and calling a routine/);
+
+  // 2. Program with no routine fails
+  const noFnProg = [repeat(3, m)];
+  const noFnRes = simulate(lvl33, noFnProg);
+  assert.equal(noFnRes.passed, false);
+  assert.match(noFnRes.message, /requires defining and calling a routine/);
+
+  // Test requireFunctionCalls constraint on Level 34
+  const lvl34 = levels[33];
+  const singleCallProg = [
+    { type: 'fn_def', name: 'step', params: [], body: [m] },
+    { type: 'fn_call', name: 'step', args: [] },
+    c, m, r, m, m, r, m, c, m
+  ];
+  const singleCallRes = simulate(lvl34, singleCallProg);
+  assert.equal(singleCallRes.passed, false);
+  assert.match(singleCallRes.message, /requires calling a routine at least 2 times/);
+
+  // Test requireParameter constraint on Level 35
+  const lvl35 = levels[34];
+  const noParamProg = [
+    { type: 'fn_def', name: 'march', params: [], body: [repeat(5, m)] },
+    { type: 'fn_call', name: 'march', args: [] }
+  ];
+  const noParamRes = simulate(lvl35, noParamProg);
+  assert.equal(noParamRes.passed, false);
+  assert.match(noParamRes.message, /requires defining a routine with a parameter/);
+
+  // Test requireDifferentArguments constraint on Level 36
+  const lvl36 = levels[35];
+  const sameArgsProg = [
+    { type: 'fn_def', name: 'walk', params: ['dist'], body: [m] },
+    { type: 'fn_call', name: 'walk', args: [2] },
+    { type: 'fn_call', name: 'walk', args: [2] }
+  ];
+  const sameArgsRes = simulate(lvl36, sameArgsProg);
+  assert.equal(sameArgsRes.passed, false);
+  assert.match(sameArgsRes.message, /requires calling a parameterized routine with at least two different argument values/);
+
+  // Test requireComposedFunction constraint on Level 37
+  const lvl37 = levels[36];
+  const notComposedProg = [
+    { type: 'fn_def', name: 'clear', params: [], body: [m, j, m, c] },
+    { type: 'fn_call', name: 'clear', args: [] },
+    { type: 'fn_call', name: 'clear', args: [] },
+    m
+  ];
+  const notComposedRes = simulate(lvl37, notComposedProg);
+  assert.equal(notComposedRes.passed, false);
+  assert.match(notComposedRes.message, /requires composing a routine inside a loop/);
 });

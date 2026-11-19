@@ -1,5 +1,13 @@
 import { CodeBuilder } from '../codeBuilder.js';
-import { ACTION_DESCRIPTIONS, getLoopVar, formatOperand, formatCondition, collectProgramVariables } from '../helpers.js';
+import {
+  ACTION_DESCRIPTIONS,
+  getLoopVar,
+  formatOperand,
+  formatCondition,
+  collectGlobalVariables,
+  collectFunctionLocals,
+  partitionAst
+} from '../helpers.js';
 
 /**
  * Generates standard C++ from a CodeVerse AST.
@@ -39,36 +47,102 @@ export function generateCpp(ast, options = {}) {
   let hasSensor = false;
   let hasWhile = false;
   let hasVariables = false;
+  let hasFunctions = false;
   let loopGuardCounter = 0;
-  const programVars = collectProgramVariables(ast);
-  if (programVars.length > 0) hasVariables = true;
+
+  const { functions, body } = partitionAst(ast);
+  if (functions.length > 0) hasFunctions = true;
+
+  const globalVars = collectGlobalVariables(ast);
+  if (globalVars.length > 0) hasVariables = true;
   const isRunnable = Boolean(options.isRunnable || options.boundedLoops);
 
-  if (programVars.length > 0) {
+  const functionsBuilder = new CodeBuilder('    ');
+  const bodyBuilder = new CodeBuilder('    ');
+
+  if (globalVars.length > 0) {
     if (isRunnable) {
-      for (const v of programVars) {
+      for (const v of globalVars) {
         builder.addLine(0, `CvVar ${v}("${v}", &drone);`);
       }
     } else {
-      for (const v of programVars) {
+      for (const v of globalVars) {
         builder.addLine(0, `int ${v};`);
       }
       builder.addBlank();
     }
   }
 
-  function compileNodes(nodes, depth = 0, loopDepth = 0) {
+  // Compile function definitions first
+  for (const fn of functions) {
+    const fnLocals = collectFunctionLocals(fn);
+    const paramDecls = (fn.params || []).map(p => `int ${p}`).join(', ');
+    builder.addLine(0, `void ${fn.name}(${paramDecls}) {`, fn.nodeId, {
+      blockId: fn.blockId,
+      type: 'fn_def',
+      name: fn.name
+    });
+    functionsBuilder.addLine(0, `void ${fn.name}(${paramDecls}) {`);
+
+    if (isRunnable) {
+      builder.addLine(1, `_cv_enter_fn("${fn.name}");`);
+      functionsBuilder.addLine(1, `_cv_enter_fn("${fn.name}");`);
+    }
+
+    if (fnLocals.length > 0) {
+      hasVariables = true;
+      for (const v of fnLocals) {
+        if (isRunnable) {
+          builder.addLine(1, `CvVar ${v}("${v}", &drone);`);
+          functionsBuilder.addLine(1, `CvVar ${v}("${v}", &drone);`);
+        } else {
+          builder.addLine(1, `int ${v} = 0;`);
+          functionsBuilder.addLine(1, `int ${v} = 0;`);
+        }
+      }
+    }
+
+    compileNodes(builder, fn.body || [], 1, 0);
+    compileNodes(functionsBuilder, fn.body || [], 1, 0);
+
+    if (isRunnable) {
+      builder.addLine(1, `_cv_exit_fn();`);
+      functionsBuilder.addLine(1, `_cv_exit_fn();`);
+    }
+
+    builder.addLine(0, '}', fn.nodeId, {
+      blockId: fn.blockId,
+      type: 'fn_def'
+    });
+    functionsBuilder.addLine(0, '}');
+    builder.addBlank();
+    functionsBuilder.addBlank();
+  }
+
+  function compileNodes(targetBuilder, nodes, depth = 0, loopDepth = 0) {
     for (const node of nodes) {
       if (!node || typeof node !== 'object') {
         throw new Error('Invalid command node in program sequence.');
       }
 
-      if (node.type === 'repeat') {
+      if (node.type === 'fn_def') {
+        continue;
+      }
+
+      if (node.type === 'fn_call') {
+        hasFunctions = true;
+        const argsStr = (node.args || []).map(a => formatOperand(a, 'cpp', options)).join(', ');
+        targetBuilder.addLine(depth, `${node.name}(${argsStr});`, node.nodeId, {
+          blockId: node.blockId,
+          type: 'fn_call',
+          name: node.name
+        });
+      } else if (node.type === 'repeat') {
         hasLoop = true;
         const count = node.count;
-        const loopVar = getLoopVar(loopDepth, programVars);
+        const loopVar = getLoopVar(loopDepth, globalVars);
         const headerText = `for (int ${loopVar} = 0; ${loopVar} < ${count}; ++${loopVar}) {`;
-        builder.addLine(depth, headerText, node.nodeId, {
+        targetBuilder.addLine(depth, headerText, node.nodeId, {
           blockId: node.blockId,
           type: 'repeat',
           count,
@@ -76,10 +150,10 @@ export function generateCpp(ast, options = {}) {
         });
 
         if (Array.isArray(node.body) && node.body.length > 0) {
-          compileNodes(node.body, depth + 1, loopDepth + 1);
+          compileNodes(targetBuilder, node.body, depth + 1, loopDepth + 1);
         }
 
-        builder.addLine(depth, '}', node.nodeId, {
+        targetBuilder.addLine(depth, '}', node.nodeId, {
           blockId: node.blockId,
           type: 'repeat'
         });
@@ -89,23 +163,23 @@ export function generateCpp(ast, options = {}) {
         let guardVar = null;
         if (options.boundedLoops) {
           guardVar = `_cv_loop_guard_${++loopGuardCounter}`;
-          builder.addLine(depth, `int ${guardVar} = 0;`);
+          targetBuilder.addLine(depth, `int ${guardVar} = 0;`);
         }
-        builder.addLine(depth, `while (${condStr}) {`, node.nodeId, {
+        targetBuilder.addLine(depth, `while (${condStr}) {`, node.nodeId, {
           blockId: node.blockId,
           type: 'while',
           isCondition: true
         });
 
         if (options.boundedLoops && guardVar) {
-          builder.addLine(depth + 1, `if (++${guardVar} > 200) { drone.fail("This loop kept repeating because its condition never became false. Try updating the counter inside it."); break; }`);
+          targetBuilder.addLine(depth + 1, `if (++${guardVar} > 200) { drone.fail("This loop kept repeating because its condition never became false. Try updating the counter inside it."); break; }`);
         }
 
         if (Array.isArray(node.body) && node.body.length > 0) {
-          compileNodes(node.body, depth + 1, loopDepth);
+          compileNodes(targetBuilder, node.body, depth + 1, loopDepth);
         }
 
-        builder.addLine(depth, '}', node.nodeId, {
+        targetBuilder.addLine(depth, '}', node.nodeId, {
           blockId: node.blockId,
           type: 'while'
         });
@@ -113,7 +187,7 @@ export function generateCpp(ast, options = {}) {
         hasVariables = true;
         const varName = node.variable || node.var;
         const valStr = formatOperand(node.value, 'cpp', options);
-        builder.addLine(depth, `${varName} = ${valStr};`, node.nodeId, {
+        targetBuilder.addLine(depth, `${varName} = ${valStr};`, node.nodeId, {
           blockId: node.blockId,
           type: 'var_set',
           variable: varName,
@@ -124,7 +198,7 @@ export function generateCpp(ast, options = {}) {
         const varName = node.variable || node.var;
         const amt = typeof node.amount === 'number' ? node.amount : Number(formatOperand(node.amount, 'cpp', options));
         const opStr = amt < 0 ? `-= ${Math.abs(amt)}` : `+= ${amt}`;
-        builder.addLine(depth, `${varName} ${opStr};`, node.nodeId, {
+        targetBuilder.addLine(depth, `${varName} ${opStr};`, node.nodeId, {
           blockId: node.blockId,
           type: 'var_change',
           variable: varName,
@@ -134,7 +208,7 @@ export function generateCpp(ast, options = {}) {
         hasSensor = true;
         const condStr = formatCondition(node.condition, node.sensor, 'cpp', options);
         const headerText = `if (${condStr}) {`;
-        builder.addLine(depth, headerText, node.nodeId, {
+        targetBuilder.addLine(depth, headerText, node.nodeId, {
           blockId: node.blockId,
           type: 'if',
           sensor: node.sensor,
@@ -142,19 +216,19 @@ export function generateCpp(ast, options = {}) {
         });
 
         if (Array.isArray(node.body) && node.body.length > 0) {
-          compileNodes(node.body, depth + 1, loopDepth);
+          compileNodes(targetBuilder, node.body, depth + 1, loopDepth);
         }
 
         if (Array.isArray(node.elseBody) && node.elseBody.length > 0) {
-          builder.addLine(depth, '} else {', node.nodeId, {
+          targetBuilder.addLine(depth, '} else {', node.nodeId, {
             blockId: node.blockId,
             type: 'if',
             isElse: true
           });
-          compileNodes(node.elseBody, depth + 1, loopDepth);
+          compileNodes(targetBuilder, node.elseBody, depth + 1, loopDepth);
         }
 
-        builder.addLine(depth, '}', node.nodeId, {
+        targetBuilder.addLine(depth, '}', node.nodeId, {
           blockId: node.blockId,
           type: 'if'
         });
@@ -163,7 +237,7 @@ export function generateCpp(ast, options = {}) {
         if (!actionInfo) {
           throw new Error(`Unsupported command node: "${node.type}".`);
         }
-        builder.addLine(depth, `drone.${node.type}();`, node.nodeId, {
+        targetBuilder.addLine(depth, `drone.${node.type}();`, node.nodeId, {
           blockId: node.blockId,
           type: node.type
         });
@@ -171,7 +245,16 @@ export function generateCpp(ast, options = {}) {
     }
   }
 
-  compileNodes(ast, 0, 0);
+  compileNodes(builder, body, 0, 0);
+  compileNodes(bodyBuilder, body, 0, 0);
+
+  if (hasFunctions) {
+    explanations.push({
+      id: 'functions',
+      title: 'Routines and Functions in C++',
+      text: 'In C++, "void name(params)" defines a procedure. Calling the procedure passes arguments into local parameters.'
+    });
+  }
 
   if (hasLoop) {
     explanations.push({
@@ -208,6 +291,9 @@ export function generateCpp(ast, options = {}) {
   return {
     ...builder.getResult(),
     language: 'cpp',
-    explanations
+    explanations,
+    functionsCode: functionsBuilder.getCode(),
+    bodyCode: bodyBuilder.getCode(),
+    globalVars
   };
 }

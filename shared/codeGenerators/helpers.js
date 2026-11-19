@@ -263,6 +263,51 @@ export function collectProgramVariables(ast) {
 }
 
 /**
+ * Separates top-level function definition nodes from main program statement nodes.
+ *
+ * @param {Array<object>} ast
+ * @returns {{ functions: Array<object>, body: Array<object> }}
+ */
+export function partitionAst(ast) {
+  const functions = [];
+  const body = [];
+  if (Array.isArray(ast)) {
+    for (const node of ast) {
+      if (node && node.type === 'fn_def') {
+        functions.push(node);
+      } else {
+        body.push(node);
+      }
+    }
+  }
+  return { functions, body };
+}
+
+/**
+ * Collects variables referenced at the global level (outside function definitions).
+ *
+ * @param {Array<object>} ast
+ * @returns {string[]}
+ */
+export function collectGlobalVariables(ast) {
+  const { body } = partitionAst(ast);
+  return collectProgramVariables(body);
+}
+
+/**
+ * Collects local variables assigned within a function definition (excluding its parameters).
+ *
+ * @param {object} fnNode
+ * @returns {string[]}
+ */
+export function collectFunctionLocals(fnNode) {
+  if (!fnNode || !Array.isArray(fnNode.body)) return [];
+  const params = new Set(fnNode.params || []);
+  const allVars = collectProgramVariables(fnNode.body);
+  return allVars.filter(v => !params.has(v));
+}
+
+/**
  * Normalizes language identifier to canonical form.
  *
  * @param {string} lang

@@ -1,5 +1,13 @@
 import { CodeBuilder } from '../codeBuilder.js';
-import { ACTION_DESCRIPTIONS, getLoopVar, formatOperand, formatCondition, collectProgramVariables } from '../helpers.js';
+import {
+  ACTION_DESCRIPTIONS,
+  getLoopVar,
+  formatOperand,
+  formatCondition,
+  collectGlobalVariables,
+  collectFunctionLocals,
+  partitionAst
+} from '../helpers.js';
 
 /**
  * Generates idiomatic JavaScript from a CodeVerse AST.
@@ -39,20 +47,66 @@ export function generateJavaScript(ast, options = {}) {
   let hasSensor = false;
   let hasWhile = false;
   let hasVariables = false;
+  let hasFunctions = false;
   let loopGuardCounter = 0;
-  const programVars = collectProgramVariables(ast);
-  if (programVars.length > 0) hasVariables = true;
+
+  const { functions, body } = partitionAst(ast);
+  if (functions.length > 0) hasFunctions = true;
+
+  const globalVars = collectGlobalVariables(ast);
+  if (globalVars.length > 0) hasVariables = true;
   const isRunnable = Boolean(options.isRunnable || options.boundedLoops);
 
-  if (programVars.length > 0) {
+  if (globalVars.length > 0) {
     if (isRunnable) {
-      for (const v of programVars) {
+      for (const v of globalVars) {
         builder.addLine(0, `let ${v} = _cv_uninit('${v}', drone);`);
       }
     } else {
-      builder.addLine(0, `let ${programVars.join(', ')};`);
+      builder.addLine(0, `let ${globalVars.join(', ')};`);
       builder.addBlank();
     }
+  }
+
+  // Compile function definitions first
+  for (const fn of functions) {
+    const fnLocals = collectFunctionLocals(fn);
+    builder.addLine(0, `function ${fn.name}(${(fn.params || []).join(', ')}) {`, fn.nodeId, {
+      blockId: fn.blockId,
+      type: 'fn_def',
+      name: fn.name
+    });
+
+    if (isRunnable) {
+      builder.addLine(1, `_cv_enter_fn('${fn.name}');`);
+    }
+
+    if (fnLocals.length > 0) {
+      hasVariables = true;
+      if (isRunnable) {
+        for (const v of fnLocals) {
+          builder.addLine(1, `let ${v} = _cv_uninit('${v}', drone);`);
+        }
+      } else {
+        builder.addLine(1, `let ${fnLocals.join(', ')};`);
+      }
+    }
+
+    if (isRunnable) {
+      builder.addLine(1, 'try {');
+      compileNodes(fn.body || [], 2, 0);
+      builder.addLine(1, '} finally {');
+      builder.addLine(2, '_cv_exit_fn();');
+      builder.addLine(1, '}');
+    } else {
+      compileNodes(fn.body || [], 1, 0);
+    }
+
+    builder.addLine(0, '}', fn.nodeId, {
+      blockId: fn.blockId,
+      type: 'fn_def'
+    });
+    builder.addBlank();
   }
 
   function compileNodes(nodes, depth = 0, loopDepth = 0) {
@@ -61,10 +115,22 @@ export function generateJavaScript(ast, options = {}) {
         throw new Error('Invalid command node in program sequence.');
       }
 
-      if (node.type === 'repeat') {
+      if (node.type === 'fn_def') {
+        continue;
+      }
+
+      if (node.type === 'fn_call') {
+        hasFunctions = true;
+        const argsStr = (node.args || []).map(a => formatOperand(a, 'javascript', options)).join(', ');
+        builder.addLine(depth, `${node.name}(${argsStr});`, node.nodeId, {
+          blockId: node.blockId,
+          type: 'fn_call',
+          name: node.name
+        });
+      } else if (node.type === 'repeat') {
         hasLoop = true;
         const count = node.count;
-        const loopVar = getLoopVar(loopDepth, programVars);
+        const loopVar = getLoopVar(loopDepth, globalVars);
         const headerText = `for (let ${loopVar} = 0; ${loopVar} < ${count}; ${loopVar}++) {`;
         builder.addLine(depth, headerText, node.nodeId, {
           blockId: node.blockId,
@@ -187,7 +253,15 @@ export function generateJavaScript(ast, options = {}) {
     }
   }
 
-  compileNodes(ast, 0, 0);
+  compileNodes(body, 0, 0);
+
+  if (hasFunctions) {
+    explanations.push({
+      id: 'functions',
+      title: 'Routines and Functions',
+      text: 'Functions bundle instructions into reusable procedures with separate local frames. Parameters receive arguments when the function is called.'
+    });
+  }
 
   if (hasLoop) {
     explanations.push({
