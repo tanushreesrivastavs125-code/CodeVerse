@@ -248,6 +248,30 @@ export const BLOCK_DEFINITIONS = {
     description: 'Returns the total number of cells in the array.',
     syntax: 'name.length',
     tip: 'Useful for loop limits when traversing all cells from 0 to length - 1.'
+  },
+  cv_math_op: {
+    type: 'cv_math_op',
+    name: 'Arithmetic Operation',
+    category: 'Math',
+    description: 'Performs integer arithmetic (+, -, *, /) on two values.',
+    syntax: 'left + right',
+    tip: 'Division truncates toward zero (integer division).'
+  },
+  cv_midpoint: {
+    type: 'cv_midpoint',
+    name: 'Calculate Midpoint',
+    category: 'Math',
+    description: 'Calculates the integer midpoint between two indexes: Math.floor((low + high) / 2).',
+    syntax: 'mid = Math.floor((low + high) / 2);',
+    tip: 'Use to locate the middle index in binary search candidate ranges.'
+  },
+  cv_break: {
+    type: 'cv_break',
+    name: 'Break Out of Loop',
+    category: 'Control',
+    description: 'Immediately exits the innermost repeat or while loop.',
+    syntax: 'break;',
+    tip: 'Use inside a loop once you find the target item to avoid unnecessary comparisons.'
   }
 };
 
@@ -1895,11 +1919,340 @@ export function generateStageE3Curriculum() {
   };
 }
 
-// Populate full 44-level curriculum
+/**
+ * Stage E4: Beginner-friendly linear search, early termination, sorted arrays & binary search (Levels 45–50).
+ */
+function generateStageE4Curriculum() {
+  return {
+    45: {
+      id: 45,
+      title: 'Sequential Scan',
+      zone: 'Search Matrix',
+      objective: 'Inspect array "sensors" [4, 7, 2, 9] cell-by-cell to find target value 2. Set variable "found" to index 2, then step to the portal.',
+      learningObjective: 'Understand sequential inspection: testing elements in order from index 0 until a target match is found.',
+      newConcept: 'Sequential Target Search',
+      prerequisites: ['Level 40: Zero-Based Reading', 'Level 27: Value Comparisons'],
+      practisedSkills: ['Target comparison', 'Recording match index', 'Sequential inspection'],
+      introducedBlocks: [],
+      allowedBlocks: ['cv_move', 'cv_left', 'cv_right', 'cv_var_set', 'cv_var_get', 'cv_array_get', 'cv_compare', 'cv_if', 'cv_val_num', 'cv_repeat'],
+      conceptExplanation: 'Searching checks whether a target value exists within a collection. In sequential scanning, we read each cell in order (index 0, 1, 2...) and compare it with our target. When a match is found, we record its zero-based index.',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.floor, VISUAL_LEGEND.exit, VISUAL_LEGEND.wall],
+      workedExample: {
+        title: 'Sequential Target Inspection',
+        explanation: 'Inspect cells 0, 1, 2. When sensors[2] equals target 2, record found = 2 and step to extraction.',
+        demoLevel: { id: 'demo-45', title: 'Sequential Demo', map: ['######', '#S..G#', '######'], direction: 0, bossHealth: 0, requireArray: true, initialArrays: { sensors: [4, 7, 2] }, initialVariables: { target: 2, found: -1 } },
+        demoMap: ['######', '#S..G#', '######'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [
+          { type: 'var_set', variable: 'found', value: -1 },
+          { type: 'if', condition: { type: 'compare', left: { type: 'array_get', name: 'sensors', index: 0 }, op: '==', right: 'target' }, body: [{ type: 'var_set', variable: 'found', value: 0 }] },
+          { type: 'if', condition: { type: 'compare', left: { type: 'array_get', name: 'sensors', index: 1 }, op: '==', right: 'target' }, body: [{ type: 'var_set', variable: 'found', value: 1 }] },
+          { type: 'if', condition: { type: 'compare', left: { type: 'array_get', name: 'sensors', index: 2 }, op: '==', right: 'target' }, body: [{ type: 'var_set', variable: 'found', value: 2 }] },
+          { type: 'repeat', count: 3, body: [{ type: 'move' }] }
+        ],
+        expectedOutcome: { passed: true, finalPosition: { x: 4, y: 1 } }
+      },
+      commonMistake: {
+        mistake: 'Hardcoding index 2 without checking array values, or forgetting to set variable found.',
+        correction: 'Compare sensors[index] with variable target, and set found = index when they match.'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'Target is 2. Read sensors[0], sensors[1], sensors[2] to locate which cell holds 2.' },
+        { level: 2, label: 'Helpful Concept', text: 'Set found = -1. When you compare sensors[2] == target (2 == 2), update found = 2.' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'Check each cell. When sensors[2] == target, set found to 2, then step 3 times forward to portal.' }
+      ],
+      postSuccessExplanation: 'Target matched! Sequential inspection checks each index in order to locate items.'
+    },
+    46: {
+      id: 46,
+      title: 'Linear Search Protocol',
+      zone: 'Search Matrix',
+      objective: 'Implement linear search over array "data" [5, 12, 8, 21, 3] to find target 21 using a while loop and index counter "i".',
+      learningObjective: 'Automate sequential search using a while loop, counter increment, and conditional target comparison.',
+      newConcept: 'Linear Search Algorithm',
+      prerequisites: ['Level 45: Sequential Scan', 'Level 42: Array Traversal', 'Level 28: While Loops'],
+      practisedSkills: ['Loop-driven search', 'Counter progression', 'Dynamic index reading'],
+      introducedBlocks: [],
+      allowedBlocks: ['cv_move', 'cv_left', 'cv_right', 'cv_while', 'cv_var_set', 'cv_var_change', 'cv_var_get', 'cv_array_get', 'cv_array_length', 'cv_compare', 'cv_if', 'cv_val_num', 'cv_repeat'],
+      conceptExplanation: 'Manually checking individual cells does not scale to large arrays. Linear search uses a counter variable (i = 0) and a while loop (while i < length) to test data[i] == target on every iteration, updating found whenever a match occurs.',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.floor, VISUAL_LEGEND.exit, VISUAL_LEGEND.wall],
+      workedExample: {
+        title: 'Automated Linear Search Loop',
+        explanation: 'Loop through elements with index counter i. Compare data[i] with target on each iteration.',
+        demoLevel: { id: 'demo-46', title: 'Linear Search Demo', map: ['#######', '#S...G#', '#######'], direction: 0, bossHealth: 0, requireArray: true, initialArrays: { data: [5, 12, 8] }, initialVariables: { target: 12, found: -1 } },
+        demoMap: ['#######', '#S...G#', '#######'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [
+          { type: 'var_set', variable: 'i', value: 0 },
+          { type: 'var_set', variable: 'found', value: -1 },
+          {
+            type: 'while',
+            condition: { type: 'compare', left: 'i', op: '<', right: 3 },
+            body: [
+              {
+                type: 'if',
+                condition: { type: 'compare', left: { type: 'array_get', name: 'data', index: 'i' }, op: '==', right: 'target' },
+                body: [{ type: 'var_set', variable: 'found', value: 'i' }]
+              },
+              { type: 'var_change', variable: 'i', amount: 1 }
+            ]
+          },
+          { type: 'repeat', count: 4, body: [{ type: 'move' }] }
+        ],
+        expectedOutcome: { passed: true, finalPosition: { x: 5, y: 1 } }
+      },
+      commonMistake: {
+        mistake: 'Forgetting to increment counter "i" inside the while loop, causing an infinite loop.',
+        correction: 'Place "change i by 1" at the bottom of the while loop body so each cell is visited.'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'Loop through array data with counter i. Compare data[i] to target 21.' },
+        { level: 2, label: 'Helpful Concept', text: 'Set found = -1, i = 0. While i < 5: if data[i] == target then found = i; change i by 1.' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'Run the while loop to search, then move forward to the extraction portal.' }
+      ],
+      postSuccessExplanation: 'Linear search complete! By driving index inspection with a loop counter, any array length can be searched.'
+    },
+    47: {
+      id: 47,
+      title: 'Early Termination',
+      zone: 'Search Matrix',
+      objective: 'Stop searching once target 27 is found using "break out of loop". If target is absent, preserve found = -1.',
+      learningObjective: 'Understand search efficiency: stopping early when target is found (best/average case) and representing absent targets with standard sentinel value -1.',
+      newConcept: 'Early Termination (Break) & Sentinel -1',
+      prerequisites: ['Level 46: Linear Search Protocol'],
+      practisedSkills: ['Loop early exit', 'Sentinel value representation', 'Efficiency optimization'],
+      introducedBlocks: [BLOCK_DEFINITIONS.cv_break],
+      allowedBlocks: ['cv_move', 'cv_left', 'cv_right', 'cv_activate', 'cv_while', 'cv_break', 'cv_var_set', 'cv_var_change', 'cv_var_get', 'cv_array_get', 'cv_array_length', 'cv_compare', 'cv_if', 'cv_val_num', 'cv_repeat'],
+      conceptExplanation: 'Continuing to search after finding your target wastes processor cycles. The "break out of loop" command immediately exits the while loop. If the loop completes without finding the target, found remains -1, the universal programming standard for "not found".',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.terminal, VISUAL_LEGEND.bridge, VISUAL_LEGEND.exit],
+      workedExample: {
+        title: 'Linear Search with Early Exit',
+        explanation: 'Initialize found to -1. When codes[i] == target, record found = i and break out of loop immediately.',
+        demoLevel: { id: 'demo-47', title: 'Break Demo', map: ['#######', '#S...G#', '#######'], direction: 0, bossHealth: 0, requireArray: true, initialArrays: { codes: [14, 9, 27] }, initialVariables: { target: 27, found: -1 } },
+        demoMap: ['#######', '#S...G#', '#######'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [
+          { type: 'var_set', variable: 'i', value: 0 },
+          { type: 'var_set', variable: 'found', value: -1 },
+          {
+            type: 'while',
+            condition: { type: 'compare', left: 'i', op: '<', right: 3 },
+            body: [
+              {
+                type: 'if',
+                condition: { type: 'compare', left: { type: 'array_get', name: 'codes', index: 'i' }, op: '==', right: 'target' },
+                body: [
+                  { type: 'var_set', variable: 'found', value: 'i' },
+                  { type: 'break' }
+                ]
+              },
+              { type: 'var_change', variable: 'i', amount: 1 }
+            ]
+          },
+          { type: 'repeat', count: 4, body: [{ type: 'move' }] }
+        ],
+        expectedOutcome: { passed: true, finalPosition: { x: 5, y: 1 } }
+      },
+      commonMistake: {
+        mistake: 'Not placing the break block inside the if condition, causing the loop to exit on the very first iteration.',
+        correction: 'Snap "break out of loop" directly inside the if block that confirms data[i] == target.'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'Loop through array codes. When codes[i] == target, set found = i and break out of the loop.' },
+        { level: 2, label: 'Helpful Concept', text: 'Break exits immediately, avoiding unnecessary comparisons. If target is never found, found stays -1.' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'In while loop: if codes[i] == target: found = i, break. Then advance, activate terminal, and cross bridge to portal.' }
+      ],
+      postSuccessExplanation: 'Early termination verified! Halting immediately upon match saves substantial runtime.'
+    },
+    48: {
+      id: 48,
+      title: 'The Power of Order',
+      zone: 'Search Matrix',
+      objective: 'Inspect sorted array "archive" [3, 8, 15, 24, 39, 50, 72]. Compare target 39 with middle element archive[3] (24). Eliminate cells 0 to 3, set low = 4, collect shard, and extract.',
+      learningObjective: 'Understand sorted array properties: when elements are in ascending order, one comparison can discard half of the search space.',
+      newConcept: 'Sorted Arrays & Range Halving',
+      prerequisites: ['Level 47: Early Termination'],
+      practisedSkills: ['Sorted property recognition', 'Boundary adjustment', 'Range elimination'],
+      introducedBlocks: [BLOCK_DEFINITIONS.cv_math_op],
+      allowedBlocks: ['cv_move', 'cv_left', 'cv_right', 'cv_collect', 'cv_var_set', 'cv_var_get', 'cv_array_get', 'cv_compare', 'cv_if', 'cv_if_else', 'cv_math_op', 'cv_val_num', 'cv_repeat'],
+      conceptExplanation: 'In an unsorted array, any element could be anywhere, so you must inspect every cell. But in a sorted array, if target > archive[mid], the target CANNOT be in any cell at or below mid! All cells [0..mid] can be eliminated at once.',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.floor, VISUAL_LEGEND.energy, VISUAL_LEGEND.exit],
+      workedExample: {
+        title: 'Eliminating Half the Search Range',
+        explanation: 'Check archive[3] (24). Since target 39 > 24, update low bound to mid + 1 (4), discarding cells 0 to 3.',
+        demoLevel: { id: 'demo-48', title: 'Order Power Demo', map: ['########', '#S.C..G#', '########'], direction: 0, bossHealth: 0, requireArray: true, initialArrays: { archive: [3, 8, 15, 24, 39] }, initialVariables: { target: 39, low: 0, high: 4 } },
+        demoMap: ['########', '#S.C..G#', '########'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [
+          { type: 'var_set', variable: 'mid', value: 2 },
+          {
+            type: 'if',
+            condition: { type: 'compare', left: { type: 'array_get', name: 'archive', index: 'mid' }, op: '<', right: 'target' },
+            body: [
+              { type: 'var_set', variable: 'low', value: { type: 'binary_op', op: '+', left: 'mid', right: 1 } }
+            ]
+          },
+          { type: 'move' }, { type: 'move' }, { type: 'collect' },
+          { type: 'repeat', count: 3, body: [{ type: 'move' }] }
+        ],
+        expectedOutcome: { passed: true, finalPosition: { x: 6, y: 1 } }
+      },
+      commonMistake: {
+        mistake: 'Applying binary search logic to unsorted data. Without sorted order, range elimination discards valid items.',
+        correction: 'Always ensure input arrays are sorted before applying range halving techniques.'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'Middle cell archive[3] has value 24. Target is 39.' },
+        { level: 2, label: 'Helpful Concept', text: 'Since 39 > 24 and the array is sorted, 39 can only be in cells 4, 5, or 6. Set low = mid + 1 (4).' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'Set mid = 3. If archive[mid] < target: set low = mid + 1. Step forward, collect shard, and extract.' }
+      ],
+      postSuccessExplanation: 'Range halved! In sorted data, a single comparison eliminates half of all remaining candidates.'
+    },
+    49: {
+      id: 49,
+      title: 'Binary Search Matrix',
+      zone: 'Search Matrix',
+      objective: 'Implement binary search over sorted array "grid" [2, 6, 11, 19, 27, 34, 45] to locate target 19 in at most 3 comparisons! Maintain low, mid, and high bounds.',
+      learningObjective: 'Implement the full binary search algorithm using low and high bounds, integer midpoint calculation, and three-way boundary adjustment.',
+      newConcept: 'Binary Search Algorithm (O(log n))',
+      prerequisites: ['Level 48: The Power of Order'],
+      practisedSkills: ['Binary search implementation', 'Midpoint calculation', 'Logarithmic efficiency'],
+      introducedBlocks: [BLOCK_DEFINITIONS.cv_midpoint],
+      allowedBlocks: ['cv_move', 'cv_left', 'cv_right', 'cv_activate', 'cv_collect', 'cv_while', 'cv_break', 'cv_var_set', 'cv_var_change', 'cv_var_get', 'cv_array_get', 'cv_compare', 'cv_if', 'cv_if_else', 'cv_math_op', 'cv_midpoint', 'cv_val_num', 'cv_repeat'],
+      conceptExplanation: 'Binary search repeatedly divides the search space in half. Calculate mid = Math.floor((low + high) / 2). If grid[mid] == target, match found! If grid[mid] < target, set low = mid + 1. Otherwise set high = mid - 1. For length 7, binary search takes at most 3 comparisons, whereas linear search might take 7!',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.terminal, VISUAL_LEGEND.bridge, VISUAL_LEGEND.energy, VISUAL_LEGEND.exit],
+      workedExample: {
+        title: 'Full Binary Search Routine',
+        explanation: 'Maintain low and high bounds. Halve candidate range until target 19 is matched.',
+        demoLevel: { id: 'demo-49', title: 'Binary Matrix Demo', map: ['########', '#S....G#', '########'], direction: 0, bossHealth: 0, requireArray: true, initialArrays: { grid: [2, 6, 11, 19, 27] }, initialVariables: { target: 19, low: 0, high: 4, found: -1 } },
+        demoMap: ['########', '#S....G#', '########'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [
+          { type: 'var_set', variable: 'low', value: 0 },
+          { type: 'var_set', variable: 'high', value: 4 },
+          { type: 'var_set', variable: 'found', value: -1 },
+          {
+            type: 'while',
+            condition: { type: 'compare', left: 'low', op: '<=', right: 'high' },
+            body: [
+              { type: 'var_set', variable: 'mid', value: { type: 'midpoint', low: 'low', high: 'high' } },
+              {
+                type: 'if',
+                condition: { type: 'compare', left: { type: 'array_get', name: 'grid', index: 'mid' }, op: '==', right: 'target' },
+                body: [
+                  { type: 'var_set', variable: 'found', value: 'mid' },
+                  { type: 'break' }
+                ],
+                elseBody: [
+                  {
+                    type: 'if',
+                    condition: { type: 'compare', left: { type: 'array_get', name: 'grid', index: 'mid' }, op: '<', right: 'target' },
+                    body: [
+                      { type: 'var_set', variable: 'low', value: { type: 'binary_op', op: '+', left: 'mid', right: 1 } }
+                    ],
+                    elseBody: [
+                      { type: 'var_set', variable: 'high', value: { type: 'binary_op', op: '-', left: 'mid', right: 1 } }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          { type: 'repeat', count: 5, body: [{ type: 'move' }] }
+        ],
+        expectedOutcome: { passed: true, finalPosition: { x: 6, y: 1 } }
+      },
+      commonMistake: {
+        mistake: 'Using "low < high" instead of "low <= high" in the while loop condition, causing single-element ranges to be skipped.',
+        correction: 'Use "low <= high" so the loop evaluates the last remaining candidate when low equals high.'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'Keep updating low and high. Calculate mid = (low + high) / 2 each loop iteration.' },
+        { level: 2, label: 'Helpful Concept', text: 'If grid[mid] == target: found = mid, break. If grid[mid] < target: low = mid + 1. Else: high = mid - 1.' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'Run binary search while low <= high. Activate terminal, collect shard, and cross bridge to portal.' }
+      ],
+      postSuccessExplanation: 'Binary search implemented! With 3 comparisons, you searched 7 items. At scale, 1,000,000 items takes only 20 comparisons!'
+    },
+    50: {
+      id: 50,
+      title: 'Search Master Climax',
+      zone: 'Search Matrix',
+      objective: 'Final Chapter Mission: Implement binary search on sorted array "coreKeys" [1, 5, 12, 18, 25, 33, 42, 59]. Pass multi-case verification, deploy bridge, leap hazard, collect shard, and neutralize guardian!',
+      learningObjective: 'Synthesize binary search, sentinel absent handling (-1), robotic navigation, and combat mechanics into an autonomous solution.',
+      newConcept: 'Comprehensive Search Mastery',
+      prerequisites: ['Level 49: Binary Search Matrix', 'Terminal Activation', 'Guardian Combat'],
+      practisedSkills: ['Binary search mastery', 'Absent target handling', 'Multi-scenario verification', 'Autonomous problem solving'],
+      introducedBlocks: [],
+      allowedBlocks: ['cv_move', 'cv_left', 'cv_right', 'cv_jump', 'cv_collect', 'cv_activate', 'cv_pulse', 'cv_repeat', 'cv_while', 'cv_break', 'cv_if', 'cv_if_else', 'cv_val_num', 'cv_var_get', 'cv_var_set', 'cv_var_change', 'cv_compare', 'cv_array_create', 'cv_array_get', 'cv_array_set', 'cv_array_length', 'cv_math_op', 'cv_midpoint', 'cv_fn_def', 'cv_fn_def_param', 'cv_fn_call', 'cv_fn_call_param'],
+      conceptExplanation: 'The ultimate search challenge! The guardian core evaluates your binary search algorithm against multiple server test cases (targets present at start, middle, end, and absent targets). Your code must generalize to all cases!',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.terminal, VISUAL_LEGEND.bridge, VISUAL_LEGEND.hazard, VISUAL_LEGEND.energy, VISUAL_LEGEND.guardian, VISUAL_LEGEND.exit],
+      workedExample: {
+        title: 'Search Mastery Climax',
+        explanation: 'Binary search locates key index, followed by bridge deployment, hazard clearing, and guardian takedown.',
+        demoLevel: { id: 'demo-50', title: 'Climax Demo', map: ['###########', '#STB.C.X.G#', '###########'], direction: 0, bossHealth: 1, requireArray: true, initialArrays: { coreKeys: [1, 5, 12, 18] }, initialVariables: { target: 12, low: 0, high: 3, found: -1 } },
+        demoMap: ['###########', '#STB.C.X.G#', '###########'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [
+          { type: 'var_set', variable: 'low', value: 0 },
+          { type: 'var_set', variable: 'high', value: 3 },
+          { type: 'var_set', variable: 'found', value: -1 },
+          {
+            type: 'while',
+            condition: { type: 'compare', left: 'low', op: '<=', right: 'high' },
+            body: [
+              { type: 'var_set', variable: 'mid', value: { type: 'midpoint', low: 'low', high: 'high' } },
+              {
+                type: 'if',
+                condition: { type: 'compare', left: { type: 'array_get', name: 'coreKeys', index: 'mid' }, op: '==', right: 'target' },
+                body: [
+                  { type: 'var_set', variable: 'found', value: 'mid' },
+                  { type: 'break' }
+                ],
+                elseBody: [
+                  {
+                    type: 'if',
+                    condition: { type: 'compare', left: { type: 'array_get', name: 'coreKeys', index: 'mid' }, op: '<', right: 'target' },
+                    body: [
+                      { type: 'var_set', variable: 'low', value: { type: 'binary_op', op: '+', left: 'mid', right: 1 } }
+                    ],
+                    elseBody: [
+                      { type: 'var_set', variable: 'high', value: { type: 'binary_op', op: '-', left: 'mid', right: 1 } }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          { type: 'move' },
+          { type: 'activate' },
+          { type: 'repeat', count: 3, body: [{ type: 'move' }] },
+          { type: 'collect' },
+          { type: 'move' },
+          { type: 'pulse' },
+          { type: 'repeat', count: 3, body: [{ type: 'move' }] }
+        ],
+        expectedOutcome: { passed: true, bridgeDeployed: true, bossHP: 0, finalPosition: { x: 9, y: 1 } }
+      },
+      commonMistake: {
+        mistake: 'Hardcoding found = 3 instead of implementing binary search. Server test cases will fail for other targets.',
+        correction: 'Implement the general binary search algorithm so any target value is found or correctly reported as -1.'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'Implement binary search over coreKeys. Set found = mid if matched, or -1 if absent.' },
+        { level: 2, label: 'Helpful Concept', text: 'While low <= high: mid = (low + high) / 2. If matched: found = mid, break. Else adjust low or high.' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'Run binary search. Then: move, activate terminal, advance, jump hazard, collect shard, fire 3 pulses, and extract.' }
+      ],
+      postSuccessExplanation: '🏆 SEARCH MATRIX CONQUERED! You have mastered sequential search, linear search, early loop exit, sorted array properties, and logarithmic binary search. True algorithmic mastery!'
+    }
+  };
+}
+
+// Populate full 50-level curriculum
 Object.assign(LEVEL_CURRICULUM, generateAdvancedCurriculum());
 Object.assign(LEVEL_CURRICULUM, generateStageECurriculum());
 Object.assign(LEVEL_CURRICULUM, generateStageE2Curriculum());
 Object.assign(LEVEL_CURRICULUM, generateStageE3Curriculum());
+Object.assign(LEVEL_CURRICULUM, generateStageE4Curriculum());
 
 /**
  * Returns curriculum metadata for a specific level id.
@@ -1919,7 +2272,7 @@ export function getLevelCurriculum(levelId) {
  */
 export function auditCurriculum(levelsList) {
   const errors = [];
-  const expectedCount = Array.isArray(levelsList) ? levelsList.length : 44;
+  const expectedCount = Array.isArray(levelsList) ? levelsList.length : 50;
   if (!Array.isArray(levelsList) || levelsList.length < 24) {
     errors.push(`Expected at least 24 levels in campaign list, received ${levelsList?.length}`);
   }
@@ -1972,6 +2325,70 @@ export function diagnoseFailure(level, finalState, _program) {
     return {
       diagnosis: 'Observed Mistake: The sector requires creating and initializing an array, but none was created.',
       suggestion: 'Suggestion: Use the "Create Array" block (e.g. create array cells with [2, 1, 3]) at the start of your program.',
+      hintTier: 2
+    };
+  }
+
+  if (finalState?.message?.includes('requires locating the target and setting variable')) {
+    return {
+      diagnosis: 'Observed Mistake: The target was not matched or variable "found" was not set to the target index.',
+      suggestion: 'Suggestion: Compare array elements to the target variable and set variable "found" when a match occurs.',
+      hintTier: 2
+    };
+  }
+
+  if (finalState?.message?.includes('requires implementing linear search')) {
+    return {
+      diagnosis: 'Observed Mistake: Linear search was not implemented with an index counter and while loop.',
+      suggestion: 'Suggestion: Use a counter (e.g. i = 0) and while loop (while i < length) to compare data[i] with target.',
+      hintTier: 2
+    };
+  }
+
+  if (finalState?.message?.includes('requires breaking out of the loop early')) {
+    return {
+      diagnosis: 'Observed Mistake: The loop did not break early upon finding the target.',
+      suggestion: 'Suggestion: Snap the "Break Out of Loop" block inside the if condition when a match is found.',
+      hintTier: 2
+    };
+  }
+
+  if (finalState?.message?.includes('Binary search requires a sorted array')) {
+    return {
+      diagnosis: 'Observed Mistake: Binary search was attempted on an unsorted array.',
+      suggestion: 'Suggestion: Binary search relies on ascending sorted order. Check that elements are in sorted sequence.',
+      hintTier: 2
+    };
+  }
+
+  if (finalState?.message?.includes('Comparison limit exceeded') || finalState?.message?.includes('Binary search comparison budget exceeded')) {
+    return {
+      diagnosis: `Observed Mistake: ${finalState.message}`,
+      suggestion: 'Suggestion: Ensure you update both low = mid + 1 and high = mid - 1 correctly to halve the search range.',
+      hintTier: 2
+    };
+  }
+
+  if (finalState?.message?.includes('Challenge evaluation failed')) {
+    return {
+      diagnosis: `Observed Mistake: ${finalState.message}`,
+      suggestion: 'Suggestion: Make sure your search algorithm handles both present targets and absent targets (returning -1).',
+      hintTier: 2
+    };
+  }
+
+  if (finalState?.message?.includes('Division by zero')) {
+    return {
+      diagnosis: 'Observed Mistake: Division by zero encountered during arithmetic.',
+      suggestion: 'Suggestion: Check your divisor expression and ensure it cannot evaluate to 0.',
+      hintTier: 2
+    };
+  }
+
+  if (finalState?.message?.includes('The break command can only be used inside a loop')) {
+    return {
+      diagnosis: 'Observed Mistake: A break block was placed outside of any repeat or while loop.',
+      suggestion: 'Suggestion: Move the break block inside the body of a repeat or while loop.',
       hintTier: 2
     };
   }

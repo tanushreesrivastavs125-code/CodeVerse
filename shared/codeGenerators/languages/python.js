@@ -273,6 +273,11 @@ export function generatePython(ast, options = {}) {
           });
           compileNodes(node.elseBody, depth + 1, loopDepth);
         }
+      } else if (node.type === 'break') {
+        builder.addLine(depth, 'break', node.nodeId, {
+          blockId: node.blockId,
+          type: 'break'
+        });
       } else {
         const actionInfo = ACTION_DESCRIPTIONS[node.type];
         if (!actionInfo) {

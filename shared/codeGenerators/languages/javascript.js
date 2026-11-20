@@ -295,6 +295,11 @@ export function generateJavaScript(ast, options = {}) {
           blockId: node.blockId,
           type: 'if'
         });
+      } else if (node.type === 'break') {
+        builder.addLine(depth, 'break;', node.nodeId, {
+          blockId: node.blockId,
+          type: 'break'
+        });
       } else {
         const actionInfo = ACTION_DESCRIPTIONS[node.type];
         if (!actionInfo) {

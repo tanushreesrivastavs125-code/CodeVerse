@@ -193,6 +193,12 @@ export function generatePlainEnglish(ast, options = {}) {
           type: 'fn_call',
           name: node.name
         });
+      } else if (node.type === 'break') {
+        const text = `${fullPrefix}Break out of loop`;
+        builder.addLine(depth, text, node.nodeId, {
+          blockId: node.blockId,
+          type: 'break'
+        });
       } else {
         const actionInfo = ACTION_DESCRIPTIONS[node.type];
         if (!actionInfo) {

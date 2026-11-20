@@ -451,6 +451,58 @@ export function registerCodeVerseBlocks() {
       output: 'Number',
       colour: 35,
       tooltip: 'Array Length: Returns the number of cells in the array.\nWhen to use: In loop conditions like i < length of cells.\nSyntax: cells.length'
+    },
+    {
+      type: 'cv_break',
+      message0: 'break out of loop',
+      previousStatement: null,
+      nextStatement: null,
+      colour: 245,
+      tooltip: 'Break: Terminate the innermost enclosing repeat or while loop immediately.\nWhen to use: When target is found and further searching is unnecessary.\nSyntax: break;'
+    },
+    {
+      type: 'cv_math_op',
+      message0: '%1 %2 %3',
+      args0: [
+        {
+          type: 'input_value',
+          name: 'LEFT'
+        },
+        {
+          type: 'field_dropdown',
+          name: 'OP',
+          options: [
+            ['+', '+'],
+            ['-', '-'],
+            ['*', '*'],
+            ['/', '/']
+          ]
+        },
+        {
+          type: 'input_value',
+          name: 'RIGHT'
+        }
+      ],
+      output: 'Number',
+      colour: 230,
+      tooltip: 'Arithmetic Operation: Perform addition (+), subtraction (-), multiplication (*), or integer division (/).\nWhen to use: To calculate midpoint or increment/decrement search bounds.\nSyntax: left + right'
+    },
+    {
+      type: 'cv_midpoint',
+      message0: 'midpoint ( %1 + %2 ) / 2',
+      args0: [
+        {
+          type: 'input_value',
+          name: 'LOW'
+        },
+        {
+          type: 'input_value',
+          name: 'HIGH'
+        }
+      ],
+      output: 'Number',
+      colour: 230,
+      tooltip: 'Calculate Midpoint: Computes integer midpoint Math.trunc((low + high) / 2).\nWhen to use: In binary search to test the middle element.\nSyntax: Math.trunc((low + high) / 2)'
     }
   ];
 
@@ -576,7 +628,9 @@ export const gameToolbox = {
       contents: [
         { kind: 'block', type: 'cv_var_set' },
         { kind: 'block', type: 'cv_var_change' },
-        { kind: 'block', type: 'cv_var_get' }
+        { kind: 'block', type: 'cv_var_get' },
+        { kind: 'block', type: 'cv_math_op' },
+        { kind: 'block', type: 'cv_midpoint' }
       ]
     },
     {
@@ -584,6 +638,7 @@ export const gameToolbox = {
       name: 'Control',
       colour: '#8b5cf6',
       contents: [
+        { kind: 'block', type: 'cv_break' },
         { kind: 'block', type: 'cv_repeat' },
         {
           kind: 'block',
@@ -745,7 +800,8 @@ export function getToolboxForLevel(level, showAll = false) {
       if (item.type === 'controls_repeat_ext' && allowed.has('cv_repeat')) return true;
       if (item.type === 'controls_if' && (allowed.has('cv_if') || allowed.has('cv_if_else'))) return true;
       // Allow math_number if cv_compare, cv_var_set, cv_array_get, or cv_array_set is allowed
-      if (item.type === 'math_number' && (allowed.has('cv_compare') || allowed.has('cv_var_set') || allowed.has('cv_var_change') || allowed.has('cv_fn_call_param') || allowed.has('cv_val_num') || allowed.has('cv_array_get') || allowed.has('cv_array_set'))) return true;
+      if (item.type === 'math_number' && (allowed.has('cv_compare') || allowed.has('cv_var_set') || allowed.has('cv_var_change') || allowed.has('cv_fn_call_param') || allowed.has('cv_val_num') || allowed.has('cv_array_get') || allowed.has('cv_array_set') || allowed.has('cv_math_op') || allowed.has('cv_midpoint'))) return true;
+      if (item.type === 'cv_var_get' && (allowed.has('cv_var_get') || allowed.has('cv_compare') || allowed.has('cv_math_op') || allowed.has('cv_midpoint'))) return true;
       return false;
     });
 

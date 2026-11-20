@@ -611,6 +611,79 @@ describe('Stage D: Multi-Language Executable Exports Compilation & Semantic Veri
           body: [{ type: 'move' }]
         }
       ]
+    },
+    {
+      name: 'Linear search with early break on match',
+      level: levels[0],
+      program: [
+        { type: 'array_init', name: 'search_items', values: [15, 28, 42, 57] },
+        { type: 'var_set', variable: 'target_val', value: 42 },
+        { type: 'var_set', variable: 'found_idx', value: -1 },
+        { type: 'var_set', variable: 'k', value: 0 },
+        {
+          type: 'while',
+          condition: { type: 'compare', left: 'k', op: '<', right: 4 },
+          body: [
+            {
+              type: 'if',
+              condition: { type: 'compare', left: { type: 'array_get', name: 'search_items', index: 'k' }, op: '==', right: 'target_val' },
+              body: [
+                { type: 'var_set', variable: 'found_idx', value: 'k' },
+                { type: 'break' }
+              ]
+            },
+            { type: 'var_change', variable: 'k', amount: 1 }
+          ]
+        },
+        {
+          type: 'if',
+          condition: { type: 'compare', left: 'found_idx', op: '==', right: 2 },
+          body: [{ type: 'move' }]
+        }
+      ]
+    },
+    {
+      name: 'Binary search with midpoint calculation',
+      level: levels[0],
+      program: [
+        { type: 'array_init', name: 'sorted_seq', values: [3, 9, 14, 27, 38, 49, 61] },
+        { type: 'var_set', variable: 'b_target', value: 38 },
+        { type: 'var_set', variable: 'b_low', value: 0 },
+        { type: 'var_set', variable: 'b_high', value: 6 },
+        { type: 'var_set', variable: 'b_found', value: -1 },
+        {
+          type: 'while',
+          condition: { type: 'compare', left: 'b_low', op: '<=', right: 'b_high' },
+          body: [
+            { type: 'var_set', variable: 'b_mid', value: { type: 'midpoint', low: 'b_low', high: 'b_high' } },
+            {
+              type: 'if',
+              condition: { type: 'compare', left: { type: 'array_get', name: 'sorted_seq', index: 'b_mid' }, op: '==', right: 'b_target' },
+              body: [
+                { type: 'var_set', variable: 'b_found', value: 'b_mid' },
+                { type: 'break' }
+              ],
+              elseBody: [
+                {
+                  type: 'if',
+                  condition: { type: 'compare', left: { type: 'array_get', name: 'sorted_seq', index: 'b_mid' }, op: '<', right: 'b_target' },
+                  body: [
+                    { type: 'var_set', variable: 'b_low', value: { type: 'binary_op', op: '+', left: 'b_mid', right: 1 } }
+                  ],
+                  elseBody: [
+                    { type: 'var_set', variable: 'b_high', value: { type: 'binary_op', op: '-', left: 'b_mid', right: 1 } }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          type: 'if',
+          condition: { type: 'compare', left: 'b_found', op: '==', right: 4 },
+          body: [{ type: 'move' }]
+        }
+      ]
     }
   ];
 
