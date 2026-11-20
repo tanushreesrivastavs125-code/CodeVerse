@@ -506,5 +506,74 @@ describe('Campaign & Game API Contracts (/api/game)', () => {
       assert.equal(testUser.totalXp, 100);
       assert.equal(testUser.coins, 25);
     });
+
+    test('GET /api/game/levels never exposes private searchCases fixtures', async () => {
+      mock.method(CampaignProgress, 'find', () => ({
+        lean: async () => []
+      }));
+
+      const res = await fetch(`${baseUrl}/api/game/levels`, {
+        headers: { Authorization: `Bearer ${authToken}` }
+      });
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.equal(body.success, true);
+      assert.equal(body.data.length, levels.length);
+      for (const lvl of body.data) {
+        assert.equal(lvl.searchCases, undefined, `Level ${lvl.id} must not leak private searchCases in API response`);
+      }
+    });
+
+    test('POST /api/game/levels/47/run rejects program that passes primary map but crashes during assessment', async () => {
+      mock.method(CampaignProgress, 'exists', async () => true);
+      mock.method(User, 'findById', async () => testUser);
+      mock.method(CampaignAttempt, 'create', async () => ({}));
+
+      // Program that passes primary mission, but accesses index 4:
+      // valid on primary level (length 5), but crashes on shorter test fixture (length 3)
+      const crashingProgram = [
+        { type: 'var_set', variable: 'i', value: 0 },
+        { type: 'var_set', variable: 'found', value: -1 },
+        {
+          type: 'while',
+          condition: { type: 'compare', left: 'i', op: '<', right: 5 },
+          body: [
+            {
+              type: 'if',
+              condition: { type: 'compare', left: { type: 'array_get', name: 'codes', index: 'i' }, op: '==', right: 'target' },
+              body: [
+                { type: 'var_set', variable: 'found', value: 'i' },
+                { type: 'break' }
+              ]
+            },
+            { type: 'var_change', variable: 'i', amount: 1 }
+          ]
+        },
+        { type: 'move' },
+        { type: 'activate' },
+        { type: 'move' },
+        { type: 'move' },
+        { type: 'move' },
+        { type: 'move' },
+        { type: 'move' },
+        { type: 'var_set', variable: 'temp', value: { type: 'array_get', name: 'codes', index: 4 } }
+      ];
+
+      const res = await fetch(`${baseUrl}/api/game/levels/47/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ program: crashingProgram })
+      });
+
+      const body = await res.json();
+      assert.equal(res.status, 200);
+      assert.equal(body.success, true);
+      assert.equal(body.data.passed, false, 'Crashing assessment must fail run');
+      assert.equal(body.data.stars, 0, 'No stars must be awarded for failed assessment');
+      assert.equal(body.data.unlockedNext, false, 'Next level must not unlock for failed assessment');
+      assert.equal(body.data.earned.xp, 0);
+      assert.equal(body.data.earned.coins, 0);
+      assert.match(body.data.message, /Assessment failed/i);
+    });
   });
 });

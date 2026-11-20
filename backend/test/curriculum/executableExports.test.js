@@ -684,6 +684,57 @@ describe('Stage D: Multi-Language Executable Exports Compilation & Semantic Veri
           body: [{ type: 'move' }]
         }
       ]
+    },
+    {
+      name: 'Integer division truncation toward zero with positive and negative operands',
+      level: levels[0],
+      program: [
+        { type: 'var_set', variable: 'p_div', value: { type: 'binary_op', op: '/', left: 7, right: 2 } },
+        { type: 'var_set', variable: 'n_div', value: { type: 'binary_op', op: '/', left: -3, right: 2 } },
+        { type: 'var_set', variable: 'rn_div', value: { type: 'binary_op', op: '/', left: 3, right: -2 } },
+        { type: 'var_set', variable: 'nn_div', value: { type: 'binary_op', op: '/', left: -3, right: -2 } },
+        { type: 'var_set', variable: 'z_div', value: { type: 'binary_op', op: '/', left: 0, right: 5 } },
+        {
+          type: 'if',
+          condition: { type: 'compare', left: 'n_div', op: '==', right: -1 },
+          body: [{ type: 'move' }]
+        }
+      ]
+    },
+    {
+      name: 'Midpoint arithmetic with odd sums, mixed signs, and boundaries',
+      level: levels[0],
+      program: [
+        { type: 'var_set', variable: 'm_odd', value: { type: 'midpoint', low: 0, high: 7 } },
+        { type: 'var_set', variable: 'm_neg', value: { type: 'midpoint', low: -3, high: 0 } },
+        { type: 'var_set', variable: 'm_both_neg', value: { type: 'midpoint', low: -5, high: -2 } },
+        { type: 'var_set', variable: 'm_bound', value: { type: 'midpoint', low: -10000, high: 10000 } },
+        {
+          type: 'if',
+          condition: { type: 'compare', left: 'm_neg', op: '==', right: -1 },
+          body: [{ type: 'move' }]
+        }
+      ]
+    },
+    {
+      name: 'Division by zero rejected at runtime across all targets',
+      level: levels[0],
+      expectCrash: true,
+      expectedReason: 'Division by zero is not allowed',
+      program: [
+        { type: 'var_set', variable: 'bad_div', value: { type: 'binary_op', op: '/', left: 10, right: 0 } }
+      ]
+    },
+    {
+      name: 'Arithmetic overflow beyond 10000 boundary rejected',
+      level: levels[0],
+      expectCrash: true,
+      expectedReason: 'out of bounds',
+      program: [
+        { type: 'var_set', variable: 'big_a', value: 8000 },
+        { type: 'var_set', variable: 'big_b', value: 3000 },
+        { type: 'var_set', variable: 'over_val', value: { type: 'binary_op', op: '+', left: 'big_a', right: 'big_b' } }
+      ]
     }
   ];
 

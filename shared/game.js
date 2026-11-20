@@ -615,13 +615,7 @@ export const levels = [
       requireBreak: true,
       requireSearchExit: true,
       initialArrays: { codes: [14, 9, 27, 42, 6] },
-      initialVariables: { target: 27, found: -1 },
-      searchCases: [
-        { target: 27, expectedFound: 2 },
-        { target: 99, expectedFound: -1 },
-        { target: 14, expectedFound: 0 },
-        { target: 6, expectedFound: 4 }
-      ]
+      initialVariables: { target: 27, found: -1 }
     }
   ),
   createLevel(
@@ -683,15 +677,7 @@ export const levels = [
       requireSortedArray: true,
       requireSearchMastery: true,
       initialArrays: { coreKeys: [1, 5, 12, 18, 25, 33, 42, 59] },
-      initialVariables: { target: 18, low: 0, high: 7, found: -1 },
-      searchCases: [
-        { target: 18, expectedFound: 3 },
-        { target: 1, expectedFound: 0 },
-        { target: 59, expectedFound: 7 },
-        { target: 20, expectedFound: -1 },
-        { target: 0, expectedFound: -1 },
-        { target: 99, expectedFound: -1 }
-      ]
+      initialVariables: { target: 18, low: 0, high: 7, found: -1 }
     }
   )
 ];
@@ -1586,6 +1572,9 @@ export function simulate(level, program, options = {}) {
         const arrName = node.name || node.array;
         const err = getIdentifierError(arrName);
         if (err) throw new Error(err);
+        if (options.readOnlyArrays && options.readOnlyArrays.includes(arrName)) {
+          throw new Error(`Cannot re-initialize input array "${arrName}".`);
+        }
 
         if (Object.keys(state.arrays).length >= MAX_ARRAYS && !(arrName in state.arrays)) {
           throw new Error(`Maximum limit of ${MAX_ARRAYS} arrays exceeded.`);
@@ -1769,6 +1758,9 @@ export function simulate(level, program, options = {}) {
         const varName = node.var || node.variable;
         const err = getIdentifierError(varName);
         if (err) throw new Error(err);
+        if (options.readOnlyVariables && options.readOnlyVariables.includes(varName)) {
+          throw new Error(`Cannot modify input variable "${varName}".`);
+        }
         const val = resolveOperand(node.value !== undefined ? node.value : 0, loopDepth);
         if (val < -10000 || val > 10000) {
           throw new Error(`Variable "${varName}" out of bounds (${val}). Must be between -10,000 and 10,000.`);
@@ -1815,6 +1807,9 @@ export function simulate(level, program, options = {}) {
         const varName = node.var || node.variable;
         const err = getIdentifierError(varName);
         if (err) throw new Error(err);
+        if (options.readOnlyVariables && options.readOnlyVariables.includes(varName)) {
+          throw new Error(`Cannot modify input variable "${varName}".`);
+        }
         const amount = Number.isInteger(node.amount) ? node.amount : 1;
 
         if (callStack.length > 0) {
@@ -1987,7 +1982,7 @@ export function simulate(level, program, options = {}) {
         const target = ahead(distance);
         const targetTile = tile(target.x, target.y);
 
-        if (blocked(target.x, target.y) || targetTile === 'H') {
+        if (!options.isAssessmentCase && (blocked(target.x, target.y) || targetTile === 'H')) {
           state.health = Math.max(0, state.health - 1);
           const isHazard = targetTile === 'H';
           snapshot(
@@ -2097,15 +2092,15 @@ export function simulate(level, program, options = {}) {
       ? 'This sector requires locating the target and setting variable "found" to its index.'
       : level.requireLinearSearch && (executedArrayReads === 0 || executedWhileLoops === 0)
       ? 'This sector requires implementing linear search using an index counter and comparisons inside a while loop.'
-      : level.requireBreak && executedBreaks === 0
+      : level.requireBreak && executedBreaks === 0 && (!options.isAssessmentCase || Object.values(state.arrays).some(arr => arr.includes(state.variables.target)))
       ? 'This sector requires breaking out of the loop early once the target is found.'
-      : level.requireSearchExit && executedBreaks === 0
+      : level.requireSearchExit && executedBreaks === 0 && (!options.isAssessmentCase || Object.values(state.arrays).some(arr => arr.includes(state.variables.target)))
       ? 'This sector requires breaking out of the loop early once the target is found.'
       : level.requireBinarySearch && (executedWhileLoops === 0 || executedComparisons === 0)
       ? 'This sector requires implementing binary search using low, mid, and high bounds.'
       : level.requireSearchMastery && (executedWhileLoops === 0 || executedComparisons === 0)
       ? 'This sector requires implementing binary search to find target keys and dismantle the guardian.'
-      : level.maxComparisons && executedComparisons > level.maxComparisons
+      : !options.isAssessmentCase && level.maxComparisons && executedComparisons > level.maxComparisons
       ? `Comparison limit exceeded: ${executedComparisons}/${level.maxComparisons}. Binary search should narrow the range faster.`
       : level.requireFunction && (executedFunctionCalls === 0 || executedFunctions.size === 0)
       ? 'This sector requires defining and calling a routine.'
@@ -2133,55 +2128,14 @@ export function simulate(level, program, options = {}) {
       ? `Action limit exceeded: ${state.steps}/${level.maxActions}. Plan a more efficient route.`
       : '';
 
+  const isAssessment = Boolean(options.isAssessmentCase);
   const reachedGoal = tile(state.x, state.y) === 'G';
   const collectedAll = state.collected.length === totalEnergy;
   const bossDefeated = state.bossHP === 0;
-  let passed = !stopped && !constraintMessage && reachedGoal && collectedAll && bossDefeated;
-
-  if (passed && !options.isTestCase && Array.isArray(level.searchCases) && level.searchCases.length > 0) {
-    for (const tc of level.searchCases) {
-      const tcState = simulate(level, program, {
-        ...options,
-        isTestCase: true,
-        initialVariablesOverride: {
-          target: tc.target,
-          found: -1,
-          low: 0,
-          high: (level.initialArrays ? Object.values(level.initialArrays)[0].length - 1 : 0)
-        }
-      });
-      const studentFound = tcState.state.variables.found ?? tcState.state.variables.result;
-      if (studentFound !== tc.expectedFound) {
-        const failMsg = `Challenge evaluation failed for target = ${tc.target}: expected found = ${tc.expectedFound}, but received ${studentFound}.`;
-        return {
-          passed: false,
-          stars: 0,
-          frames,
-          state: { ...state, message: failMsg },
-          message: failMsg,
-          totalEnergy,
-          programBlocks,
-          executedComparisons
-        };
-      }
-      if (level.requireBinarySearch && level.maxComparisons && tcState.executedComparisons > level.maxComparisons + 1) {
-        const failMsg = `Binary search comparison budget exceeded on test case (target = ${tc.target}): ${tcState.executedComparisons} comparisons performed. Expected logarithmic search efficiency.`;
-        return {
-          passed: false,
-          stars: 0,
-          frames,
-          state: { ...state, message: failMsg },
-          message: failMsg,
-          totalEnergy,
-          programBlocks,
-          executedComparisons
-        };
-      }
-    }
-  }
+  let passed = !stopped && !constraintMessage && (isAssessment || (reachedGoal && collectedAll && bossDefeated));
 
   const message = passed
-    ? 'Sector secured. Next level unlocked.'
+    ? (isAssessment ? 'Assessment case completed successfully.' : 'Sector secured. Next level unlocked.')
     : stopped
     ? state.message
     : constraintMessage ||
@@ -2205,6 +2159,7 @@ export function simulate(level, program, options = {}) {
     message,
     totalEnergy,
     programBlocks,
-    executedComparisons
+    executedComparisons,
+    executedBreaks
   };
 }

@@ -554,7 +554,10 @@ function formatPreviewOperand(op) {
   if (op.type === 'literal') return String(op.value);
   if (op.type === 'array_get') return `${op.array || op.name}[${formatPreviewOperand(op.index)}]`;
   if (op.type === 'array_length') return `${op.array || op.name}.length`;
-  if (op.type === 'binary_op' || op.type === 'math_op') return `(${formatPreviewOperand(op.left)} ${op.op || '+'} ${formatPreviewOperand(op.right)})`;
+  if (op.type === 'binary_op' || op.type === 'math_op') {
+    if (op.op === '/') return `Math.trunc(${formatPreviewOperand(op.left)} / ${formatPreviewOperand(op.right)})`;
+    return `(${formatPreviewOperand(op.left)} ${op.op || '+'} ${formatPreviewOperand(op.right)})`;
+  }
   if (op.type === 'midpoint') return `Math.trunc((${formatPreviewOperand(op.low)} + ${formatPreviewOperand(op.high)}) / 2)`;
   return op.var || '0';
 }
