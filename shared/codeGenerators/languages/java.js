@@ -6,6 +6,7 @@ import {
   formatCondition,
   collectGlobalVariables,
   collectFunctionLocals,
+  collectProgramArrays,
   partitionAst
 } from '../helpers.js';
 
@@ -47,6 +48,7 @@ export function generateJava(ast, options = {}) {
   let hasSensor = false;
   let hasWhile = false;
   let hasVariables = false;
+  let hasArrays = false;
   let hasFunctions = false;
   let loopGuardCounter = 0;
 
@@ -55,6 +57,8 @@ export function generateJava(ast, options = {}) {
 
   const globalVars = collectGlobalVariables(ast);
   if (globalVars.length > 0) hasVariables = true;
+  const globalArrays = collectProgramArrays(ast);
+  if (globalArrays.length > 0) hasArrays = true;
   const isRunnable = Boolean(options.isRunnable || options.boundedLoops);
 
   const functionsBuilder = new CodeBuilder('    ');
@@ -68,6 +72,19 @@ export function generateJava(ast, options = {}) {
     } else {
       for (const v of globalVars) {
         builder.addLine(0, `int ${v};`);
+      }
+      builder.addBlank();
+    }
+  }
+
+  if (globalArrays.length > 0) {
+    if (isRunnable) {
+      for (const a of globalArrays) {
+        builder.addLine(0, `public static int[] ${a} = new int[0];`);
+      }
+    } else {
+      for (const a of globalArrays) {
+        builder.addLine(0, `int[] ${a};`);
       }
       builder.addBlank();
     }
@@ -230,6 +247,46 @@ export function generateJava(ast, options = {}) {
             amount: amt
           });
         }
+      } else if (node.type === 'array_init') {
+        hasArrays = true;
+        const arrName = node.name || node.array;
+        const rawVals = Array.isArray(node.values) ? node.values : (Array.isArray(node.elements) ? node.elements : []);
+        const elemsStr = rawVals.map(e => formatOperand(e, 'java', options)).join(', ');
+        if (isRunnable) {
+          targetBuilder.addLine(depth, `${arrName} = _cv_arr_init("${arrName}", new int[] { ${elemsStr} });`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'array_init',
+            array: arrName
+          });
+        } else {
+          targetBuilder.addLine(depth, `${arrName} = new int[] { ${elemsStr} };`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'array_init',
+            array: arrName
+          });
+        }
+      } else if (node.type === 'array_set') {
+        hasArrays = true;
+        const arrName = node.name || node.array;
+        const idxStr = formatOperand(node.index !== undefined ? node.index : 0, 'java', options);
+        const valStr = formatOperand(node.value !== undefined ? node.value : 0, 'java', options);
+        if (isRunnable) {
+          targetBuilder.addLine(depth, `_cv_arr_set("${arrName}", ${arrName}, ${idxStr}, ${valStr});`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'array_set',
+            array: arrName,
+            index: idxStr,
+            value: valStr
+          });
+        } else {
+          targetBuilder.addLine(depth, `${arrName}[${idxStr}] = ${valStr};`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'array_set',
+            array: arrName,
+            index: idxStr,
+            value: valStr
+          });
+        }
       } else if (node.type === 'if') {
         hasSensor = true;
         const condStr = formatCondition(node.condition, node.sensor, 'java', options);
@@ -306,6 +363,14 @@ export function generateJava(ast, options = {}) {
     });
   }
 
+  if (hasArrays) {
+    explanations.push({
+      id: 'arrays',
+      title: 'Java Arrays and Indexing',
+      text: 'Java arrays are fixed-length sequences of integers indexed from 0 to length - 1. Access elements using array[index] and modify them using array[index] = value.'
+    });
+  }
+
   if (hasSensor) {
     explanations.push({
       id: 'sensor',
@@ -320,6 +385,7 @@ export function generateJava(ast, options = {}) {
     explanations,
     functionsCode: functionsBuilder.getCode(),
     bodyCode: bodyBuilder.getCode(),
-    globalVars
+    globalVars,
+    globalArrays
   };
 }

@@ -6,6 +6,7 @@ import {
   formatCondition,
   collectGlobalVariables,
   collectFunctionLocals,
+  collectProgramArrays,
   partitionAst
 } from '../helpers.js';
 
@@ -47,6 +48,7 @@ export function generatePython(ast, options = {}) {
   let hasSensor = false;
   let hasWhile = false;
   let hasVariables = false;
+  let hasArrays = false;
   let hasFunctions = false;
   let loopGuardCounter = 0;
 
@@ -55,11 +57,19 @@ export function generatePython(ast, options = {}) {
 
   const globalVars = collectGlobalVariables(ast);
   if (globalVars.length > 0) hasVariables = true;
+  const globalArrays = collectProgramArrays(ast);
+  if (globalArrays.length > 0) hasArrays = true;
   const isRunnable = Boolean(options.isRunnable || options.boundedLoops);
 
   if (isRunnable && globalVars.length > 0) {
     for (const v of globalVars) {
       builder.addLine(0, `${v} = _cv_uninit('${v}', drone)`);
+    }
+  }
+
+  if (isRunnable && globalArrays.length > 0) {
+    for (const a of globalArrays) {
+      builder.addLine(0, `${a} = []`);
     }
   }
 
@@ -198,6 +208,46 @@ export function generatePython(ast, options = {}) {
             amount: amt
           });
         }
+      } else if (node.type === 'array_init') {
+        hasArrays = true;
+        const arrName = node.name || node.array;
+        const rawVals = Array.isArray(node.values) ? node.values : (Array.isArray(node.elements) ? node.elements : []);
+        const elemsStr = rawVals.map(e => formatOperand(e, 'python', options)).join(', ');
+        if (isRunnable) {
+          builder.addLine(depth, `${arrName} = _cv_arr_init(drone, '${arrName}', [${elemsStr}])`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'array_init',
+            array: arrName
+          });
+        } else {
+          builder.addLine(depth, `${arrName} = [${elemsStr}]`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'array_init',
+            array: arrName
+          });
+        }
+      } else if (node.type === 'array_set') {
+        hasArrays = true;
+        const arrName = node.name || node.array;
+        const idxStr = formatOperand(node.index !== undefined ? node.index : 0, 'python', options);
+        const valStr = formatOperand(node.value !== undefined ? node.value : 0, 'python', options);
+        if (isRunnable) {
+          builder.addLine(depth, `_cv_arr_set(drone, '${arrName}', ${arrName}, ${idxStr}, ${valStr})`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'array_set',
+            array: arrName,
+            index: idxStr,
+            value: valStr
+          });
+        } else {
+          builder.addLine(depth, `${arrName}[${idxStr}] = ${valStr}`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'array_set',
+            array: arrName,
+            index: idxStr,
+            value: valStr
+          });
+        }
       } else if (node.type === 'if') {
         hasSensor = true;
         const condStr = formatCondition(node.condition, node.sensor, 'python', options);
@@ -267,6 +317,14 @@ export function generatePython(ast, options = {}) {
       id: 'variables',
       title: 'Variables and Counters in Python',
       text: 'Variables are assigned directly using "name = value". Counter variables can be updated using augmented assignments like "count += 1".'
+    });
+  }
+
+  if (hasArrays) {
+    explanations.push({
+      id: 'arrays',
+      title: 'Lists and Indexing',
+      text: 'Lists in Python store an ordered collection of values indexed starting at 0. Access items with items[i] and update items with items[i] = value.'
     });
   }
 

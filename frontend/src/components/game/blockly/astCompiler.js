@@ -20,6 +20,22 @@ function extractOperand(block, fallback = 0) {
     return { type: 'var_get', var: varName };
   }
 
+  if (block.type === 'cv_array_get') {
+    const arrName = block.getFieldValue('NAME') || 'cells';
+    const err = getIdentifierError(arrName);
+    if (err) throw new Error(err);
+    const idxBlock = block.getInputTargetBlock ? block.getInputTargetBlock('INDEX') : null;
+    const index = extractOperand(idxBlock, 0);
+    return { type: 'array_get', array: arrName, name: arrName, index };
+  }
+
+  if (block.type === 'cv_array_length') {
+    const arrName = block.getFieldValue('NAME') || 'cells';
+    const err = getIdentifierError(arrName);
+    if (err) throw new Error(err);
+    return { type: 'array_length', array: arrName, name: arrName };
+  }
+
   if (block.type === 'math_number' || block.type === 'cv_val_num') {
     const num = Number.parseInt(block.getFieldValue('NUM'), 10);
     return Number.isNaN(num) ? 0 : num;
@@ -195,7 +211,53 @@ export function compileBlockSequence(block) {
         fnCallNode.blockId = current.id;
       }
       nodes.push(fnCallNode);
-    } else if (type.startsWith('cv_') && type !== 'cv_sensor' && type !== 'cv_compare' && type !== 'cv_var_get') {
+    } else if (type === 'cv_array_create') {
+      const arrName = current.getFieldValue('NAME') || 'cells';
+      const err = getIdentifierError(arrName);
+      if (err) throw new Error(err);
+      const rawValues = current.getFieldValue('VALUES') || '';
+      const values = rawValues
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean)
+        .map(s => {
+          const n = Number.parseInt(s, 10);
+          if (Number.isNaN(n)) throw new Error(`Array values must be comma-separated integers. Received "${s}".`);
+          if (n < -10000 || n > 10000) throw new Error('Array elements must be integers between -10,000 and 10,000.');
+          return n;
+        });
+      const arrInitNode = {
+        type: 'array_init',
+        name: arrName,
+        array: arrName,
+        values
+      };
+      if (current.id) {
+        arrInitNode.nodeId = current.id;
+        arrInitNode.blockId = current.id;
+      }
+      nodes.push(arrInitNode);
+    } else if (type === 'cv_array_set') {
+      const arrName = current.getFieldValue('NAME') || 'cells';
+      const err = getIdentifierError(arrName);
+      if (err) throw new Error(err);
+      const idxBlock = current.getInputTargetBlock ? current.getInputTargetBlock('INDEX') : null;
+      const index = extractOperand(idxBlock, 0);
+      const valBlock = current.getInputTargetBlock ? current.getInputTargetBlock('VALUE') : null;
+      const value = extractOperand(valBlock, 0);
+      const arrSetNode = {
+        type: 'array_set',
+        name: arrName,
+        array: arrName,
+        index,
+        value
+      };
+      if (current.id) {
+        arrSetNode.nodeId = current.id;
+        arrSetNode.blockId = current.id;
+      }
+      nodes.push(arrSetNode);
+    } else if (type.startsWith('cv_') && type !== 'cv_sensor' && type !== 'cv_compare' && type !== 'cv_var_get' && type !== 'cv_array_get' && type !== 'cv_array_length') {
       const actionName = type.slice(3);
 
       if (actionName === 'repeat') {
@@ -540,6 +602,17 @@ export function programToPreviewCode(ast, depth = 0) {
       if (node.type === 'fn_call') {
         const argStr = (node.args || []).map(a => typeof a === 'object' ? (a?.var ?? '0') : a).join(', ');
         return `${indent}${node.name}(${argStr});`;
+      }
+
+      if (node.type === 'array_init') {
+        const vals = Array.isArray(node.values) ? node.values.join(', ') : '';
+        return `${indent}let ${node.name || node.array} = [${vals}];`;
+      }
+
+      if (node.type === 'array_set') {
+        const idx = typeof node.index === 'object' ? (node.index.var ?? node.index.name ?? '0') : node.index;
+        const val = typeof node.value === 'object' ? (node.value.var ?? node.value.name ?? '0') : node.value;
+        return `${indent}${node.name || node.array}[${idx}] = ${val};`;
       }
 
       return `${indent}drone.${node.type}();`;

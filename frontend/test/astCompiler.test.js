@@ -221,4 +221,47 @@ describe('Blockly AST Compiler & Validation Rules', () => {
     assert.ok(preview.includes('energy -= 1;'));
     assert.ok(preview.includes('while (energy > 0) {'));
   });
+
+  test('compiles cv_array_create, cv_array_set, cv_array_get, and cv_array_length', () => {
+    const arraySetBlock = {
+      type: 'cv_array_set',
+      getFieldValue: (f) => (f === 'NAME' ? 'codes' : null),
+      getInputTargetBlock: (n) => {
+        if (n === 'INDEX') return { type: 'cv_val_num', getFieldValue: () => '1' };
+        if (n === 'VALUE') return { type: 'cv_val_num', getFieldValue: () => '9' };
+        return null;
+      },
+      getNextBlock: () => null
+    };
+
+    const arrayCreateBlock = {
+      type: 'cv_array_create',
+      getFieldValue: (f) => (f === 'NAME' ? 'codes' : (f === 'VALUES' ? '2, 1, 3' : null)),
+      getNextBlock: () => arraySetBlock
+    };
+
+    const ast = compileBlockSequence(arrayCreateBlock);
+    assert.deepEqual(ast, [
+      {
+        type: 'array_init',
+        name: 'codes',
+        array: 'codes',
+        values: [2, 1, 3]
+      },
+      {
+        type: 'array_set',
+        name: 'codes',
+        array: 'codes',
+        index: 1,
+        value: 9
+      }
+    ]);
+
+    const validRes = validateProgramAST(ast);
+    assert.equal(validRes.valid, true);
+
+    const preview = programToPreviewCode(ast);
+    assert.ok(preview.includes('let codes = [2, 1, 3];'));
+    assert.ok(preview.includes('codes[1] = 9;'));
+  });
 });

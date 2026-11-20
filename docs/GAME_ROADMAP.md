@@ -408,9 +408,10 @@ Stage E: Expand the Actual Learning Game
   - Frame-isolated Variables Watch Panel with live mutation highlight, while condition inspection, and snapshot isolation during playback.
   - Multi-language code generators (Plain-English, JavaScript, Python, Java, C++, C) and bounded standalone runnable exports.
 
-#### Stage E2 — Beginner-Friendly Functions, Parameters, and Reusable Routines (Current)
+#### Stage E2 — Beginner-Friendly Functions, Parameters, and Reusable Routines (Completed)
 - **Branch:** `codex/functions-parameters`
-- **Sectors:** Append stable Levels 33–38 (District 8: *Procedural Matrix*):
+- **PR:** #37 (Merged to `main`)
+- **Sectors:** Appended stable Levels 33–38 (District 8: *Procedural Matrix*):
   - **Level 33 (Routine Inception):** Define a named routine and call it (`requireFunction: true`).
   - **Level 34 (Echo Corridor):** Call the same routine at least twice to demonstrate code reuse (`requireFunctionCalls: 2`).
   - **Level 35 (Parameter Matrix):** Introduce one numeric parameter (`requireParameter: true`).
@@ -426,11 +427,27 @@ Stage E: Expand the Actual Learning Game
   - Live Call Stack Panel: bounded depth indicator (`0/8` to `8/8`), active routine explanation banner (`"<name>" runs these instructions whenever you call it.`), caller, return point, and local variable/parameter badges.
   - Multi-language code generators & standalone runnable templates across Plain-English, JavaScript, Python, Java, C++, and C with identical execution semantics and local state isolation.
 
+#### Stage E3 — Beginner-Friendly Arrays and Indexing (Completed)
+- **Branch:** `codex/arrays-indexing`
+- **Sectors:** Appended stable Levels 39–44 (District 9: *Memory Matrix*):
+  - **Level 39 (Matrix Allocation):** Create an array and inspect its numbered cells (`requireArray: true`).
+  - **Level 40 (Zero-Index Decoders):** Read a value using a zero-based index (`requireArrayRead: true`).
+  - **Level 41 (Element Synthesis):** Update one array element (`requireArraySet: true`).
+  - **Level 42 (Sequential Sweep):** Traverse an array with an index counter (`requireArrayTraversal: true`, `requireWhile: true`).
+  - **Level 43 (Modular Arrays):** Process array values using conditions and a reusable routine (`requireFunction: true`, `requireArrayRead: true`).
+  - **Level 44 (Memory Matrix Grand Master):** Complete an independent array mastery challenge (`bossHealth: 3`, `requireArray: true`, `requireArrayRead: true`, `requireArraySet: true`, `requireWhile: true`).
+- **Semantic & Execution Model:**
+  - Fixed-length integer arrays: `MAX_ARRAYS = 5`, `MAX_ARRAY_LENGTH = 10`, element bounds $[-10000, 10000]$.
+  - Zero-based indexing ($0 \le i < \text{length}$). Negative or $\ge \text{length}$ indexes throw friendly out-of-bounds error messages.
+  - Distinct identifier namespace across variables, arrays, and routines.
+  - Scalar-only pass-by-value into routines; whole arrays cannot be passed in this stage. Routines read/mutate global arrays or accept scalar element values.
+  - Multi-language code generators (Plain-English, JavaScript, Python, Java, C++, C) and standalone runnable exports with runtime bounds verification.
+  - Compact Array Watch Panel: numbered cells, index headers `[0]..[n-1]`, live read (amber) and set/mutation (emerald) pulses, while-loop traversal pointer indicators (`▲ i`), and zero-based indexing explanation.
+
 #### Later Stage E Concepts (Roadmap Queue)
 The remaining computational thinking curriculum will be delivered across subsequent targeted milestones:
-1. **Arrays & Indexing (Stage E3):** Sequential linear data structures, zero-indexed access, bounds checking, visible memory cells, and pointer indicators.
-2. **Searching Algorithms (Stage E4):** Linear search, early termination, sorted array properties, and binary search state tracing.
-3. **Sorting Algorithms (Stage E5):** Concrete compare-and-swap interactive mechanics, bubble sort, selection sort, and visual array element swaps.
-4. **Recursion & Call Stacks (Stage E6):** Self-referential procedures, base cases, call frame stacking, stack overflow bounds, and unwind tracing.
+1. **Searching Algorithms (Stage E4):** Linear search, early termination, sorted array properties, and binary search state tracing.
+2. **Sorting Algorithms (Stage E5):** Concrete compare-and-swap interactive mechanics, bubble sort, selection sort, and visual array element swaps.
+3. **Recursion & Call Stacks (Stage E6):** Self-referential procedures, base cases, call frame stacking, stack overflow bounds, and unwind tracing.
 
 

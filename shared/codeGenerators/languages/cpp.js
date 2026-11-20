@@ -6,6 +6,7 @@ import {
   formatCondition,
   collectGlobalVariables,
   collectFunctionLocals,
+  collectProgramArrays,
   partitionAst
 } from '../helpers.js';
 
@@ -47,6 +48,7 @@ export function generateCpp(ast, options = {}) {
   let hasSensor = false;
   let hasWhile = false;
   let hasVariables = false;
+  let hasArrays = false;
   let hasFunctions = false;
   let loopGuardCounter = 0;
 
@@ -55,6 +57,8 @@ export function generateCpp(ast, options = {}) {
 
   const globalVars = collectGlobalVariables(ast);
   if (globalVars.length > 0) hasVariables = true;
+  const globalArrays = collectProgramArrays(ast);
+  if (globalArrays.length > 0) hasArrays = true;
   const isRunnable = Boolean(options.isRunnable || options.boundedLoops);
 
   const prototypesBuilder = new CodeBuilder('    ');
@@ -69,6 +73,19 @@ export function generateCpp(ast, options = {}) {
     } else {
       for (const v of globalVars) {
         builder.addLine(0, `int ${v};`);
+      }
+      builder.addBlank();
+    }
+  }
+
+  if (globalArrays.length > 0) {
+    if (isRunnable) {
+      for (const a of globalArrays) {
+        builder.addLine(0, `static CvArray ${a}("${a}");`);
+      }
+    } else {
+      for (const a of globalArrays) {
+        builder.addLine(0, `std::vector<int> ${a};`);
       }
       builder.addBlank();
     }
@@ -216,6 +233,46 @@ export function generateCpp(ast, options = {}) {
           variable: varName,
           amount: amt
         });
+      } else if (node.type === 'array_init') {
+        hasArrays = true;
+        const arrName = node.name || node.array;
+        const rawVals = Array.isArray(node.values) ? node.values : (Array.isArray(node.elements) ? node.elements : []);
+        const elemsStr = rawVals.map(e => formatOperand(e, 'cpp', options)).join(', ');
+        if (isRunnable) {
+          targetBuilder.addLine(depth, `${arrName}.init({ ${elemsStr} });`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'array_init',
+            array: arrName
+          });
+        } else {
+          targetBuilder.addLine(depth, `${arrName} = { ${elemsStr} };`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'array_init',
+            array: arrName
+          });
+        }
+      } else if (node.type === 'array_set') {
+        hasArrays = true;
+        const arrName = node.name || node.array;
+        const idxStr = formatOperand(node.index !== undefined ? node.index : 0, 'cpp', options);
+        const valStr = formatOperand(node.value !== undefined ? node.value : 0, 'cpp', options);
+        if (isRunnable) {
+          targetBuilder.addLine(depth, `${arrName}.set(${idxStr}, ${valStr});`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'array_set',
+            array: arrName,
+            index: idxStr,
+            value: valStr
+          });
+        } else {
+          targetBuilder.addLine(depth, `${arrName}[${idxStr}] = ${valStr};`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'array_set',
+            array: arrName,
+            index: idxStr,
+            value: valStr
+          });
+        }
       } else if (node.type === 'if') {
         hasSensor = true;
         const condStr = formatCondition(node.condition, node.sensor, 'cpp', options);
@@ -292,6 +349,14 @@ export function generateCpp(ast, options = {}) {
     });
   }
 
+  if (hasArrays) {
+    explanations.push({
+      id: 'arrays',
+      title: 'C++ Arrays and Indexing',
+      text: 'In C++, std::vector or indexed arrays store elements consecutively with zero-based indexing (0 to size - 1). Read elements with arr[i] and write with arr[i] = value.'
+    });
+  }
+
   if (hasSensor) {
     explanations.push({
       id: 'sensor',
@@ -307,6 +372,7 @@ export function generateCpp(ast, options = {}) {
     prototypesCode: prototypesBuilder.getCode(),
     functionsCode: functionsBuilder.getCode(),
     bodyCode: bodyBuilder.getCode(),
-    globalVars
+    globalVars,
+    globalArrays
   };
 }

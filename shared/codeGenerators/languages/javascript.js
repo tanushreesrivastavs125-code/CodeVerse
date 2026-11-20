@@ -6,6 +6,7 @@ import {
   formatCondition,
   collectGlobalVariables,
   collectFunctionLocals,
+  collectProgramArrays,
   partitionAst
 } from '../helpers.js';
 
@@ -47,6 +48,7 @@ export function generateJavaScript(ast, options = {}) {
   let hasSensor = false;
   let hasWhile = false;
   let hasVariables = false;
+  let hasArrays = false;
   let hasFunctions = false;
   let loopGuardCounter = 0;
 
@@ -55,6 +57,8 @@ export function generateJavaScript(ast, options = {}) {
 
   const globalVars = collectGlobalVariables(ast);
   if (globalVars.length > 0) hasVariables = true;
+  const globalArrays = collectProgramArrays(ast);
+  if (globalArrays.length > 0) hasArrays = true;
   const isRunnable = Boolean(options.isRunnable || options.boundedLoops);
 
   if (globalVars.length > 0) {
@@ -64,6 +68,17 @@ export function generateJavaScript(ast, options = {}) {
       }
     } else {
       builder.addLine(0, `let ${globalVars.join(', ')};`);
+      builder.addBlank();
+    }
+  }
+
+  if (globalArrays.length > 0) {
+    if (isRunnable) {
+      for (const a of globalArrays) {
+        builder.addLine(0, `let ${a} = [];`);
+      }
+    } else {
+      builder.addLine(0, `let ${globalArrays.join(', ')};`);
       builder.addBlank();
     }
   }
@@ -212,6 +227,46 @@ export function generateJavaScript(ast, options = {}) {
             amount: amt
           });
         }
+      } else if (node.type === 'array_init') {
+        hasArrays = true;
+        const arrName = node.name || node.array;
+        const rawVals = Array.isArray(node.values) ? node.values : (Array.isArray(node.elements) ? node.elements : []);
+        const elemsStr = rawVals.map(e => formatOperand(e, 'javascript', options)).join(', ');
+        if (isRunnable) {
+          builder.addLine(depth, `${arrName} = _cv_arr_init(drone, '${arrName}', [${elemsStr}]);`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'array_init',
+            array: arrName
+          });
+        } else {
+          builder.addLine(depth, `${arrName} = [${elemsStr}];`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'array_init',
+            array: arrName
+          });
+        }
+      } else if (node.type === 'array_set') {
+        hasArrays = true;
+        const arrName = node.name || node.array;
+        const idxStr = formatOperand(node.index !== undefined ? node.index : 0, 'javascript', options);
+        const valStr = formatOperand(node.value !== undefined ? node.value : 0, 'javascript', options);
+        if (isRunnable) {
+          builder.addLine(depth, `_cv_arr_set(drone, '${arrName}', ${arrName}, ${idxStr}, ${valStr});`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'array_set',
+            array: arrName,
+            index: idxStr,
+            value: valStr
+          });
+        } else {
+          builder.addLine(depth, `${arrName}[${idxStr}] = ${valStr};`, node.nodeId, {
+            blockId: node.blockId,
+            type: 'array_set',
+            array: arrName,
+            index: idxStr,
+            value: valStr
+          });
+        }
       } else if (node.type === 'if') {
         hasSensor = true;
         const condStr = formatCondition(node.condition, node.sensor, 'javascript', options);
@@ -284,6 +339,14 @@ export function generateJavaScript(ast, options = {}) {
       id: 'variables',
       title: 'Variables and Counters',
       text: 'Variables store data values in memory. In JavaScript, "let" declares a new variable, which can be modified using operators like += or -=.'
+    });
+  }
+
+  if (hasArrays) {
+    explanations.push({
+      id: 'arrays',
+      title: 'Arrays and Indexing',
+      text: 'Arrays store a fixed list of numbers accessed by zero-based index (0 to length - 1). Access elements with array[i] and update them with array[i] = value.'
     });
   }
 
