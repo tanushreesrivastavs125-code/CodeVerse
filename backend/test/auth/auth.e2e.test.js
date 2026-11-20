@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 import app from '../../src/app.js';
+import { levels } from '../../../shared/game.js';
 
 describe('Stage 3 End-to-End Session & Routed Game Shell Verification', () => {
   let replSet;
@@ -78,7 +79,7 @@ describe('Stage 3 End-to-End Session & Routed Game Shell Verification', () => {
     const levelsBody = await levelsRes.json();
     assert.equal(levelsBody.success, true);
     assert.ok(Array.isArray(levelsBody.data));
-    assert.equal(levelsBody.data.length, 44);
+    assert.equal(levelsBody.data.length, levels.length);
     assert.equal(levelsBody.data[0].unlocked, true);
     assert.equal(levelsBody.data[1].unlocked, false);
     assert.equal(levelsBody.data[2].unlocked, false);

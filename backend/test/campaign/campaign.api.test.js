@@ -6,6 +6,7 @@ import User from '../../src/models/User.js';
 import CampaignProgress from '../../src/models/CampaignProgress.js';
 import CampaignAttempt from '../../src/models/CampaignAttempt.js';
 import { signToken } from '../../src/config/jwt.js';
+import { levels } from '../../../shared/game.js';
 
 describe('Campaign & Game API Contracts (/api/game)', () => {
   let server;
@@ -103,7 +104,7 @@ describe('Campaign & Game API Contracts (/api/game)', () => {
       const body = await response.json();
       assert.equal(body.success, true);
       assert.equal(Array.isArray(body.data), true);
-      assert.equal(body.data.length, 44);
+      assert.equal(body.data.length, levels.length);
 
       // Level 1 starts unlocked
       const l1 = body.data[0];
@@ -118,8 +119,8 @@ describe('Campaign & Game API Contracts (/api/game)', () => {
       assert.ok('requireLoops' in l1);
       assert.ok('requireSensors' in l1);
 
-      // Levels 2 through 44 start locked
-      for (let i = 1; i < 44; i++) {
+      // Levels 2 through end start locked
+      for (let i = 1; i < levels.length; i++) {
         assert.equal(body.data[i].unlocked, false, `Level ${body.data[i].id} should start locked`);
       }
     });

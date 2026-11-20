@@ -36,6 +36,23 @@ function extractOperand(block, fallback = 0) {
     return { type: 'array_length', array: arrName, name: arrName };
   }
 
+  if (block.type === 'cv_math_op') {
+    const op = block.getFieldValue('OP') || '+';
+    const leftBlock = block.getInputTargetBlock ? block.getInputTargetBlock('LEFT') : null;
+    const rightBlock = block.getInputTargetBlock ? block.getInputTargetBlock('RIGHT') : null;
+    const left = extractOperand(leftBlock, 0);
+    const right = extractOperand(rightBlock, 0);
+    return { type: 'binary_op', op, left, right };
+  }
+
+  if (block.type === 'cv_midpoint') {
+    const lowBlock = block.getInputTargetBlock ? block.getInputTargetBlock('LOW') : null;
+    const highBlock = block.getInputTargetBlock ? block.getInputTargetBlock('HIGH') : null;
+    const low = extractOperand(lowBlock, 0);
+    const high = extractOperand(highBlock, 0);
+    return { type: 'midpoint', low, high };
+  }
+
   if (block.type === 'math_number' || block.type === 'cv_val_num') {
     const num = Number.parseInt(block.getFieldValue('NUM'), 10);
     return Number.isNaN(num) ? 0 : num;
@@ -257,7 +274,7 @@ export function compileBlockSequence(block) {
         arrSetNode.blockId = current.id;
       }
       nodes.push(arrSetNode);
-    } else if (type.startsWith('cv_') && type !== 'cv_sensor' && type !== 'cv_compare' && type !== 'cv_var_get' && type !== 'cv_array_get' && type !== 'cv_array_length') {
+    } else if (type.startsWith('cv_') && type !== 'cv_sensor' && type !== 'cv_compare' && type !== 'cv_var_get' && type !== 'cv_array_get' && type !== 'cv_array_length' && type !== 'cv_math_op' && type !== 'cv_midpoint') {
       const actionName = type.slice(3);
 
       if (actionName === 'repeat') {
@@ -400,7 +417,7 @@ export function compileBlockSequence(block) {
       if (first) {
         nodes.push(first);
       }
-    } else if (type === 'cv_sensor' || type === 'math_number' || type === 'cv_compare' || type === 'cv_var_get' || type === 'cv_val_num') {
+    } else if (type === 'cv_sensor' || type === 'math_number' || type === 'cv_compare' || type === 'cv_var_get' || type === 'cv_val_num' || type === 'cv_math_op' || type === 'cv_midpoint' || type === 'cv_array_get' || type === 'cv_array_length') {
       // Standalone loose value blocks sitting in workspace outside statement stack are ignored
     } else {
       throw new Error(`Unrecognized block in sequence: ${type}. Please replace with a standard CodeVerse action.`);
@@ -527,6 +544,22 @@ export function validateProgramAST(program) {
 }
 
 /**
+ * Formats AST operand for preview string representation.
+ */
+function formatPreviewOperand(op) {
+  if (typeof op === 'number') return String(op);
+  if (typeof op === 'string') return op;
+  if (!op || typeof op !== 'object') return '0';
+  if (op.type === 'var_get') return op.var || op.variable || '0';
+  if (op.type === 'literal') return String(op.value);
+  if (op.type === 'array_get') return `${op.array || op.name}[${formatPreviewOperand(op.index)}]`;
+  if (op.type === 'array_length') return `${op.array || op.name}.length`;
+  if (op.type === 'binary_op' || op.type === 'math_op') return `(${formatPreviewOperand(op.left)} ${op.op || '+'} ${formatPreviewOperand(op.right)})`;
+  if (op.type === 'midpoint') return `Math.trunc((${formatPreviewOperand(op.low)} + ${formatPreviewOperand(op.high)}) / 2)`;
+  return op.var || '0';
+}
+
+/**
  * Formats canonical CodeVerse AST into a human-readable program preview string.
  *
  * @param {Array<object>} ast
@@ -542,8 +575,12 @@ export function programToPreviewCode(ast, depth = 0) {
 
   return ast
     .map((node) => {
+      if (node.type === 'break') {
+        return `${indent}break;`;
+      }
+
       if (node.type === 'var_set') {
-        const val = typeof node.value === 'object' ? (node.value?.var ?? '0') : node.value;
+        const val = formatPreviewOperand(node.value);
         const vName = node.var || node.variable;
         return `${indent}let ${vName} = ${val};`;
       }
@@ -566,8 +603,8 @@ export function programToPreviewCode(ast, depth = 0) {
         const bodyCode = programToPreviewCode(node.body || [], depth + 1);
         let condStr = '';
         if (node.condition?.type === 'compare') {
-          const left = node.condition.left?.var ?? node.condition.left;
-          const right = node.condition.right?.var ?? node.condition.right;
+          const left = formatPreviewOperand(node.condition.left);
+          const right = formatPreviewOperand(node.condition.right);
           condStr = `${left} ${node.condition.op} ${right}`;
         } else {
           condStr = `drone.sensor("${node.sensor || node.condition?.sensor || 'wall'}")`;
@@ -579,8 +616,8 @@ export function programToPreviewCode(ast, depth = 0) {
         const bodyCode = programToPreviewCode(node.body, depth + 1);
         let condStr = '';
         if (node.condition?.type === 'compare') {
-          const left = node.condition.left?.var ?? node.condition.left;
-          const right = node.condition.right?.var ?? node.condition.right;
+          const left = formatPreviewOperand(node.condition.left);
+          const right = formatPreviewOperand(node.condition.right);
           condStr = `${left} ${node.condition.op} ${right}`;
         } else {
           condStr = `drone.sensor("${node.sensor || node.condition?.sensor || 'wall'}")`;
@@ -610,8 +647,8 @@ export function programToPreviewCode(ast, depth = 0) {
       }
 
       if (node.type === 'array_set') {
-        const idx = typeof node.index === 'object' ? (node.index.var ?? node.index.name ?? '0') : node.index;
-        const val = typeof node.value === 'object' ? (node.value.var ?? node.value.name ?? '0') : node.value;
+        const idx = formatPreviewOperand(node.index);
+        const val = formatPreviewOperand(node.value);
         return `${indent}${node.name || node.array}[${idx}] = ${val};`;
       }
 

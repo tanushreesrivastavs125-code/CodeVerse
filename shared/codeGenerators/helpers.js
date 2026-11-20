@@ -246,6 +246,10 @@ export function collectProgramVariables(ast) {
     }
     if (op.index) walkOperand(op.index);
     if (op.value) walkOperand(op.value);
+    if (op.left) walkOperand(op.left);
+    if (op.right) walkOperand(op.right);
+    if (op.low) walkOperand(op.low);
+    if (op.high) walkOperand(op.high);
   }
   function walk(nodes) {
     if (!Array.isArray(nodes)) return;
@@ -296,6 +300,10 @@ export function collectProgramArrays(ast) {
     }
     if (op.index) walkOperand(op.index);
     if (op.value) walkOperand(op.value);
+    if (op.left) walkOperand(op.left);
+    if (op.right) walkOperand(op.right);
+    if (op.low) walkOperand(op.low);
+    if (op.high) walkOperand(op.high);
   }
   function walk(nodes) {
     if (!Array.isArray(nodes)) return;
@@ -463,6 +471,32 @@ export function formatOperand(operand, lang = 'javascript', options = {}) {
       if (lang === 'cpp') return `${arr}.size()`;
       if (lang === 'c') return `${arr}.length`;
       return `${arr}.length`;
+    }
+    if (operand.type === 'binary_op' || operand.type === 'math_op') {
+      const left = formatOperand(operand.left, lang, options);
+      const right = formatOperand(operand.right, lang, options);
+      const op = operand.op || '+';
+      if (lang === 'plainEnglish') {
+        const opNames = { '+': 'plus', '-': 'minus', '*': 'multiplied by', '/': 'divided by' };
+        return `${left} ${opNames[op] || op} ${right}`;
+      }
+      if (lang === 'python') {
+        if (op === '/') return `(${left} // ${right})`;
+        return `(${left} ${op} ${right})`;
+      }
+      if (lang === 'javascript') {
+        if (op === '/') return `Math.trunc(${left} / ${right})`;
+        return `(${left} ${op} ${right})`;
+      }
+      return `(${left} ${op} ${right})`;
+    }
+    if (operand.type === 'midpoint') {
+      const low = formatOperand(operand.low, lang, options);
+      const high = formatOperand(operand.high, lang, options);
+      if (lang === 'plainEnglish') return `midpoint of ${low} and ${high}`;
+      if (lang === 'javascript') return `Math.trunc((${low} + ${high}) / 2)`;
+      if (lang === 'python') return `((${low} + ${high}) // 2)`;
+      return `((${low} + ${high}) / 2)`;
     }
   }
   if (varName) {

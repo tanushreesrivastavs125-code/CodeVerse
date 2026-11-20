@@ -21,7 +21,7 @@ const repeat = (count, ...body) => ({ type: 'repeat', count, body });
 const ifSensor = (sensor, body, elseBody = []) => ({ type: 'if', sensor, body, elseBody });
 
 test('Level definitions and initial world state', () => {
-  assert.equal(levels.length, 44);
+  assert.equal(levels.length, 50);
   assert.equal(directions.length, 4);
   assert.deepEqual(directions[0], { x: 1, y: 0 }); // East
   assert.deepEqual(directions[1], { x: 0, y: 1 }); // South
@@ -368,12 +368,12 @@ test('Determinism: identical inputs yield identical frame snapshots', () => {
   assert.equal(run1.frames[3].x, 4);
 });
 
-test('44-level campaign structural integrity and district distribution', () => {
-  assert.equal(levels.length, 44);
+test('50-level campaign structural integrity and district distribution', () => {
+  assert.equal(levels.length, 50);
 
-  // Verify unique IDs 1..44
+  // Verify unique IDs 1..50
   const ids = levels.map((l) => l.id);
-  assert.deepEqual(ids, Array.from({ length: 44 }, (_, i) => i + 1));
+  assert.deepEqual(ids, Array.from({ length: 50 }, (_, i) => i + 1));
 
   // Verify map invariants: exactly one 'S', exactly one 'G', valid par
   for (const lvl of levels) {
@@ -395,7 +395,8 @@ test('44-level campaign structural integrity and district distribution', () => {
     { name: 'Singularity', slice: [20, 24], expectedCount: 4 },
     { name: 'Algorithmic Core', slice: [24, 32], expectedCount: 8 },
     { name: 'Procedural Matrix', slice: [32, 38], expectedCount: 6 },
-    { name: 'Memory Matrix', slice: [38, 44], expectedCount: 6 }
+    { name: 'Memory Matrix', slice: [38, 44], expectedCount: 6 },
+    { name: 'Search Matrix', slice: [44, 50], expectedCount: 6 }
   ];
 
   for (const d of districts) {
@@ -451,7 +452,7 @@ test('Advanced sector requirements and dead branch execution guards', () => {
   assert.match(noSensorRes.message, /requires an evaluated sensor condition/);
 });
 
-test('Playable solutions for all 44 campaign levels', () => {
+test('Playable solutions for all 50 campaign levels', () => {
   const solutions1to12 = [
     [repeat(3, m)],
     [m, c, m, m, c, m],
@@ -745,10 +746,131 @@ test('Playable solutions for all 44 campaign levels', () => {
       },
       { type: 'array_set', name: 'matrix', index: 2, value: 1 },
       m, m, m, m
+    ],
+    45: [
+      { type: 'var_set', variable: 'found', value: -1 },
+      { type: 'if', condition: { type: 'compare', left: { type: 'array_get', name: 'sensors', index: 0 }, op: '==', right: 'target' }, body: [{ type: 'var_set', variable: 'found', value: 0 }] },
+      { type: 'if', condition: { type: 'compare', left: { type: 'array_get', name: 'sensors', index: 1 }, op: '==', right: 'target' }, body: [{ type: 'var_set', variable: 'found', value: 1 }] },
+      { type: 'if', condition: { type: 'compare', left: { type: 'array_get', name: 'sensors', index: 2 }, op: '==', right: 'target' }, body: [{ type: 'var_set', variable: 'found', value: 2 }] },
+      m, m, m, m
+    ],
+    46: [
+      { type: 'var_set', variable: 'i', value: 0 },
+      { type: 'var_set', variable: 'found', value: -1 },
+      {
+        type: 'while',
+        condition: { type: 'compare', left: 'i', op: '<', right: 5 },
+        body: [
+          {
+            type: 'if',
+            condition: { type: 'compare', left: { type: 'array_get', name: 'data', index: 'i' }, op: '==', right: 'target' },
+            body: [{ type: 'var_set', variable: 'found', value: 'i' }]
+          },
+          { type: 'var_change', variable: 'i', amount: 1 }
+        ]
+      },
+      m, m, m, m, m
+    ],
+    47: [
+      { type: 'var_set', variable: 'i', value: 0 },
+      { type: 'var_set', variable: 'found', value: -1 },
+      {
+        type: 'while',
+        condition: { type: 'compare', left: 'i', op: '<', right: 5 },
+        body: [
+          {
+            type: 'if',
+            condition: { type: 'compare', left: { type: 'array_get', name: 'codes', index: 'i' }, op: '==', right: 'target' },
+            body: [
+              { type: 'var_set', variable: 'found', value: 'i' },
+              { type: 'break' }
+            ]
+          },
+          { type: 'var_change', variable: 'i', amount: 1 }
+        ]
+      },
+      m, a, m, m, m, m, m
+    ],
+    48: [
+      { type: 'var_set', variable: 'mid', value: 3 },
+      {
+        type: 'if',
+        condition: { type: 'compare', left: { type: 'array_get', name: 'archive', index: 'mid' }, op: '<', right: 'target' },
+        body: [
+          { type: 'var_set', variable: 'low', value: { type: 'binary_op', op: '+', left: 'mid', right: 1 } }
+        ]
+      },
+      m, m, c, m, m, m, m
+    ],
+    49: [
+      { type: 'var_set', variable: 'low', value: 0 },
+      { type: 'var_set', variable: 'high', value: 6 },
+      { type: 'var_set', variable: 'found', value: -1 },
+      {
+        type: 'while',
+        condition: { type: 'compare', left: 'low', op: '<=', right: 'high' },
+        body: [
+          { type: 'var_set', variable: 'mid', value: { type: 'midpoint', low: 'low', high: 'high' } },
+          {
+            type: 'if',
+            condition: { type: 'compare', left: { type: 'array_get', name: 'grid', index: 'mid' }, op: '==', right: 'target' },
+            body: [
+              { type: 'var_set', variable: 'found', value: 'mid' },
+              { type: 'break' }
+            ],
+            elseBody: [
+              {
+                type: 'if',
+                condition: { type: 'compare', left: { type: 'array_get', name: 'grid', index: 'mid' }, op: '<', right: 'target' },
+                body: [
+                  { type: 'var_set', variable: 'low', value: { type: 'binary_op', op: '+', left: 'mid', right: 1 } }
+                ],
+                elseBody: [
+                  { type: 'var_set', variable: 'high', value: { type: 'binary_op', op: '-', left: 'mid', right: 1 } }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      m, a, m, m, m, m, c, m, m, m
+    ],
+    50: [
+      { type: 'var_set', variable: 'low', value: 0 },
+      { type: 'var_set', variable: 'high', value: 7 },
+      { type: 'var_set', variable: 'found', value: -1 },
+      {
+        type: 'while',
+        condition: { type: 'compare', left: 'low', op: '<=', right: 'high' },
+        body: [
+          { type: 'var_set', variable: 'mid', value: { type: 'midpoint', low: 'low', high: 'high' } },
+          {
+            type: 'if',
+            condition: { type: 'compare', left: { type: 'array_get', name: 'coreKeys', index: 'mid' }, op: '==', right: 'target' },
+            body: [
+              { type: 'var_set', variable: 'found', value: 'mid' },
+              { type: 'break' }
+            ],
+            elseBody: [
+              {
+                type: 'if',
+                condition: { type: 'compare', left: { type: 'array_get', name: 'coreKeys', index: 'mid' }, op: '<', right: 'target' },
+                body: [
+                  { type: 'var_set', variable: 'low', value: { type: 'binary_op', op: '+', left: 'mid', right: 1 } }
+                ],
+                elseBody: [
+                  { type: 'var_set', variable: 'high', value: { type: 'binary_op', op: '-', left: 'mid', right: 1 } }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      m, a, m, m, m, j, m, c, m, m, p, p, p, m, m, m
     ]
   };
 
-  for (let i = 0; i < 44; i++) {
+  for (let i = 0; i < 50; i++) {
     const lvl = levels[i];
     let prog;
     if (i < 12) {
@@ -985,4 +1107,75 @@ test('Stage E3: Fixed-length integer arrays, indexing, mutation, and constraints
   const noTraversalRes = simulate(lvl42, noTraversalProg);
   assert.equal(noTraversalRes.passed, false);
   assert.match(noTraversalRes.message, /requires traversing an array using an index counter inside a loop/);
+});
+
+test('Stage E4 search mechanics: break statements, midpoint calculation, and sorted arrays', () => {
+  // 1. Break statement placement validation
+  assert.throws(
+    () => validateProgram([{ type: 'break' }]),
+    /The break command can only be used inside a loop \(repeat or while\)/
+  );
+
+  assert.equal(
+    validateProgram([
+      {
+        type: 'while',
+        condition: { type: 'compare', left: 1, op: '==', right: 1 },
+        body: [{ type: 'break' }]
+      }
+    ]),
+    true
+  );
+
+  assert.equal(
+    validateProgram([
+      {
+        type: 'repeat',
+        count: 3,
+        body: [{ type: 'break' }]
+      }
+    ]),
+    true
+  );
+
+  // 2. Break early halts execution immediately
+  const breakLvl = levels[0];
+  const breakProg = [
+    { type: 'var_set', variable: 'cnt', value: 0 },
+    {
+      type: 'repeat',
+      count: 10,
+      body: [
+        { type: 'var_change', variable: 'cnt', amount: 1 },
+        { type: 'break' }
+      ]
+    }
+  ];
+  const breakSim = simulate(breakLvl, breakProg);
+  assert.equal(breakSim.state.variables.cnt, 1, 'Break should exit loop on first iteration');
+
+  // 3. Midpoint and arithmetic operand calculation
+  const mathProg = [
+    { type: 'var_set', variable: 'low', value: 3 },
+    { type: 'var_set', variable: 'high', value: 8 },
+    { type: 'var_set', variable: 'mid', value: { type: 'midpoint', low: 'low', high: 'high' } },
+    { type: 'var_set', variable: 'sum', value: { type: 'binary_op', op: '+', left: 'low', right: 'high' } },
+    { type: 'var_set', variable: 'diff', value: { type: 'binary_op', op: '-', left: 'high', right: 'low' } }
+  ];
+  const mathSim = simulate(breakLvl, mathProg);
+  assert.equal(mathSim.state.variables.mid, 5, 'Math.trunc((3 + 8) / 2) = 5');
+  assert.equal(mathSim.state.variables.sum, 11, '3 + 8 = 11');
+  assert.equal(mathSim.state.variables.diff, 5, '8 - 3 = 5');
+
+  // 4. Sorted array requirement
+  const lvl48 = levels[47];
+  const unsortedProg = [
+    { type: 'array_init', name: 'archive', values: [5, 2, 8] },
+    { type: 'var_set', variable: 'mid', value: 1 },
+    m, m, c, m, m, m, m
+  ];
+  assert.throws(
+    () => simulate(lvl48, unsortedProg),
+    /is not sorted in ascending order. Binary search requires sorted elements/
+  );
 });

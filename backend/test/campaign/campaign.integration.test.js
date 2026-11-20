@@ -785,6 +785,127 @@ describe('Real MongoDB Replica Set Integration Verification', () => {
         },
         { type: 'array_set', name: 'matrix', index: 2, value: 1 },
         move, move, move, move
+      ],
+      45: [
+        { type: 'var_set', variable: 'found', value: -1 },
+        { type: 'if', condition: { type: 'compare', left: { type: 'array_get', name: 'sensors', index: 0 }, op: '==', right: 'target' }, body: [{ type: 'var_set', variable: 'found', value: 0 }] },
+        { type: 'if', condition: { type: 'compare', left: { type: 'array_get', name: 'sensors', index: 1 }, op: '==', right: 'target' }, body: [{ type: 'var_set', variable: 'found', value: 1 }] },
+        { type: 'if', condition: { type: 'compare', left: { type: 'array_get', name: 'sensors', index: 2 }, op: '==', right: 'target' }, body: [{ type: 'var_set', variable: 'found', value: 2 }] },
+        move, move, move, move
+      ],
+      46: [
+        { type: 'var_set', variable: 'i', value: 0 },
+        { type: 'var_set', variable: 'found', value: -1 },
+        {
+          type: 'while',
+          condition: { type: 'compare', left: 'i', op: '<', right: 5 },
+          body: [
+            {
+              type: 'if',
+              condition: { type: 'compare', left: { type: 'array_get', name: 'data', index: 'i' }, op: '==', right: 'target' },
+              body: [{ type: 'var_set', variable: 'found', value: 'i' }]
+            },
+            { type: 'var_change', variable: 'i', amount: 1 }
+          ]
+        },
+        move, move, move, move, move
+      ],
+      47: [
+        { type: 'var_set', variable: 'i', value: 0 },
+        { type: 'var_set', variable: 'found', value: -1 },
+        {
+          type: 'while',
+          condition: { type: 'compare', left: 'i', op: '<', right: 5 },
+          body: [
+            {
+              type: 'if',
+              condition: { type: 'compare', left: { type: 'array_get', name: 'codes', index: 'i' }, op: '==', right: 'target' },
+              body: [
+                { type: 'var_set', variable: 'found', value: 'i' },
+                { type: 'break' }
+              ]
+            },
+            { type: 'var_change', variable: 'i', amount: 1 }
+          ]
+        },
+        move, activate, move, move, move, move, move
+      ],
+      48: [
+        { type: 'var_set', variable: 'mid', value: 3 },
+        {
+          type: 'if',
+          condition: { type: 'compare', left: { type: 'array_get', name: 'archive', index: 'mid' }, op: '<', right: 'target' },
+          body: [
+            { type: 'var_set', variable: 'low', value: { type: 'binary_op', op: '+', left: 'mid', right: 1 } }
+          ]
+        },
+        move, move, collect, move, move, move, move
+      ],
+      49: [
+        { type: 'var_set', variable: 'low', value: 0 },
+        { type: 'var_set', variable: 'high', value: 6 },
+        { type: 'var_set', variable: 'found', value: -1 },
+        {
+          type: 'while',
+          condition: { type: 'compare', left: 'low', op: '<=', right: 'high' },
+          body: [
+            { type: 'var_set', variable: 'mid', value: { type: 'midpoint', low: 'low', high: 'high' } },
+            {
+              type: 'if',
+              condition: { type: 'compare', left: { type: 'array_get', name: 'grid', index: 'mid' }, op: '==', right: 'target' },
+              body: [
+                { type: 'var_set', variable: 'found', value: 'mid' },
+                { type: 'break' }
+              ],
+              elseBody: [
+                {
+                  type: 'if',
+                  condition: { type: 'compare', left: { type: 'array_get', name: 'grid', index: 'mid' }, op: '<', right: 'target' },
+                  body: [
+                    { type: 'var_set', variable: 'low', value: { type: 'binary_op', op: '+', left: 'mid', right: 1 } }
+                  ],
+                  elseBody: [
+                    { type: 'var_set', variable: 'high', value: { type: 'binary_op', op: '-', left: 'mid', right: 1 } }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        move, activate, move, move, move, move, collect, move, move, move
+      ],
+      50: [
+        { type: 'var_set', variable: 'low', value: 0 },
+        { type: 'var_set', variable: 'high', value: 7 },
+        { type: 'var_set', variable: 'found', value: -1 },
+        {
+          type: 'while',
+          condition: { type: 'compare', left: 'low', op: '<=', right: 'high' },
+          body: [
+            { type: 'var_set', variable: 'mid', value: { type: 'midpoint', low: 'low', high: 'high' } },
+            {
+              type: 'if',
+              condition: { type: 'compare', left: { type: 'array_get', name: 'coreKeys', index: 'mid' }, op: '==', right: 'target' },
+              body: [
+                { type: 'var_set', variable: 'found', value: 'mid' },
+                { type: 'break' }
+              ],
+              elseBody: [
+                {
+                  type: 'if',
+                  condition: { type: 'compare', left: { type: 'array_get', name: 'coreKeys', index: 'mid' }, op: '<', right: 'target' },
+                  body: [
+                    { type: 'var_set', variable: 'low', value: { type: 'binary_op', op: '+', left: 'mid', right: 1 } }
+                  ],
+                  elseBody: [
+                    { type: 'var_set', variable: 'high', value: { type: 'binary_op', op: '-', left: 'mid', right: 1 } }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        move, activate, move, move, move, jump, move, collect, move, move, pulse, pulse, pulse, move, move, move
       ]
     };
 
@@ -858,7 +979,7 @@ describe('Real MongoDB Replica Set Integration Verification', () => {
       return compact.some((n) => n.type === 'repeat') ? compact : [repeat(1, ...compact)];
     }
 
-    test('an existing player with completed early levels retains progress, stars, and balances after 44-level expansion', async () => {
+    test('an existing player with completed early levels retains progress, stars, and balances after 50-level expansion', async () => {
       // Simulate historical player who completed sectors 1..3 before expansion
       const historicalPlayer = await User.create({
         username: `HistoricalPilot_${Date.now()}`,
@@ -886,7 +1007,7 @@ describe('Real MongoDB Replica Set Integration Verification', () => {
       }
 
       const campaignView = await getCampaignLevels(historicalPlayer.id);
-      assert.equal(campaignView.length, 44, 'All 44 sectors should be visible');
+      assert.equal(campaignView.length, 50, 'All 50 sectors should be visible');
 
       // Sectors 1-3 should remain completed with 3 stars
       for (let i = 0; i < 3; i++) {
@@ -899,8 +1020,8 @@ describe('Real MongoDB Replica Set Integration Verification', () => {
       assert.equal(campaignView[3].unlocked, true);
       assert.equal(campaignView[3].completed, false);
 
-      // Sectors 5-44 must remain locked
-      for (let i = 4; i < 44; i++) {
+      // Sectors 5-50 must remain locked
+      for (let i = 4; i < 50; i++) {
         assert.equal(campaignView[i].unlocked, false, `Sector ${campaignView[i].id} should be locked`);
       }
 
@@ -910,7 +1031,7 @@ describe('Real MongoDB Replica Set Integration Verification', () => {
       assert.equal(refreshed.coins, 75);
     });
 
-    test('fresh pilot progresses sequentially through all 44 levels in real MongoDB replica set', async () => {
+    test('fresh pilot progresses sequentially through all 50 levels in real MongoDB replica set', async () => {
       const pilot = await User.create({
         username: `GrandMasterPilot_${Date.now()}`,
         email: `grandmaster_${Date.now()}@codeverse.io`,
@@ -928,8 +1049,8 @@ describe('Real MongoDB Replica Set Integration Verification', () => {
       assert.equal(initialLevels[0].unlocked, true);
       assert.equal(initialLevels[1].unlocked, false);
 
-      // Execute each level sequentially 1 to 44
-      for (let i = 0; i < 44; i++) {
+      // Execute each level sequentially 1 to 50
+      for (let i = 0; i < 50; i++) {
         const lvl = levels[i];
         const program = solveLevel(lvl);
 
@@ -944,23 +1065,23 @@ describe('Real MongoDB Replica Set Integration Verification', () => {
         assert.equal(outcome.earned.coins, 25, `Level ${lvl.id} did not award 25 coins`);
         assert.ok(outcome.stars >= 1, `Level ${lvl.id} had 0 stars`);
 
-        if (lvl.id < 44) {
+        if (lvl.id < 50) {
           assert.equal(outcome.unlockedNext, true, `Level ${lvl.id} should unlock next level`);
         } else {
           // Final level must NOT report that a nonexistent next level was unlocked
-          assert.equal(outcome.unlockedNext, false, 'Final level 44 must report unlockedNext: false');
+          assert.equal(outcome.unlockedNext, false, 'Final level 50 must report unlockedNext: false');
         }
       }
 
       // Verify cumulative progression in real MongoDB
       const finalUser = await User.findById(pilot.id);
-      assert.equal(finalUser.totalXp, 4400, '44 levels * 100 XP = 4400 XP');
-      assert.equal(finalUser.coins, 1100, '44 levels * 25 coins = 1100 coins');
+      assert.equal(finalUser.totalXp, 5000, '50 levels * 100 XP = 5000 XP');
+      assert.equal(finalUser.coins, 1250, '50 levels * 25 coins = 1250 coins');
 
       const allProgress = await CampaignProgress.find({ user: pilot.id });
-      assert.equal(allProgress.length, 44, '44 CampaignProgress documents should exist');
+      assert.equal(allProgress.length, 50, '50 CampaignProgress documents should exist');
 
-      // Verify replay protection on level 1 and level 44
+      // Verify replay protection on level 1 and level 50
       const replayLvl1 = await runCampaignLevel({
         userId: pilot.id,
         levelId: 1,
@@ -969,17 +1090,17 @@ describe('Real MongoDB Replica Set Integration Verification', () => {
       assert.equal(replayLvl1.earned.xp, 0);
       assert.equal(replayLvl1.earned.coins, 0);
 
-      const replayLvl44 = await runCampaignLevel({
+      const replayLvl50 = await runCampaignLevel({
         userId: pilot.id,
-        levelId: 44,
-        program: solveLevel(levels[43])
+        levelId: 50,
+        program: solveLevel(levels[49])
       });
-      assert.equal(replayLvl44.earned.xp, 0);
-      assert.equal(replayLvl44.earned.coins, 0);
+      assert.equal(replayLvl50.earned.xp, 0);
+      assert.equal(replayLvl50.earned.coins, 0);
 
       const postReplayUser = await User.findById(pilot.id);
-      assert.equal(postReplayUser.totalXp, 4400);
-      assert.equal(postReplayUser.coins, 1100);
+      assert.equal(postReplayUser.totalXp, 5000);
+      assert.equal(postReplayUser.coins, 1250);
     });
   });
 });

@@ -444,10 +444,26 @@ Stage E: Expand the Actual Learning Game
   - Multi-language code generators (Plain-English, JavaScript, Python, Java, C++, C) and standalone runnable exports with runtime bounds verification.
   - Compact Array Watch Panel: numbered cells, index headers `[0]..[n-1]`, live read (amber) and set/mutation (emerald) pulses, while-loop traversal pointer indicators (`▲ i`), and zero-based indexing explanation.
 
+#### Stage E4 — Beginner-Friendly Linear Search and Binary Search (Completed)
+- **Branch:** `codex/searching-algorithms`
+- **Sectors:** Appended stable Levels 45–50 (District 10: *Search Matrix*):
+  - **Level 45 (Sequential Scan):** Inspect array cells in order to find a target value (`requireArray: true`, `requireTargetMatch: true`).
+  - **Level 46 (Linear Search Protocol):** Implement linear search using a counter loop and comparisons (`requireLinearSearch: true`, `requireWhile: true`).
+  - **Level 47 (Early Termination):** Stop searching once target is found using `break`; handle missing targets with sentinel -1 and multi-case evaluation (`requireBreak: true`, `requireSearchExit: true`).
+  - **Level 48 (The Power of Order):** Explain sorted arrays and why binary search requires ascending order; halve search space using `low = mid + 1` (`requireSortedArray: true`).
+  - **Level 49 (Binary Search Matrix):** Implement complete binary search with visible `low`, `mid = (low + high) / 2`, and `high` bounds; enforce logarithmic comparison budget (`requireBinarySearch: true`, `maxComparisons: 3`).
+  - **Level 50 (Search Master Climax):** Chapter finale: Independent binary search challenge evaluated across server test cases with present and missing targets, bridge deployment, hazard clearing, and 3-HP guardian combat (`requireSearchMastery: true`, `bossHealth: 3`).
+- **Semantic & Execution Model:**
+  - Loop break semantics: `break` node immediately terminates enclosing repeat/while loop; rejected outside loops.
+  - Midpoint and arithmetic operands: `midpoint` computes `Math.trunc((low + high) / 2)`; `binary_op` computes `+`, `-`, `*`, `/`.
+  - Ascending sorted array verification: `requireSortedArray` and `requireBinarySearch` enforce that arrays are sorted in ascending order.
+  - Multi-scenario server evaluation: `searchCases` runs learner code across varied targets (present at start, middle, end, and absent) to ensure genuine algorithmic solutions.
+  - Interactive Array & Search Watch Panel: displays target badge, comparisons count, found/not-found status banner, active cell comparison banner, binary search window `[low .. high]`, `LOW`/`MID`/`HIGH` boundary indicators, and dimmed/eliminated discarded cells with plain-English explanation.
+  - Multi-language code generators (Plain-English, JavaScript, Python, Java, C++, C) and standalone runnable console exports with identical search semantics.
+
 #### Later Stage E Concepts (Roadmap Queue)
 The remaining computational thinking curriculum will be delivered across subsequent targeted milestones:
-1. **Searching Algorithms (Stage E4):** Linear search, early termination, sorted array properties, and binary search state tracing.
-2. **Sorting Algorithms (Stage E5):** Concrete compare-and-swap interactive mechanics, bubble sort, selection sort, and visual array element swaps.
-3. **Recursion & Call Stacks (Stage E6):** Self-referential procedures, base cases, call frame stacking, stack overflow bounds, and unwind tracing.
+1. **Sorting Algorithms (Stage E5):** Concrete compare-and-swap interactive mechanics, bubble sort, selection sort, and visual array element swaps.
+2. **Recursion & Call Stacks (Stage E6):** Self-referential procedures, base cases, call frame stacking, stack overflow bounds, and unwind tracing.
 
 

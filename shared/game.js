@@ -45,7 +45,8 @@ export const DISTRICTS = [
   { id: 6, name: 'Singularity', sectors: [21, 22, 23, 24], focus: 'Expert combinations, demanding routes & final 8-point guardian' },
   { id: 7, name: 'Algorithmic Core', sectors: [25, 26, 27, 28, 29, 30, 31, 32], focus: 'Variables, counters, comparisons & while loops' },
   { id: 8, name: 'Procedural Matrix', sectors: [33, 34, 35, 36, 37, 38], focus: 'Named routines, parameters, arguments & procedural composition' },
-  { id: 9, name: 'Memory Matrix', sectors: [39, 40, 41, 42, 43, 44], focus: 'Fixed-length integer arrays, zero-based indexing, element updates, traversal & array processing' }
+  { id: 9, name: 'Memory Matrix', sectors: [39, 40, 41, 42, 43, 44], focus: 'Fixed-length integer arrays, zero-based indexing, element updates, traversal & array processing' },
+  { id: 10, name: 'Search Matrix', sectors: [45, 46, 47, 48, 49, 50], focus: 'Linear search, early termination, sorted array properties, midpoint arithmetic, binary search bounds & search mastery' }
 ];
 
 function generateAdvancedLevels() {
@@ -552,6 +553,146 @@ export const levels = [
     0,
     16,
     { bossHealth: 3, difficulty: 44, requireArray: true, requireArrayRead: true, requireArraySet: true, requireWhile: true }
+  ),
+
+  // District 10: Search Matrix (Levels 45–50)
+  // Stage E4: Beginner-friendly linear search, early exit, sorted arrays & binary search
+  createLevel(
+    45,
+    'Sequential Scan',
+    'Search Matrix',
+    'Sequential Search & Target Matching',
+    'Scan array "sensors" [4, 7, 2, 9] cell-by-cell to locate target value 2. Inspect cells until found, set variable "found" to index 2, and step to the portal.',
+    'Initialize found to -1. Check sensors[0], then sensors[1], then sensors[2]. Since sensors[2] equals 2, set found to 2 and extract.',
+    ['########', '#S...G##', '########'],
+    0,
+    6,
+    {
+      difficulty: 45,
+      requireArray: true,
+      requireArrayRead: true,
+      requireVariables: true,
+      requireTargetMatch: true,
+      initialArrays: { sensors: [4, 7, 2, 9] },
+      initialVariables: { target: 2, found: -1 }
+    }
+  ),
+  createLevel(
+    46,
+    'Linear Search Protocol',
+    'Search Matrix',
+    'Linear Search with Counter Loop',
+    'Implement linear search over array "data" [5, 12, 8, 21, 3] to find target 21. Loop with counter "i" from 0 to length - 1, compare data[i] == target, and store the matching index in "found".',
+    'Set found to -1 and i to 0. While i < 5: read data[i], if data[i] == target then set found = i, change i by 1. Advance to portal.',
+    ['#########', '#S....G##', '#########'],
+    0,
+    8,
+    {
+      difficulty: 46,
+      requireArray: true,
+      requireArrayRead: true,
+      requireArrayTraversal: true,
+      requireWhile: true,
+      requireLinearSearch: true,
+      initialArrays: { data: [5, 12, 8, 21, 3] },
+      initialVariables: { target: 21, found: -1 }
+    }
+  ),
+  createLevel(
+    47,
+    'Early Termination',
+    'Search Matrix',
+    'Early Loop Break & Absent Targets',
+    'Enhance linear search on array "codes" [14, 9, 27, 42, 6] to find target 27. When found, record the index in "found" and break out of the loop early so unnecessary comparisons are avoided. If absent, "found" remains -1.',
+    'Inside your search loop, once data[i] == target, record found = i and use the "break out of loop" block to halt further comparisons.',
+    ['##########', '#STBB..G##', '##########'],
+    0,
+    10,
+    {
+      difficulty: 47,
+      requireArray: true,
+      requireWhile: true,
+      requireBreak: true,
+      requireSearchExit: true,
+      initialArrays: { codes: [14, 9, 27, 42, 6] },
+      initialVariables: { target: 27, found: -1 },
+      searchCases: [
+        { target: 27, expectedFound: 2 },
+        { target: 99, expectedFound: -1 },
+        { target: 14, expectedFound: 0 },
+        { target: 6, expectedFound: 4 }
+      ]
+    }
+  ),
+  createLevel(
+    48,
+    'The Power of Order',
+    'Search Matrix',
+    'Sorted Arrays & Range Elimination',
+    'Binary search requires sorted arrays! Inspect sorted array "archive" [3, 8, 15, 24, 39, 50, 72]. Compare target 39 with middle value archive[3] (24). Since 39 > 24, eliminate cells 0 to 3! Set low = 4, collect the shard, and extract.',
+    'When items are sorted, a single comparison eliminates half the remaining array! Check archive[3]; since 39 > 24, set low to 4.',
+    ['##########', '#S.C...G##', '##########'],
+    0,
+    8,
+    {
+      difficulty: 48,
+      requireArray: true,
+      requireVariables: true,
+      requireSortedArray: true,
+      initialArrays: { archive: [3, 8, 15, 24, 39, 50, 72] },
+      initialVariables: { target: 39, low: 0, high: 6 }
+    }
+  ),
+  createLevel(
+    49,
+    'Binary Search Matrix',
+    'Search Matrix',
+    'Binary Search Bounds & Midpoint',
+    'Implement binary search over sorted array "grid" [2, 6, 11, 19, 27, 34, 45] to find target 19 in at most 3 comparisons! Update low, mid, and high indexes to halve the range each step.',
+    'Set low = 0, high = 6, found = -1. While low <= high: mid = (low + high) / 2. If grid[mid] == target: found = mid, break. Else if grid[mid] < target: low = mid + 1. Else: high = mid - 1.',
+    ['############', '#STBB.C..G##', '############'],
+    0,
+    12,
+    {
+      difficulty: 49,
+      requireArray: true,
+      requireWhile: true,
+      requireBinarySearch: true,
+      requireSortedArray: true,
+      maxComparisons: 3,
+      initialArrays: { grid: [2, 6, 11, 19, 27, 34, 45] },
+      initialVariables: { target: 19, low: 0, high: 6, found: -1 }
+    }
+  ),
+  createLevel(
+    50,
+    'Search Master Climax',
+    'Search Matrix',
+    'Independent Search Mastery Challenge',
+    'Final Chapter Mission: The guardian core tests your algorithm against multiple targets! Implement binary search on sorted array "coreKeys" [1, 5, 12, 18, 25, 33, 42, 59]. If target found, deploy bridge, leap hazard, collect shard, and disable guardian!',
+    'Combine binary search with loop termination. Your algorithm must correctly find targets and report -1 for missing values across server evaluation cases.',
+    ['################', '#STBB.H.C..X.G##', '################'],
+    0,
+    16,
+    {
+      bossHealth: 3,
+      difficulty: 50,
+      requireArray: true,
+      requireWhile: true,
+      requireBinarySearch: true,
+      requireSortedArray: true,
+      requireSearchMastery: true,
+      initialArrays: { coreKeys: [1, 5, 12, 18, 25, 33, 42, 59] },
+      initialVariables: { target: 18, low: 0, high: 7, found: -1 },
+      searchCases: [
+        { target: 18, expectedFound: 3 },
+        { target: 1, expectedFound: 0 },
+        { target: 59, expectedFound: 7 },
+        { target: 20, expectedFound: -1 },
+        { target: 0, expectedFound: -1 },
+        { target: 99, expectedFound: -1 }
+      ]
+    }
   )
 ];
 
@@ -576,6 +717,7 @@ export const VALID_COMMANDS = new Set([
   'var_set',
   'var_change',
   'while',
+  'break',
   'fn_def',
   'fn_call',
   'array_init',
@@ -699,6 +841,20 @@ function validateOperand(operand) {
       const arrName = operand.name || operand.array;
       const err = getIdentifierError(arrName);
       if (err) throw new Error(err);
+      return;
+    }
+    if (operand.type === 'binary_op' || operand.type === 'math_op') {
+      const validOps = new Set(['+', '-', '*', '/']);
+      if (!validOps.has(operand.op)) {
+        throw new Error(`Unsupported arithmetic operator: "${operand.op}". Valid operators are +, -, *, /.`);
+      }
+      validateOperand(operand.left);
+      validateOperand(operand.right);
+      return;
+    }
+    if (operand.type === 'midpoint') {
+      validateOperand(operand.low);
+      validateOperand(operand.high);
       return;
     }
     if (operand.type === 'literal') {
@@ -858,7 +1014,7 @@ export function validateProgram(program, maxDepth = 8) {
     }
   }
 
-  function traverse(nodes, depth) {
+  function traverse(nodes, depth, inLoop = false) {
     if (depth > maxDepth) {
       throw new Error(`Program nesting is limited to ${maxDepth}.`);
     }
@@ -885,7 +1041,11 @@ export function validateProgram(program, maxDepth = 8) {
         if (!Array.isArray(node.body)) {
           throw new Error(`Function "${node.name}" body must be a list of commands.`);
         }
-        traverse(node.body, depth + 1);
+        traverse(node.body, depth + 1, false);
+      } else if (node.type === 'break') {
+        if (!inLoop) {
+          throw new Error('The break command can only be used inside a loop (repeat or while).');
+        }
       } else if (node.type === 'fn_call') {
         const fnName = node.name;
         const err = getIdentifierError(fnName);
@@ -976,7 +1136,7 @@ export function validateProgram(program, maxDepth = 8) {
         if (!Array.isArray(node.body)) {
           throw new Error('Repeat block must contain a body array of commands.');
         }
-        traverse(node.body, depth + 1);
+        traverse(node.body, depth + 1, true);
       } else if (node.type === 'while') {
         validateCondition(node.condition, node.sensor);
         if (node.condition && typeof node.condition === 'object' && node.condition.type === 'compare') {
@@ -992,7 +1152,7 @@ export function validateProgram(program, maxDepth = 8) {
           throw new Error('While block must contain a body array of commands.');
         }
         if (node.body.length > 0) {
-          traverse(node.body, depth + 1);
+          traverse(node.body, depth + 1, true);
         }
       } else if (node.type === 'if') {
         validateCondition(node.condition, node.sensor);
@@ -1008,18 +1168,18 @@ export function validateProgram(program, maxDepth = 8) {
         if (!Array.isArray(node.body)) {
           throw new Error('If block must contain a body array of commands.');
         }
-        traverse(node.body, depth + 1);
+        traverse(node.body, depth + 1, inLoop);
         if (node.elseBody !== undefined) {
           if (!Array.isArray(node.elseBody)) {
             throw new Error('Else body must be an array of commands.');
           }
-          traverse(node.elseBody, depth + 1);
+          traverse(node.elseBody, depth + 1, inLoop);
         }
       }
     }
   }
 
-  traverse(program, 0);
+  traverse(program, 0, false);
   return true;
 }
 
@@ -1044,6 +1204,20 @@ export function initialState(level) {
   const hasBoss = level.map.some(row => row.includes('X'));
   const bossHP = hasBoss ? (level.bossHealth || 3) : 0;
 
+  const initVars = {};
+  if (level.initialVariables) {
+    for (const [k, v] of Object.entries(level.initialVariables)) {
+      initVars[k] = v;
+    }
+  }
+
+  const initArrs = {};
+  if (level.initialArrays) {
+    for (const [k, v] of Object.entries(level.initialArrays)) {
+      initArrs[k] = [...v];
+    }
+  }
+
   return {
     x,
     y,
@@ -1053,8 +1227,9 @@ export function initialState(level) {
     bossHP,
     health: 3,
     steps: 0,
-    variables: {},
-    arrays: {},
+    variables: initVars,
+    arrays: initArrs,
+    comparisons: 0,
     event: 'ready',
     message: 'Program the drone. The city is waiting.'
   };
@@ -1083,9 +1258,14 @@ export function simulate(level, program, options = {}) {
   }
 
   let state = initialState(level);
-  state.variables = {};
-  state.arrays = {};
+  if (options.initialVariablesOverride) {
+    state.variables = { ...state.variables, ...options.initialVariablesOverride };
+  }
+  if (options.initialArraysOverride) {
+    state.arrays = { ...state.arrays, ...options.initialArraysOverride };
+  }
   state.lastArrayRead = null;
+  state.lastComparison = null;
 
   const cloneArrays = (arrs) => {
     const copy = {};
@@ -1105,6 +1285,8 @@ export function simulate(level, program, options = {}) {
   let executedArrayReads = 0;
   let executedArraySets = 0;
   let executedArrayTraversals = 0;
+  let executedBreaks = 0;
+  let executedComparisons = 0;
   const arrayLoopAccesses = new Map();
   const executedFunctions = new Set();
   const executedArgValues = new Set();
@@ -1128,7 +1310,15 @@ export function simulate(level, program, options = {}) {
     variables: { ...state.variables },
     arrays: cloneArrays(state.arrays),
     callStack: [],
-    activeRoutine: null
+    activeRoutine: null,
+    comparisons: 0,
+    searchBounds: (state.variables.low !== undefined && state.variables.high !== undefined)
+      ? {
+          low: state.variables.low,
+          high: state.variables.high,
+          mid: state.variables.mid
+        }
+      : null
   }];
   const totalEnergy = level.map.join('').split('C').length - 1;
 
@@ -1141,6 +1331,7 @@ export function simulate(level, program, options = {}) {
       message,
       variables: { ...state.variables },
       arrays: cloneArrays(state.arrays),
+      comparisons: executedComparisons,
       steps: isCondition ? state.steps : state.steps + 1
     };
     frames.push({
@@ -1151,7 +1342,16 @@ export function simulate(level, program, options = {}) {
       variables: { ...state.variables },
       arrays: cloneArrays(state.arrays),
       arrayRead: state.lastArrayRead ? { ...state.lastArrayRead } : null,
-      collected: [...state.collected]
+      collected: [...state.collected],
+      comparisons: executedComparisons,
+      lastComparison: state.lastComparison ? { ...state.lastComparison } : null,
+      searchBounds: (state.variables.low !== undefined && state.variables.high !== undefined)
+        ? {
+            low: state.variables.low,
+            high: state.variables.high,
+            mid: state.variables.mid
+          }
+        : null
     });
   };
 
@@ -1240,6 +1440,35 @@ export function simulate(level, program, options = {}) {
           value: arr[rawIdx]
         };
         return arr[rawIdx];
+      } else if (operand.type === 'binary_op' || operand.type === 'math_op') {
+        const leftVal = resolveOperand(operand.left, currentLoopDepth);
+        const rightVal = resolveOperand(operand.right, currentLoopDepth);
+        let res = 0;
+        switch (operand.op) {
+          case '+': res = leftVal + rightVal; break;
+          case '-': res = leftVal - rightVal; break;
+          case '*': res = leftVal * rightVal; break;
+          case '/':
+            if (rightVal === 0) {
+              throw new Error('Division by zero is not allowed.');
+            }
+            res = Math.trunc(leftVal / rightVal);
+            break;
+          default:
+            throw new Error(`Unsupported arithmetic operator: "${operand.op}".`);
+        }
+        if (res < -10000 || res > 10000) {
+          throw new Error(`Arithmetic result out of bounds (${res}). Numbers must be between -10,000 and 10,000.`);
+        }
+        return res;
+      } else if (operand.type === 'midpoint') {
+        const lowVal = resolveOperand(operand.low, currentLoopDepth);
+        const highVal = resolveOperand(operand.high, currentLoopDepth);
+        const midVal = Math.trunc((lowVal + highVal) / 2);
+        if (midVal < -10000 || midVal > 10000) {
+          throw new Error(`Midpoint value out of bounds (${midVal}). Numbers must be between -10,000 and 10,000.`);
+        }
+        return midVal;
       } else if (operand.type === 'literal') {
         const intVal = Math.trunc(operand.value);
         if (intVal < -10000 || intVal > 10000) {
@@ -1298,6 +1527,8 @@ export function simulate(level, program, options = {}) {
         };
       }
       if (cond.type === 'compare') {
+        executedComparisons++;
+        state.comparisons = executedComparisons;
         const leftVal = resolveOperand(cond.left, currentLoopDepth);
         const rightVal = resolveOperand(cond.right, currentLoopDepth);
         const leftLabel = typeof cond.left === 'string' ? cond.left : (cond.left?.var ?? cond.left?.name ?? cond.left);
@@ -1314,6 +1545,7 @@ export function simulate(level, program, options = {}) {
             throw new Error(`Unsupported comparison operator: "${cond.op}".`);
         }
         const text = `${leftLabel} ${cond.op} ${rightLabel} (${leftVal} ${cond.op} ${rightVal})`;
+        state.lastComparison = { left: leftLabel, leftVal, op: cond.op, right: rightLabel, rightVal, outcome };
         return {
           outcome,
           text,
@@ -1333,11 +1565,21 @@ export function simulate(level, program, options = {}) {
     for (const node of nodes) {
       if (stopped) return;
       state.lastArrayRead = null;
+  state.lastComparison = null;
       if (++ticks > 1000) throw new Error('Program exceeds the 1000-instruction execution limit.');
 
       if (node.type === 'fn_def') {
         // Function definitions are collected prior to execution and do not execute inline
         continue;
+      }
+
+      if (node.type === 'break') {
+        executedBreaks++;
+        const breakMeta = {};
+        if (node.nodeId) breakMeta.nodeId = node.nodeId;
+        if (node.blockId) breakMeta.blockId = node.blockId;
+        snapshot('break', 'Breaking out of loop.', true, breakMeta);
+        return { break: true };
       }
 
       if (node.type === 'array_init') {
@@ -1637,7 +1879,8 @@ export function simulate(level, program, options = {}) {
         executedLoops++;
         for (let i = 0; i < node.count; i++) {
           if (stopped) break;
-          run(node.body, depth + 1, loopDepth + 1);
+          const res = run(node.body, depth + 1, loopDepth + 1);
+          if (res?.break) break;
         }
         continue;
       }
@@ -1690,7 +1933,8 @@ export function simulate(level, program, options = {}) {
           }
 
           if (Array.isArray(node.body) && node.body.length > 0) {
-            run(node.body, depth + 1, loopDepth + 1);
+            const res = run(node.body, depth + 1, loopDepth + 1);
+            if (res?.break) break;
           }
         }
         continue;
@@ -1718,9 +1962,11 @@ export function simulate(level, program, options = {}) {
           snapshot('condition', outcomeText, true, condMeta);
         }
         if (condEval.outcome) {
-          run(node.body, depth + 1, loopDepth);
+          const res = run(node.body, depth + 1, loopDepth);
+          if (res?.break) return res;
         } else if (node.elseBody && node.elseBody.length > 0) {
-          run(node.elseBody, depth + 1, loopDepth);
+          const res = run(node.elseBody, depth + 1, loopDepth);
+          if (res?.break) return res;
         }
         continue;
       }
@@ -1809,6 +2055,16 @@ export function simulate(level, program, options = {}) {
   const mainStatements = program.filter(n => n && n.type !== 'fn_def');
   run(mainStatements);
 
+  if (level.requireSortedArray || level.requireBinarySearch) {
+    for (const [arrName, arr] of Object.entries(state.arrays)) {
+      for (let i = 0; i < arr.length - 1; i++) {
+        if (arr[i] > arr[i + 1]) {
+          throw new Error(`Array "${arrName}" is not sorted in ascending order. Binary search requires sorted elements.`);
+        }
+      }
+    }
+  }
+
   const countBlocks = nodes =>
     nodes.reduce(
       (sum, n) =>
@@ -1837,6 +2093,20 @@ export function simulate(level, program, options = {}) {
       ? 'This sector requires updating an array element.'
       : level.requireArrayTraversal && executedArrayTraversals === 0
       ? 'This sector requires traversing an array using an index counter inside a loop.'
+      : level.requireTargetMatch && (state.variables.found === undefined || state.variables.found === -1)
+      ? 'This sector requires locating the target and setting variable "found" to its index.'
+      : level.requireLinearSearch && (executedArrayReads === 0 || executedWhileLoops === 0)
+      ? 'This sector requires implementing linear search using an index counter and comparisons inside a while loop.'
+      : level.requireBreak && executedBreaks === 0
+      ? 'This sector requires breaking out of the loop early once the target is found.'
+      : level.requireSearchExit && executedBreaks === 0
+      ? 'This sector requires breaking out of the loop early once the target is found.'
+      : level.requireBinarySearch && (executedWhileLoops === 0 || executedComparisons === 0)
+      ? 'This sector requires implementing binary search using low, mid, and high bounds.'
+      : level.requireSearchMastery && (executedWhileLoops === 0 || executedComparisons === 0)
+      ? 'This sector requires implementing binary search to find target keys and dismantle the guardian.'
+      : level.maxComparisons && executedComparisons > level.maxComparisons
+      ? `Comparison limit exceeded: ${executedComparisons}/${level.maxComparisons}. Binary search should narrow the range faster.`
       : level.requireFunction && (executedFunctionCalls === 0 || executedFunctions.size === 0)
       ? 'This sector requires defining and calling a routine.'
       : level.requireFunctionCalls && executedFunctionCalls < level.requireFunctionCalls
@@ -1866,7 +2136,49 @@ export function simulate(level, program, options = {}) {
   const reachedGoal = tile(state.x, state.y) === 'G';
   const collectedAll = state.collected.length === totalEnergy;
   const bossDefeated = state.bossHP === 0;
-  const passed = !stopped && !constraintMessage && reachedGoal && collectedAll && bossDefeated;
+  let passed = !stopped && !constraintMessage && reachedGoal && collectedAll && bossDefeated;
+
+  if (passed && !options.isTestCase && Array.isArray(level.searchCases) && level.searchCases.length > 0) {
+    for (const tc of level.searchCases) {
+      const tcState = simulate(level, program, {
+        ...options,
+        isTestCase: true,
+        initialVariablesOverride: {
+          target: tc.target,
+          found: -1,
+          low: 0,
+          high: (level.initialArrays ? Object.values(level.initialArrays)[0].length - 1 : 0)
+        }
+      });
+      const studentFound = tcState.state.variables.found ?? tcState.state.variables.result;
+      if (studentFound !== tc.expectedFound) {
+        const failMsg = `Challenge evaluation failed for target = ${tc.target}: expected found = ${tc.expectedFound}, but received ${studentFound}.`;
+        return {
+          passed: false,
+          stars: 0,
+          frames,
+          state: { ...state, message: failMsg },
+          message: failMsg,
+          totalEnergy,
+          programBlocks,
+          executedComparisons
+        };
+      }
+      if (level.requireBinarySearch && level.maxComparisons && tcState.executedComparisons > level.maxComparisons + 1) {
+        const failMsg = `Binary search comparison budget exceeded on test case (target = ${tc.target}): ${tcState.executedComparisons} comparisons performed. Expected logarithmic search efficiency.`;
+        return {
+          passed: false,
+          stars: 0,
+          frames,
+          state: { ...state, message: failMsg },
+          message: failMsg,
+          totalEnergy,
+          programBlocks,
+          executedComparisons
+        };
+      }
+    }
+  }
 
   const message = passed
     ? 'Sector secured. Next level unlocked.'
@@ -1892,6 +2204,7 @@ export function simulate(level, program, options = {}) {
     state: { ...state, message },
     message,
     totalEnergy,
-    programBlocks
+    programBlocks,
+    executedComparisons
   };
 }

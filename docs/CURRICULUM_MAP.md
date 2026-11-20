@@ -93,6 +93,12 @@ This document provides the authoritative curriculum audit and pedagogical map fo
 | **42** | Memory Matrix | Traversal with Index Counter | Traverse array `path` using index variable `i` from 0 to `length(path) - 1`. | Master sequential traversal: stepping through an entire array with a while loop. | Level 41: Array Mutation | Loop traversal, bounds testing, pointer tracking | Arrays + Core |
 | **43** | Memory Matrix | Processing Arrays with Routines | Process array elements with conditional decisions inside reusable routine `processCell`. | Integrate arrays with procedural abstraction and sensor-assisted decisions. | Level 42: Array Traversal | Routine-array integration, modular design | Arrays + Routines + Core |
 | **44** | Memory Matrix | Memory Matrix Grand Master | District Finale: Coordinate arrays, indexing, mutations, while loops, routines, and boss combat. | Master complete data structure orchestration in an independent challenge. | Level 43: Routine Processing | Full Stage E3 mastery | All blocks |
+| **45** | Search Matrix | Sequential Scan | Inspect array `sensors` [4, 7, 2, 9] cell-by-cell to find target value 2. | Understand sequential inspection: testing elements in order from index 0 until match found. | Level 44: Memory Finale | Target matching, index recording, sequential read | Search + Arrays + Core |
+| **46** | Search Matrix | Linear Search Protocol | Implement linear search over array `data` [5, 12, 8, 21, 3] with counter `i`. | Automate sequential search using a while loop, counter increment, and target comparison. | Level 45: Sequential Scan | Loop-driven search, counter progression, dynamic indexing | Search + Arrays + Core |
+| **47** | Search Matrix | Early Termination | Stop searching once target 27 is found using `break`; handle missing targets (-1). | Understand search efficiency: early loop termination upon match and sentinel missing value (-1). | Level 46: Linear Search | Break statement, multi-case evaluation, sentinel output | Search + Arrays + Core |
+| **48** | Search Matrix | The Power of Order | Inspect sorted array `archive` [3, 8, 15, 24, 39, 50, 72]; compare mid (24) and set low = 4. | Understand sorted array properties: when data is ordered, one comparison discards half the search range. | Level 47: Early Break | Sorted array property, range halving, low/high boundary update | Search + Arrays + Core |
+| **49** | Search Matrix | Binary Search Matrix | Implement binary search over sorted array `grid` to find target 19 in <= 3 comparisons. | Implement full binary search with low/high bounds, integer midpoint `(low + high) / 2`, and log(n) efficiency. | Level 48: Power of Order | Binary search algorithm, midpoint math, comparison budget | Search + Arrays + Core |
+| **50** | Search Matrix | Search Master Climax | Chapter Climax: General binary search verified across server test cases with combat and hazards. | Full algorithmic mastery: generalize binary search to present and absent targets under boss combat. | Level 49: Binary Search | Climax challenge, multi-case server verification, search mastery | All blocks |
 
 ---
 
@@ -112,10 +118,9 @@ This document provides the authoritative curriculum audit and pedagogical map fo
 
 ---
 
-## 5. Distinction from Future Curriculum (Stage E4 & Beyond)
+## 5. Distinction from Future Curriculum (Stage E5 & Beyond)
 
 The following advanced concepts are planned for subsequent stages and are **NOT** claimed by existing levels:
 
-- **Linear & Binary Searching (Stage E4)**: Finding items or target values within arrays using sequential and divide-and-conquer traversal.
 - **Sorting Algorithms (Stage E5)**: In-place comparison and swap algorithms (Bubble Sort, Selection Sort) with visual swap animations.
-- **Recursion & Call Stacks (Stage E6)**: Self-referencing subroutines with base cases. (The engine explicitly rejects recursion in Stages E2 and E3).
+- **Recursion & Call Stacks (Stage E6)**: Self-referencing subroutines with base cases. (The engine explicitly rejects recursion in Stages E2, E3, and E4).

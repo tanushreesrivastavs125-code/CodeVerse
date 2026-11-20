@@ -264,4 +264,79 @@ describe('Blockly AST Compiler & Validation Rules', () => {
     assert.ok(preview.includes('let codes = [2, 1, 3];'));
     assert.ok(preview.includes('codes[1] = 9;'));
   });
+
+  test('compiles cv_break, cv_math_op, and cv_midpoint for search algorithms', () => {
+    const breakBlock = {
+      type: 'cv_break',
+      getNextBlock: () => null
+    };
+
+    const whileLoopBlock = {
+      type: 'cv_while',
+      getInputTargetBlock: (n) => {
+        if (n === 'CONDITION') {
+          return {
+            type: 'cv_compare',
+            getFieldValue: (f) => (f === 'OP' ? '<=' : null),
+            getInputTargetBlock: (side) => {
+              if (side === 'LEFT') return { type: 'cv_var_get', getFieldValue: () => 'low' };
+              if (side === 'RIGHT') return { type: 'cv_var_get', getFieldValue: () => 'high' };
+              return null;
+            }
+          };
+        }
+        if (n === 'DO') return breakBlock;
+        return null;
+      },
+      getNextBlock: () => null
+    };
+
+    const varSetMidBlock = {
+      type: 'cv_var_set',
+      getFieldValue: (f) => (f === 'VAR' ? 'mid' : null),
+      getInputTargetBlock: (n) => {
+        if (n === 'VALUE') {
+          return {
+            type: 'cv_midpoint',
+            getInputTargetBlock: (port) => {
+              if (port === 'LOW') return { type: 'cv_var_get', getFieldValue: () => 'low' };
+              if (port === 'HIGH') return { type: 'cv_var_get', getFieldValue: () => 'high' };
+              return null;
+            }
+          };
+        }
+        return null;
+      },
+      getNextBlock: () => whileLoopBlock
+    };
+
+    const ast = compileBlockSequence(varSetMidBlock);
+    assert.deepEqual(ast, [
+      {
+        type: 'var_set',
+        var: 'mid',
+        variable: 'mid',
+        value: {
+          type: 'midpoint',
+          low: { type: 'var_get', var: 'low' },
+          high: { type: 'var_get', var: 'high' }
+        }
+      },
+      {
+        type: 'while',
+        condition: {
+          type: 'compare',
+          left: { type: 'var_get', var: 'low' },
+          op: '<=',
+          right: { type: 'var_get', var: 'high' }
+        },
+        body: [{ type: 'break' }]
+      }
+    ]);
+
+    const preview = programToPreviewCode(ast);
+    assert.ok(preview.includes('let mid = Math.trunc((low + high) / 2);'));
+    assert.ok(preview.includes('while (low <= high) {'));
+    assert.ok(preview.includes('break;'));
+  });
 });

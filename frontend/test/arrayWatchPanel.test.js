@@ -133,4 +133,97 @@ describe('ArrayWatchPanel Component Invariants', () => {
     assert.ok(pointer.textContent.includes('▲'));
     assert.ok(pointer.textContent.includes('i'));
   });
+
+  test('renders search targets, comparisons count, status banners, and live comparison notice', async () => {
+    const activeFrame = {
+      arrays: {
+        sensors: [4, 7, 2, 9]
+      },
+      variables: {
+        target: 2,
+        found: 2,
+        comparisons: 3
+      },
+      comparisons: 3,
+      lastComparison: {
+        left: 'sensors[2]',
+        leftVal: 2,
+        op: '==',
+        right: 'target',
+        rightVal: 2,
+        outcome: true
+      }
+    };
+
+    await act(async () => {
+      root.render(
+        React.createElement(ArrayWatchPanel, {
+          level: { id: 45, targetValue: 2 },
+          activeFrame
+        })
+      );
+    });
+
+    const targetBadge = container.querySelector('[data-testid="search-target-badge"]');
+    assert.ok(targetBadge && targetBadge.textContent.includes('Target: 2'));
+
+    const compCount = container.querySelector('[data-testid="search-comparisons-count"]');
+    assert.ok(compCount && compCount.textContent.includes('Comparisons: 3'));
+
+    const statusBanner = container.querySelector('[data-testid="search-status-banner"]');
+    assert.ok(statusBanner && statusBanner.textContent.includes('Target found at index [2]'));
+
+    const compNotice = container.querySelector('[data-testid="search-comparison-notice"]');
+    assert.ok(compNotice && compNotice.textContent.includes('Comparing: sensors[2] (2) == target (2) ➔ TRUE'));
+  });
+
+  test('renders binary search window, LOW/MID/HIGH boundary badges, and dims eliminated cells', async () => {
+    const activeFrame = {
+      arrays: {
+        grid: [2, 6, 11, 19, 27, 34, 45]
+      },
+      variables: {
+        target: 19,
+        low: 3,
+        mid: 5,
+        high: 6
+      },
+      searchBounds: {
+        low: 3,
+        mid: 5,
+        high: 6
+      }
+    };
+
+    await act(async () => {
+      root.render(
+        React.createElement(ArrayWatchPanel, {
+          level: { id: 49 },
+          activeFrame
+        })
+      );
+    });
+
+    // Window indicator
+    const windowInd = container.querySelector('[data-testid="binary-search-window-indicator"]');
+    assert.ok(windowInd && windowInd.textContent.includes('Search Window: [3 .. 6]'));
+    assert.ok(windowInd && windowInd.textContent.includes('Midpoint: [5]'));
+
+    // Boundary badges on cells
+    const lowBound = container.querySelector('[data-testid="search-bound-grid-3"]');
+    assert.ok(lowBound && lowBound.textContent.includes('LOW'));
+
+    const midBound = container.querySelector('[data-testid="search-bound-grid-5"]');
+    assert.ok(midBound && midBound.textContent.includes('MID'));
+
+    const highBound = container.querySelector('[data-testid="search-bound-grid-6"]');
+    assert.ok(highBound && highBound.textContent.includes('HIGH'));
+
+    // Cell 0, 1, 2 should be eliminated (idx < low)
+    const cell0 = container.querySelector('[data-testid="array-cell-grid-0"]');
+    assert.ok(cell0, 'Cell 0 should exist');
+    assert.equal(cell0.style.opacity, '0.38');
+    const discarded0 = container.querySelector('[data-testid="cell-eliminated-grid-0"]');
+    assert.ok(discarded0 && discarded0.textContent.includes('discarded'));
+  });
 });
