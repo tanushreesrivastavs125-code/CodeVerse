@@ -417,6 +417,48 @@ function _cv_arr_set(drone, name, arr, index, val) {
   return arr[index];
 }
 
+function _cv_div(drone, left, right) {
+  if (right === 0) {
+    const msg = 'Division by zero is not allowed.';
+    drone.fail(msg);
+    throw new Error(msg);
+  }
+  const res = Math.trunc(left / right);
+  if (res < -10000 || res > 10000) {
+    const msg = \`Arithmetic result out of bounds (\${res}). Numbers must be between -10,000 and 10,000.\`;
+    drone.fail(msg);
+    throw new Error(msg);
+  }
+  return res;
+}
+
+function _cv_math_op(drone, left, op, right) {
+  let res = 0;
+  switch (op) {
+    case '+': res = left + right; break;
+    case '-': res = left - right; break;
+    case '*': res = left * right; break;
+    case '/': return _cv_div(drone, left, right);
+    default: throw new Error(\`Unsupported arithmetic operator: "\${op}".\`);
+  }
+  if (res < -10000 || res > 10000) {
+    const msg = \`Arithmetic result out of bounds (\${res}). Numbers must be between -10,000 and 10,000.\`;
+    drone.fail(msg);
+    throw new Error(msg);
+  }
+  return res;
+}
+
+function _cv_midpoint(drone, low, high) {
+  const mid = Math.trunc((low + high) / 2);
+  if (mid < -10000 || mid > 10000) {
+    const msg = \`Midpoint value out of bounds (\${mid}). Numbers must be between -10,000 and 10,000.\`;
+    drone.fail(msg);
+    throw new Error(msg);
+  }
+  return mid;
+}
+
 // ==========================================
 // CALL STACK & RECURSION MANAGEMENT
 // ==========================================
@@ -824,6 +866,43 @@ def _cv_arr_set(drone, name, arr, index, val):
     arr[index] = val
     drone.arrays[name] = list(arr)
 
+def _cv_div(drone, left, right):
+    if right == 0:
+        msg = 'Division by zero is not allowed.'
+        drone.fail(msg)
+        raise ZeroDivisionError(msg)
+    res = int(left / right)
+    if res < -10000 or res > 10000:
+        msg = f"Arithmetic result out of bounds ({res}). Numbers must be between -10,000 and 10,000."
+        drone.fail(msg)
+        raise ValueError(msg)
+    return res
+
+def _cv_math_op(drone, left, op, right):
+    if op == '+':
+        res = left + right
+    elif op == '-':
+        res = left - right
+    elif op == '*':
+        res = left * right
+    elif op == '/':
+        return _cv_div(drone, left, right)
+    else:
+        raise ValueError(f'Unsupported arithmetic operator: "{op}".')
+    if res < -10000 or res > 10000:
+        msg = f"Arithmetic result out of bounds ({res}). Numbers must be between -10,000 and 10,000."
+        drone.fail(msg)
+        raise ValueError(msg)
+    return res
+
+def _cv_midpoint(drone, low, high):
+    mid = int((low + high) / 2)
+    if mid < -10000 or mid > 10000:
+        msg = f"Midpoint value out of bounds ({mid}). Numbers must be between -10,000 and 10,000."
+        drone.fail(msg)
+        raise ValueError(msg)
+    return mid
+
 # ==========================================
 # CALL STACK & RECURSION MANAGEMENT
 # ==========================================
@@ -1206,6 +1285,49 @@ ${mapLines}
         if (drone != null) {
             drone.arrays.put(name, arr.clone());
         }
+    }
+
+    public static int _cv_div(int left, int right) {
+        if (right == 0) {
+            String msg = "Division by zero is not allowed.";
+            if (drone != null) drone.fail(msg);
+            throw new ArithmeticException(msg);
+        }
+        long res = (long)left / (long)right;
+        if (res < -10000 || res > 10000) {
+            String msg = "Arithmetic result out of bounds (" + res + "). Numbers must be between -10,000 and 10,000.";
+            if (drone != null) drone.fail(msg);
+            throw new ArithmeticException(msg);
+        }
+        return (int)res;
+    }
+
+    public static int _cv_math_op(int left, String op, int right) {
+        long res = 0;
+        switch (op) {
+            case "+": res = (long)left + (long)right; break;
+            case "-": res = (long)left - (long)right; break;
+            case "*": res = (long)left * (long)right; break;
+            case "/": return _cv_div(left, right);
+            default: throw new IllegalArgumentException("Unsupported arithmetic operator: \\"" + op + "\\".");
+        }
+        if (res < -10000 || res > 10000) {
+            String msg = "Arithmetic result out of bounds (" + res + "). Numbers must be between -10,000 and 10,000.";
+            if (drone != null) drone.fail(msg);
+            throw new ArithmeticException(msg);
+        }
+        return (int)res;
+    }
+
+    public static int _cv_midpoint(int low, int high) {
+        long sum = (long)low + (long)high;
+        long mid = sum / 2;
+        if (mid < -10000 || mid > 10000) {
+            String msg = "Midpoint value out of bounds (" + mid + "). Numbers must be between -10,000 and 10,000.";
+            if (drone != null) drone.fail(msg);
+            throw new ArithmeticException(msg);
+        }
+        return (int)mid;
     }
 
 ${codeRes.globalVars && codeRes.globalVars.length ? codeRes.globalVars.map(v => `    public static Integer ${v} = null;`).join('\n') : ''}
@@ -1594,6 +1716,43 @@ public:
     }
 };
 
+static int _cv_div(int left, int right) {
+    if (right == 0) {
+        drone.fail("Division by zero is not allowed.");
+        throw std::runtime_error("Division by zero is not allowed.");
+    }
+    long long res = (long long)left / (long long)right;
+    if (res < -10000 || res > 10000) {
+        drone.fail("Arithmetic result out of bounds (" + std::to_string(res) + "). Numbers must be between -10,000 and 10,000.");
+        throw std::runtime_error("Arithmetic result out of bounds (" + std::to_string(res) + "). Numbers must be between -10,000 and 10,000.");
+    }
+    return (int)res;
+}
+
+static int _cv_math_op(int left, const std::string& op, int right) {
+    long long res = 0;
+    if (op == "+") res = (long long)left + (long long)right;
+    else if (op == "-") res = (long long)left - (long long)right;
+    else if (op == "*") res = (long long)left * (long long)right;
+    else if (op == "/") return _cv_div(left, right);
+    else throw std::runtime_error("Unsupported arithmetic operator: \\"" + op + "\\".");
+    if (res < -10000 || res > 10000) {
+        drone.fail("Arithmetic result out of bounds (" + std::to_string(res) + "). Numbers must be between -10,000 and 10,000.");
+        throw std::runtime_error("Arithmetic result out of bounds (" + std::to_string(res) + "). Numbers must be between -10,000 and 10,000.");
+    }
+    return (int)res;
+}
+
+static int _cv_midpoint(int low, int high) {
+    long long sum = (long long)low + (long long)high;
+    long long mid = sum / 2;
+    if (mid < -10000 || mid > 10000) {
+        drone.fail("Midpoint value out of bounds (" + std::to_string(mid) + "). Numbers must be between -10,000 and 10,000.");
+        throw std::runtime_error("Midpoint value out of bounds (" + std::to_string(mid) + "). Numbers must be between -10,000 and 10,000.");
+    }
+    return (int)mid;
+}
+
 ${codeRes.prototypesCode || ''}
 
 ${codeRes.globalVars && codeRes.globalVars.length ? codeRes.globalVars.map(v => `static CvVar ${v}("${v}", &drone);`).join('\n') : ''}
@@ -1937,6 +2096,54 @@ static void _cv_arr_set(CvArray* arr, int index, int val) {
     }
     arr->data[index] = val;
     set_g_array(arr->name, arr->data, arr->length);
+}
+
+static int _cv_div(int left, int right) {
+    if (g_crashed) return 0;
+    if (right == 0) {
+        g_crashed = true;
+        strncpy(g_crash_reason, "Division by zero is not allowed.", sizeof(g_crash_reason) - 1);
+        return 0;
+    }
+    long long res = (long long)left / (long long)right;
+    if (res < -10000 || res > 10000) {
+        g_crashed = true;
+        snprintf(g_crash_reason, sizeof(g_crash_reason), "Arithmetic result out of bounds (%lld). Numbers must be between -10,000 and 10,000.", res);
+        return 0;
+    }
+    return (int)res;
+}
+
+static int _cv_math_op(int left, const char* op, int right) {
+    if (g_crashed) return 0;
+    long long res = 0;
+    if (strcmp(op, "+") == 0) res = (long long)left + (long long)right;
+    else if (strcmp(op, "-") == 0) res = (long long)left - (long long)right;
+    else if (strcmp(op, "*") == 0) res = (long long)left * (long long)right;
+    else if (strcmp(op, "/") == 0) return _cv_div(left, right);
+    else {
+        g_crashed = true;
+        strncpy(g_crash_reason, "Unsupported arithmetic operator.", sizeof(g_crash_reason) - 1);
+        return 0;
+    }
+    if (res < -10000 || res > 10000) {
+        g_crashed = true;
+        snprintf(g_crash_reason, sizeof(g_crash_reason), "Arithmetic result out of bounds (%lld). Numbers must be between -10,000 and 10,000.", res);
+        return 0;
+    }
+    return (int)res;
+}
+
+static int _cv_midpoint(int low, int high) {
+    if (g_crashed) return 0;
+    long long sum = (long long)low + (long long)high;
+    long long mid = sum / 2;
+    if (mid < -10000 || mid > 10000) {
+        g_crashed = true;
+        snprintf(g_crash_reason, sizeof(g_crash_reason), "Midpoint value out of bounds (%lld). Numbers must be between -10,000 and 10,000.", mid);
+        return 0;
+    }
+    return (int)mid;
 }
 
 int drone_sensor(const char* name) {

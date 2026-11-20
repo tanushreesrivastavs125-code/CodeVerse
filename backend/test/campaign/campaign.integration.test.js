@@ -815,7 +815,7 @@ describe('Real MongoDB Replica Set Integration Verification', () => {
         { type: 'var_set', variable: 'found', value: -1 },
         {
           type: 'while',
-          condition: { type: 'compare', left: 'i', op: '<', right: 5 },
+          condition: { type: 'compare', left: 'i', op: '<', right: { type: 'array_length', name: 'codes' } },
           body: [
             {
               type: 'if',
@@ -876,7 +876,7 @@ describe('Real MongoDB Replica Set Integration Verification', () => {
       ],
       50: [
         { type: 'var_set', variable: 'low', value: 0 },
-        { type: 'var_set', variable: 'high', value: 7 },
+        { type: 'var_set', variable: 'high', value: { type: 'binary_op', op: '-', left: { type: 'array_length', name: 'coreKeys' }, right: 1 } },
         { type: 'var_set', variable: 'found', value: -1 },
         {
           type: 'while',

@@ -476,12 +476,29 @@ export function formatOperand(operand, lang = 'javascript', options = {}) {
       const left = formatOperand(operand.left, lang, options);
       const right = formatOperand(operand.right, lang, options);
       const op = operand.op || '+';
+      if (options.isRunnable || options.boundedLoops) {
+        if (lang === 'javascript') {
+          return op === '/' ? `_cv_div(drone, ${left}, ${right})` : `_cv_math_op(drone, ${left}, "${op}", ${right})`;
+        }
+        if (lang === 'python') {
+          return op === '/' ? `_cv_div(drone, ${left}, ${right})` : `_cv_math_op(drone, ${left}, "${op}", ${right})`;
+        }
+        if (lang === 'java') {
+          return op === '/' ? `_cv_div(${left}, ${right})` : `_cv_math_op(${left}, "${op}", ${right})`;
+        }
+        if (lang === 'cpp') {
+          return op === '/' ? `_cv_div(${left}, ${right})` : `_cv_math_op(${left}, "${op}", ${right})`;
+        }
+        if (lang === 'c') {
+          return op === '/' ? `_cv_div(${left}, ${right})` : `_cv_math_op(${left}, "${op}", ${right})`;
+        }
+      }
       if (lang === 'plainEnglish') {
         const opNames = { '+': 'plus', '-': 'minus', '*': 'multiplied by', '/': 'divided by' };
         return `${left} ${opNames[op] || op} ${right}`;
       }
       if (lang === 'python') {
-        if (op === '/') return `(${left} // ${right})`;
+        if (op === '/') return `int(${left} / ${right})`;
         return `(${left} ${op} ${right})`;
       }
       if (lang === 'javascript') {
@@ -493,9 +510,16 @@ export function formatOperand(operand, lang = 'javascript', options = {}) {
     if (operand.type === 'midpoint') {
       const low = formatOperand(operand.low, lang, options);
       const high = formatOperand(operand.high, lang, options);
+      if (options.isRunnable || options.boundedLoops) {
+        if (lang === 'javascript') return `_cv_midpoint(drone, ${low}, ${high})`;
+        if (lang === 'python') return `_cv_midpoint(drone, ${low}, ${high})`;
+        if (lang === 'java') return `_cv_midpoint(${low}, ${high})`;
+        if (lang === 'cpp') return `_cv_midpoint(${low}, ${high})`;
+        if (lang === 'c') return `_cv_midpoint(${low}, ${high})`;
+      }
       if (lang === 'plainEnglish') return `midpoint of ${low} and ${high}`;
       if (lang === 'javascript') return `Math.trunc((${low} + ${high}) / 2)`;
-      if (lang === 'python') return `((${low} + ${high}) // 2)`;
+      if (lang === 'python') return `int((${low} + ${high}) / 2)`;
       return `((${low} + ${high}) / 2)`;
     }
   }

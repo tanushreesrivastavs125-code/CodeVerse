@@ -1,4 +1,5 @@
 import { levels, simulate } from '../../../shared/game.js';
+import { runLevelAssessment } from './assessmentService.js';
 import CampaignProgress from '../models/CampaignProgress.js';
 import CampaignAttempt from '../models/CampaignAttempt.js';
 import User from '../models/User.js';
@@ -162,6 +163,16 @@ export async function runCampaignLevel({ userId, levelId, program }) {
     simResult = simulate(level, program);
   } catch (err) {
     throw new AppError(err.message, 400, 'INVALID_PROGRAM');
+  }
+
+  // Authoritative private assessment for algorithm levels
+  if (simResult.passed) {
+    const assessment = runLevelAssessment(level.id, program);
+    if (!assessment.passed) {
+      simResult.passed = false;
+      simResult.stars = 0;
+      simResult.message = assessment.message;
+    }
   }
 
   const now = new Date();
