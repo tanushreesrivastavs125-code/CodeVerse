@@ -44,7 +44,8 @@ export const DISTRICTS = [
   { id: 5, name: 'Quantum Grid', sectors: [17, 18, 19, 20], focus: 'Adaptive programs, sensor decisions & tight efficiency' },
   { id: 6, name: 'Singularity', sectors: [21, 22, 23, 24], focus: 'Expert combinations, demanding routes & final 8-point guardian' },
   { id: 7, name: 'Algorithmic Core', sectors: [25, 26, 27, 28, 29, 30, 31, 32], focus: 'Variables, counters, comparisons & while loops' },
-  { id: 8, name: 'Procedural Matrix', sectors: [33, 34, 35, 36, 37, 38], focus: 'Named routines, parameters, arguments & procedural composition' }
+  { id: 8, name: 'Procedural Matrix', sectors: [33, 34, 35, 36, 37, 38], focus: 'Named routines, parameters, arguments & procedural composition' },
+  { id: 9, name: 'Memory Matrix', sectors: [39, 40, 41, 42, 43, 44], focus: 'Fixed-length integer arrays, zero-based indexing, element updates, traversal & array processing' }
 ];
 
 function generateAdvancedLevels() {
@@ -476,6 +477,81 @@ export const levels = [
     0,
     16,
     { bossHealth: 3, difficulty: 38, requireFunction: true, requireDifferentArguments: true }
+  ),
+
+  // District 9: Memory Matrix (Levels 39–44)
+  // Stage E3: Beginner-friendly fixed-length integer arrays, zero-based indexing, element updates & traversal
+  createLevel(
+    39,
+    'Memory Allocation',
+    'Memory Matrix',
+    'Array Creation & Numbered Cells',
+    'Initialize array "cells" with power levels [2, 1, 3] to calibrate the drone capacitor banks, then navigate to the extraction portal.',
+    'Create an array with values [2, 1, 3]. In the Array Watch panel, inspect the numbered cells (0, 1, 2). Advance to extraction.',
+    ['#######', '#S...G#', '#######'],
+    0,
+    4,
+    { difficulty: 39, requireArray: true }
+  ),
+  createLevel(
+    40,
+    'Zero-Based Reading',
+    'Memory Matrix',
+    'Zero-Based Indexing',
+    'The passcode distance to the energy shard is stored at index 0 of array "codes" [3, 1, 4]. Read codes[0] into variable "dist" to reach the shard and extract.',
+    'In programming, index 0 is the first cell! Read codes[0] (value 3) and repeat move forward that many times.',
+    ['##########', '#S..C...G#', '##########'],
+    0,
+    8,
+    { difficulty: 40, requireArray: true, requireArrayRead: true }
+  ),
+  createLevel(
+    41,
+    'Element Mutation',
+    'Memory Matrix',
+    'Updating Array Elements',
+    'Calibrate the bridge security buffer: update broken cell "bridgeBuffer" at index 1 from 0 to 1, activate the terminal, and cross the bridge.',
+    'Use "set array bridgeBuffer at index 1 to 1" to repair the configuration, then move onto the terminal, activate it, and extract.',
+    ['##########', '#STBB.C.G#', '##########'],
+    0,
+    9,
+    { difficulty: 41, requireArray: true, requireArraySet: true }
+  ),
+  createLevel(
+    42,
+    'Array Traversal',
+    'Memory Matrix',
+    'Traversing with Index Counters',
+    'Traverse array "shards" [1, 1, 1] using while loop and counter "i". At each station, move forward, collect the shard, and advance the counter.',
+    'Set counter i = 0. In while i < 3: read shards[i], move forward twice, collect shard, and change i by 1 to advance through the array.',
+    ['###########', '#S.C.C.CG##', '###########'],
+    0,
+    10,
+    { difficulty: 42, requireArray: true, requireArrayTraversal: true, requireWhile: true }
+  ),
+  createLevel(
+    43,
+    'Routine Processing',
+    'Memory Matrix',
+    'Processing Arrays with Routines',
+    'Define routine "inspectSector" with parameter "hazardFlag". Traverse array "hazards" [0, 1, 0] to safely jump breaches when flagged.',
+    'If hazardFlag == 1, jump across breach; else move forward. Pass hazards[i] to your routine on each iteration.',
+    ['############', '#S.C.H.C.G##', '############'],
+    0,
+    10,
+    { difficulty: 43, requireArray: true, requireFunction: true, requireParameter: true }
+  ),
+  createLevel(
+    44,
+    'Array Architect',
+    'Memory Matrix',
+    'Independent Array Mastery Challenge',
+    'Final Chapter Mission: Coordinate power cells, bridge deployment, shard recovery, and guardian combat using arrays, traversal, and mutation.',
+    'Initialize array "matrix" [3, 1, 0]. Traverse to deploy the bridge, recover the energy shard, update matrix[2] to register shield takedown, and defeat the guardian.',
+    ['################', '#STBB.C..X..G###', '################'],
+    0,
+    16,
+    { bossHealth: 3, difficulty: 44, requireArray: true, requireArrayRead: true, requireArraySet: true, requireWhile: true }
   )
 ];
 
@@ -501,7 +577,9 @@ export const VALID_COMMANDS = new Set([
   'var_change',
   'while',
   'fn_def',
-  'fn_call'
+  'fn_call',
+  'array_init',
+  'array_set'
 ]);
 
 export const VALID_SENSORS = new Set([
@@ -522,6 +600,8 @@ export const VALID_COMPARISONS = new Set([
 ]);
 
 export const MAX_VARIABLES = 10;
+export const MAX_ARRAYS = 5;
+export const MAX_ARRAY_LENGTH = 10;
 export const MAX_FUNCTIONS = 5;
 export const MAX_PARAMS_PER_FUNCTION = 3;
 export const MAX_CALL_DEPTH = 8;
@@ -608,6 +688,19 @@ function validateOperand(operand) {
       if (err) throw new Error(err);
       return;
     }
+    if (operand.type === 'array_get') {
+      const arrName = operand.name || operand.array;
+      const err = getIdentifierError(arrName);
+      if (err) throw new Error(err);
+      validateOperand(operand.index !== undefined ? operand.index : 0);
+      return;
+    }
+    if (operand.type === 'array_length') {
+      const arrName = operand.name || operand.array;
+      const err = getIdentifierError(arrName);
+      if (err) throw new Error(err);
+      return;
+    }
     if (operand.type === 'literal') {
       if (!Number.isInteger(operand.value) || operand.value < -10000 || operand.value > 10000) {
         throw new Error('Literal values must be integers between -10,000 and 10,000.');
@@ -675,6 +768,7 @@ export function validateProgram(program, maxDepth = 8) {
 
   let totalNodes = 0;
   const declaredVars = new Set();
+  const declaredArrays = new Set();
   const definedFunctions = new Map();
 
   // First pass: collect and validate program-level function definitions
@@ -814,6 +908,9 @@ export function validateProgram(program, maxDepth = 8) {
         const varName = node.var || node.variable;
         const err = getIdentifierError(varName);
         if (err) throw new Error(err);
+        if (declaredArrays.has(varName)) {
+          throw new Error(`Identifier "${varName}" is already used as an array. Variable and array names must be distinct.`);
+        }
         declaredVars.add(varName);
         if (declaredVars.size > MAX_VARIABLES) {
           throw new Error(`Program exceeds the limit of ${MAX_VARIABLES} variables.`);
@@ -823,6 +920,9 @@ export function validateProgram(program, maxDepth = 8) {
         const varName = node.var || node.variable;
         const err = getIdentifierError(varName);
         if (err) throw new Error(err);
+        if (declaredArrays.has(varName)) {
+          throw new Error(`Identifier "${varName}" is already used as an array. Variable and array names must be distinct.`);
+        }
         declaredVars.add(varName);
         if (declaredVars.size > MAX_VARIABLES) {
           throw new Error(`Program exceeds the limit of ${MAX_VARIABLES} variables.`);
@@ -832,6 +932,43 @@ export function validateProgram(program, maxDepth = 8) {
             throw new Error('Counter amount must be an integer between -10,000 and 10,000.');
           }
         }
+      } else if (node.type === 'array_init') {
+        const arrName = node.name || node.array;
+        const err = getIdentifierError(arrName);
+        if (err) throw new Error(err);
+        if (declaredVars.has(arrName)) {
+          throw new Error(`Identifier "${arrName}" is already used as a variable. Variable and array names must be distinct.`);
+        }
+        if (definedFunctions.has(arrName)) {
+          throw new Error(`Identifier "${arrName}" is already used as a function.`);
+        }
+        declaredArrays.add(arrName);
+        if (declaredArrays.size > MAX_ARRAYS) {
+          throw new Error(`Program exceeds the limit of ${MAX_ARRAYS} arrays.`);
+        }
+        const vals = Array.isArray(node.values) ? node.values : (Array.isArray(node.elements) ? node.elements : (node.values || []));
+        if (!Array.isArray(vals)) {
+          throw new Error(`Array "${arrName}" values must be a list.`);
+        }
+        if (vals.length > MAX_ARRAY_LENGTH) {
+          throw new Error(`Array "${arrName}" exceeds the maximum length of ${MAX_ARRAY_LENGTH} elements.`);
+        }
+        for (const v of vals) {
+          validateOperand(v);
+        }
+      } else if (node.type === 'array_set') {
+        const arrName = node.name || node.array;
+        const err = getIdentifierError(arrName);
+        if (err) throw new Error(err);
+        if (declaredVars.has(arrName)) {
+          throw new Error(`Identifier "${arrName}" is already used as a variable. Variable and array names must be distinct.`);
+        }
+        declaredArrays.add(arrName);
+        if (declaredArrays.size > MAX_ARRAYS) {
+          throw new Error(`Program exceeds the limit of ${MAX_ARRAYS} arrays.`);
+        }
+        validateOperand(node.index !== undefined ? node.index : 0);
+        validateOperand(node.value !== undefined ? node.value : 0);
       } else if (node.type === 'repeat') {
         if (!Number.isInteger(node.count) || node.count < 1 || node.count > 30) {
           throw new Error('Repeat count must be between 1 and 30.');
@@ -917,6 +1054,7 @@ export function initialState(level) {
     health: 3,
     steps: 0,
     variables: {},
+    arrays: {},
     event: 'ready',
     message: 'Program the drone. The city is waiting.'
   };
@@ -945,7 +1083,17 @@ export function simulate(level, program, options = {}) {
   }
 
   let state = initialState(level);
-  state.variables = Object.create(null);
+  state.variables = {};
+  state.arrays = {};
+  state.lastArrayRead = null;
+
+  const cloneArrays = (arrs) => {
+    const copy = {};
+    for (const [k, v] of Object.entries(arrs || {})) {
+      copy[k] = [...v];
+    }
+    return copy;
+  };
 
   let ticks = 0;
   let stopped = false;
@@ -954,6 +1102,10 @@ export function simulate(level, program, options = {}) {
   let executedSensors = 0;
   let executedVarUpdates = 0;
   let executedFunctionCalls = 0;
+  let executedArrayReads = 0;
+  let executedArraySets = 0;
+  let executedArrayTraversals = 0;
+  const arrayLoopAccesses = new Map();
   const executedFunctions = new Set();
   const executedArgValues = new Set();
   let executedInsideLoopOrCond = false;
@@ -974,6 +1126,7 @@ export function simulate(level, program, options = {}) {
     ...state,
     collected: [...state.collected],
     variables: { ...state.variables },
+    arrays: cloneArrays(state.arrays),
     callStack: [],
     activeRoutine: null
   }];
@@ -987,6 +1140,7 @@ export function simulate(level, program, options = {}) {
       event,
       message,
       variables: { ...state.variables },
+      arrays: cloneArrays(state.arrays),
       steps: isCondition ? state.steps : state.steps + 1
     };
     frames.push({
@@ -995,6 +1149,8 @@ export function simulate(level, program, options = {}) {
       callStack: getCallStackSnapshot(),
       activeRoutine: callStack.length > 0 ? callStack[callStack.length - 1].name : null,
       variables: { ...state.variables },
+      arrays: cloneArrays(state.arrays),
+      arrayRead: state.lastArrayRead ? { ...state.lastArrayRead } : null,
       collected: [...state.collected]
     });
   };
@@ -1030,7 +1186,7 @@ export function simulate(level, program, options = {}) {
     }
   };
 
-  function resolveOperand(operand) {
+  function resolveOperand(operand, currentLoopDepth = 0) {
     if (typeof operand === 'number') {
       if (!Number.isFinite(operand)) throw new Error('Invalid numeric value.');
       const intVal = Math.trunc(operand);
@@ -1045,6 +1201,45 @@ export function simulate(level, program, options = {}) {
     } else if (operand && typeof operand === 'object') {
       if (operand.type === 'var_get') {
         vName = operand.var || operand.variable;
+      } else if (operand.type === 'array_length') {
+        const arrName = operand.name || operand.array;
+        if (!(arrName in state.arrays)) {
+          throw new Error(`Array "${arrName}" is used before being created.`);
+        }
+        return state.arrays[arrName].length;
+      } else if (operand.type === 'array_get') {
+        executedArrayReads++;
+        const arrName = operand.name || operand.array;
+        if (!(arrName in state.arrays)) {
+          throw new Error(`Array "${arrName}" is used before being created.`);
+        }
+        const arr = state.arrays[arrName];
+        const rawIdx = resolveOperand(operand.index !== undefined ? operand.index : 0, currentLoopDepth);
+        if (!Number.isInteger(rawIdx)) {
+          throw new Error(`Array index must be an integer, received: ${rawIdx}`);
+        }
+        if (rawIdx < 0 || rawIdx >= arr.length) {
+          throw new Error(
+            arr.length === 0
+              ? `Array index out of bounds: ${rawIdx}. Array "${arrName}" is empty (length 0).`
+              : `Array index out of bounds: ${rawIdx}. Array "${arrName}" has length ${arr.length}, so valid indexes are 0 to ${arr.length - 1}.`
+          );
+        }
+        if (currentLoopDepth > 0) {
+          if (!arrayLoopAccesses.has(arrName)) {
+            arrayLoopAccesses.set(arrName, new Set());
+          }
+          arrayLoopAccesses.get(arrName).add(rawIdx);
+          if (arrayLoopAccesses.get(arrName).size >= 2) {
+            executedArrayTraversals++;
+          }
+        }
+        state.lastArrayRead = {
+          name: arrName,
+          index: rawIdx,
+          value: arr[rawIdx]
+        };
+        return arr[rawIdx];
       } else if (operand.type === 'literal') {
         const intVal = Math.trunc(operand.value);
         if (intVal < -10000 || intVal > 10000) {
@@ -1076,7 +1271,7 @@ export function simulate(level, program, options = {}) {
     throw new Error(`Invalid operand in expression: ${JSON.stringify(operand)}`);
   }
 
-  function evaluateCondition(cond, nodeSensor) {
+  function evaluateCondition(cond, nodeSensor, currentLoopDepth = 0) {
     if (nodeSensor) {
       const outcome = sensor(nodeSensor);
       return {
@@ -1103,10 +1298,10 @@ export function simulate(level, program, options = {}) {
         };
       }
       if (cond.type === 'compare') {
-        const leftVal = resolveOperand(cond.left);
-        const rightVal = resolveOperand(cond.right);
-        const leftLabel = typeof cond.left === 'string' ? cond.left : (cond.left?.var ?? cond.left);
-        const rightLabel = typeof cond.right === 'string' ? cond.right : (cond.right?.var ?? cond.right);
+        const leftVal = resolveOperand(cond.left, currentLoopDepth);
+        const rightVal = resolveOperand(cond.right, currentLoopDepth);
+        const leftLabel = typeof cond.left === 'string' ? cond.left : (cond.left?.var ?? cond.left?.name ?? cond.left);
+        const rightLabel = typeof cond.right === 'string' ? cond.right : (cond.right?.var ?? cond.right?.name ?? cond.right);
         let outcome = false;
         switch (cond.op) {
           case '<': outcome = leftVal < rightVal; break;
@@ -1132,15 +1327,115 @@ export function simulate(level, program, options = {}) {
     throw new Error('Condition must be a sensor query or comparison.');
   }
 
-  function run(nodes, depth = 0) {
+  function run(nodes, depth = 0, loopDepth = 0) {
     if (depth > 8) throw new Error('Program nesting is limited to 8.');
 
     for (const node of nodes) {
       if (stopped) return;
+      state.lastArrayRead = null;
       if (++ticks > 1000) throw new Error('Program exceeds the 1000-instruction execution limit.');
 
       if (node.type === 'fn_def') {
         // Function definitions are collected prior to execution and do not execute inline
+        continue;
+      }
+
+      if (node.type === 'array_init') {
+        const arrName = node.name || node.array;
+        const err = getIdentifierError(arrName);
+        if (err) throw new Error(err);
+
+        if (Object.keys(state.arrays).length >= MAX_ARRAYS && !(arrName in state.arrays)) {
+          throw new Error(`Maximum limit of ${MAX_ARRAYS} arrays exceeded.`);
+        }
+
+        const rawVals = Array.isArray(node.values) ? node.values : (Array.isArray(node.elements) ? node.elements : (node.values || []));
+        if (!Array.isArray(rawVals)) {
+          throw new Error(`Array "${arrName}" values must be a list.`);
+        }
+        if (rawVals.length > MAX_ARRAY_LENGTH) {
+          throw new Error(`Array "${arrName}" exceeds the maximum length of ${MAX_ARRAY_LENGTH} elements.`);
+        }
+
+        const evaluatedVals = rawVals.map(v => resolveOperand(v, loopDepth));
+        for (const v of evaluatedVals) {
+          if (v < -10000 || v > 10000) {
+            throw new Error(`Array element out of bounds (${v}). Values must be between -10,000 and 10,000.`);
+          }
+        }
+
+        state.arrays[arrName] = evaluatedVals;
+        const initText = `Created array ${arrName} with [${evaluatedVals.join(', ')}] (${evaluatedVals.length} cells).`;
+        const arrMeta = {
+          arrays: cloneArrays(state.arrays),
+          arrayMutation: {
+            type: 'init',
+            name: arrName,
+            values: [...evaluatedVals],
+            explanation: initText
+          }
+        };
+        if (node.nodeId) arrMeta.nodeId = node.nodeId;
+        if (node.blockId) arrMeta.blockId = node.blockId;
+        snapshot('array_init', initText, true, arrMeta);
+        continue;
+      }
+
+      if (node.type === 'array_set') {
+        executedArraySets++;
+        const arrName = node.name || node.array;
+        const err = getIdentifierError(arrName);
+        if (err) throw new Error(err);
+
+        if (!(arrName in state.arrays)) {
+          throw new Error(`Array "${arrName}" must be created before setting elements.`);
+        }
+
+        const arr = state.arrays[arrName];
+        const rawIdx = resolveOperand(node.index !== undefined ? node.index : 0, loopDepth);
+        if (!Number.isInteger(rawIdx)) {
+          throw new Error(`Array index must be an integer, received: ${rawIdx}`);
+        }
+        if (rawIdx < 0 || rawIdx >= arr.length) {
+          throw new Error(
+            arr.length === 0
+              ? `Array index out of bounds: ${rawIdx}. Array "${arrName}" is empty (length 0).`
+              : `Array index out of bounds: ${rawIdx}. Array "${arrName}" has length ${arr.length}, so valid indexes are 0 to ${arr.length - 1}.`
+          );
+        }
+
+        if (loopDepth > 0) {
+          if (!arrayLoopAccesses.has(arrName)) {
+            arrayLoopAccesses.set(arrName, new Set());
+          }
+          arrayLoopAccesses.get(arrName).add(rawIdx);
+          if (arrayLoopAccesses.get(arrName).size >= 2) {
+            executedArrayTraversals++;
+          }
+        }
+
+        const val = resolveOperand(node.value !== undefined ? node.value : 0, loopDepth);
+        if (val < -10000 || val > 10000) {
+          throw new Error(`Array value out of bounds (${val}). Values must be between -10,000 and 10,000.`);
+        }
+
+        const prevVal = arr[rawIdx];
+        arr[rawIdx] = val;
+        const changeText = `Updated ${arrName}[${rawIdx}] from ${prevVal} to ${val}.`;
+        const arrMeta = {
+          arrays: cloneArrays(state.arrays),
+          arrayMutation: {
+            type: 'set',
+            name: arrName,
+            index: rawIdx,
+            prevVal,
+            val,
+            explanation: changeText
+          }
+        };
+        if (node.nodeId) arrMeta.nodeId = node.nodeId;
+        if (node.blockId) arrMeta.blockId = node.blockId;
+        snapshot('array_set', changeText, true, arrMeta);
         continue;
       }
 
@@ -1169,7 +1464,7 @@ export function simulate(level, program, options = {}) {
         }
 
         // Arguments evaluated left-to-right in caller scope (pass-by-value)
-        const evaluatedArgs = passedArgs.map(arg => resolveOperand(arg));
+        const evaluatedArgs = passedArgs.map(arg => resolveOperand(arg, loopDepth));
         if (evaluatedArgs.length > 0) {
           hasParameterizedCall = true;
           for (const v of evaluatedArgs) executedArgValues.add(v);
@@ -1208,7 +1503,7 @@ export function simulate(level, program, options = {}) {
         snapshot('fn_call', `Calling routine "${node.name}"${evaluatedArgs.length ? `(${evaluatedArgs.join(', ')})` : ''}.`, true, callMeta);
 
         if (Array.isArray(fnDef.body) && fnDef.body.length > 0) {
-          run(fnDef.body, depth + 1);
+          run(fnDef.body, depth + 1, loopDepth);
         }
 
         callStack.pop();
@@ -1232,7 +1527,7 @@ export function simulate(level, program, options = {}) {
         const varName = node.var || node.variable;
         const err = getIdentifierError(varName);
         if (err) throw new Error(err);
-        const val = resolveOperand(node.value !== undefined ? node.value : 0);
+        const val = resolveOperand(node.value !== undefined ? node.value : 0, loopDepth);
         if (val < -10000 || val > 10000) {
           throw new Error(`Variable "${varName}" out of bounds (${val}). Must be between -10,000 and 10,000.`);
         }
@@ -1342,7 +1637,7 @@ export function simulate(level, program, options = {}) {
         executedLoops++;
         for (let i = 0; i < node.count; i++) {
           if (stopped) break;
-          run(node.body, depth + 1);
+          run(node.body, depth + 1, loopDepth + 1);
         }
         continue;
       }
@@ -1376,7 +1671,7 @@ export function simulate(level, program, options = {}) {
             break;
           }
 
-          const condEval = evaluateCondition(node.condition, node.sensor);
+          const condEval = evaluateCondition(node.condition, node.sensor, loopDepth);
           const condMeta = {
             variables: { ...state.variables },
             whileCondition: {
@@ -1395,7 +1690,7 @@ export function simulate(level, program, options = {}) {
           }
 
           if (Array.isArray(node.body) && node.body.length > 0) {
-            run(node.body, depth + 1);
+            run(node.body, depth + 1, loopDepth + 1);
           }
         }
         continue;
@@ -1403,7 +1698,7 @@ export function simulate(level, program, options = {}) {
 
       if (node.type === 'if') {
         executedSensors++;
-        const condEval = evaluateCondition(node.condition, node.sensor);
+        const condEval = evaluateCondition(node.condition, node.sensor, loopDepth);
         const shouldRecord = options.recordConditions || Boolean(node.nodeId || node.blockId);
         if (shouldRecord) {
           const outcomeText = condEval.outcome
@@ -1423,9 +1718,9 @@ export function simulate(level, program, options = {}) {
           snapshot('condition', outcomeText, true, condMeta);
         }
         if (condEval.outcome) {
-          run(node.body, depth + 1);
+          run(node.body, depth + 1, loopDepth);
         } else if (node.elseBody && node.elseBody.length > 0) {
-          run(node.elseBody, depth + 1);
+          run(node.elseBody, depth + 1, loopDepth);
         }
         continue;
       }
@@ -1534,7 +1829,15 @@ export function simulate(level, program, options = {}) {
 
   const programBlocks = countBlocks(program);
   const constraintMessage =
-    level.requireFunction && (executedFunctionCalls === 0 || executedFunctions.size === 0)
+    level.requireArray && Object.keys(state.arrays).length === 0
+      ? 'This sector requires creating and initializing an array.'
+      : level.requireArrayRead && executedArrayReads === 0
+      ? 'This sector requires reading a value from an array using an index.'
+      : level.requireArraySet && executedArraySets === 0
+      ? 'This sector requires updating an array element.'
+      : level.requireArrayTraversal && executedArrayTraversals === 0
+      ? 'This sector requires traversing an array using an index counter inside a loop.'
+      : level.requireFunction && (executedFunctionCalls === 0 || executedFunctions.size === 0)
       ? 'This sector requires defining and calling a routine.'
       : level.requireFunctionCalls && executedFunctionCalls < level.requireFunctionCalls
       ? `This sector requires calling a routine at least ${level.requireFunctionCalls} times to demonstrate reuse.`

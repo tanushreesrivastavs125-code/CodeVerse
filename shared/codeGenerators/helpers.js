@@ -238,6 +238,15 @@ export function getLoopVar(depth, usedVars = null) {
  */
 export function collectProgramVariables(ast) {
   const vars = new Set();
+  function walkOperand(op) {
+    if (!op || typeof op !== 'object') return;
+    if (op.type === 'var_get') {
+      const v = op.var || op.variable;
+      if (v && typeof v === 'string') vars.add(v);
+    }
+    if (op.index) walkOperand(op.index);
+    if (op.value) walkOperand(op.value);
+  }
   function walk(nodes) {
     if (!Array.isArray(nodes)) return;
     for (const node of nodes) {
@@ -245,14 +254,23 @@ export function collectProgramVariables(ast) {
       if (node.type === 'var_set' || node.type === 'var_change') {
         const v = node.variable || node.var;
         if (v && typeof v === 'string') vars.add(v);
+        walkOperand(node.value);
+        walkOperand(node.amount);
+      }
+      if (node.type === 'array_set') {
+        walkOperand(node.index);
+        walkOperand(node.value);
+      }
+      if (node.type === 'fn_call' && Array.isArray(node.args)) {
+        for (const arg of node.args) walkOperand(arg);
       }
       if (node.condition && typeof node.condition === 'object' && node.condition.type === 'compare') {
         const left = node.condition.left;
         const right = node.condition.right;
         if (typeof left === 'string') vars.add(left);
-        else if (left && (left.var || left.variable)) vars.add(left.var || left.variable);
+        else walkOperand(left);
         if (typeof right === 'string') vars.add(right);
-        else if (right && (right.var || right.variable)) vars.add(right.var || right.variable);
+        else walkOperand(right);
       }
       if (Array.isArray(node.body)) walk(node.body);
       if (Array.isArray(node.elseBody)) walk(node.elseBody);
@@ -260,6 +278,54 @@ export function collectProgramVariables(ast) {
   }
   walk(ast);
   return Array.from(vars);
+}
+
+/**
+ * Traverses an AST to collect all unique array names declared or referenced.
+ *
+ * @param {Array<object>} ast
+ * @returns {string[]} Ordered list of unique array names
+ */
+export function collectProgramArrays(ast) {
+  const arrays = new Set();
+  function walkOperand(op) {
+    if (!op || typeof op !== 'object') return;
+    if (op.type === 'array_get' || op.type === 'array_length') {
+      const a = op.name || op.array;
+      if (a && typeof a === 'string') arrays.add(a);
+    }
+    if (op.index) walkOperand(op.index);
+    if (op.value) walkOperand(op.value);
+  }
+  function walk(nodes) {
+    if (!Array.isArray(nodes)) return;
+    for (const node of nodes) {
+      if (!node || typeof node !== 'object') continue;
+      if (node.type === 'array_init' || node.type === 'array_set') {
+        const a = node.name || node.array;
+        if (a && typeof a === 'string') arrays.add(a);
+        if (node.type === 'array_set') {
+          walkOperand(node.index);
+          walkOperand(node.value);
+        }
+      }
+      if (node.type === 'var_set' || node.type === 'var_change') {
+        walkOperand(node.value);
+        walkOperand(node.amount);
+      }
+      if (node.type === 'fn_call' && Array.isArray(node.args)) {
+        for (const arg of node.args) walkOperand(arg);
+      }
+      if (node.condition && typeof node.condition === 'object' && node.condition.type === 'compare') {
+        walkOperand(node.condition.left);
+        walkOperand(node.condition.right);
+      }
+      if (Array.isArray(node.body)) walk(node.body);
+      if (Array.isArray(node.elseBody)) walk(node.elseBody);
+    }
+  }
+  walk(ast);
+  return Array.from(arrays);
 }
 
 /**
@@ -376,6 +442,28 @@ export function formatOperand(operand, lang = 'javascript', options = {}) {
   } else if (operand && typeof operand === 'object') {
     if (operand.type === 'literal') return String(operand.value);
     if (operand.type === 'var_get') varName = operand.var || operand.variable;
+    if (operand.type === 'array_get') {
+      const arr = operand.name || operand.array;
+      const idx = formatOperand(operand.index !== undefined ? operand.index : 0, lang, options);
+      if (options.isRunnable || options.boundedLoops) {
+        if (lang === 'javascript') return `_cv_arr_get(drone, "${arr}", ${arr}, ${idx})`;
+        if (lang === 'python') return `_cv_arr_get(drone, "${arr}", ${arr}, ${idx})`;
+        if (lang === 'java') return `_cv_arr_get("${arr}", ${arr}, ${idx})`;
+        if (lang === 'cpp') return `${arr}.get(${idx})`;
+        if (lang === 'c') return `_cv_arr_get(&${arr}, ${idx})`;
+      }
+      if (lang === 'plainEnglish') return `${arr} at index ${idx}`;
+      return `${arr}[${idx}]`;
+    }
+    if (operand.type === 'array_length') {
+      const arr = operand.name || operand.array;
+      if (lang === 'plainEnglish') return `length of ${arr}`;
+      if (lang === 'python') return `len(${arr})`;
+      if (lang === 'java') return `${arr}.length`;
+      if (lang === 'cpp') return `${arr}.size()`;
+      if (lang === 'c') return `${arr}.length`;
+      return `${arr}.length`;
+    }
   }
   if (varName) {
     if (options.isRunnable || options.boundedLoops) {

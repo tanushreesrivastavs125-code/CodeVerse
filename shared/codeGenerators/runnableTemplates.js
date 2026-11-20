@@ -120,6 +120,7 @@ class ConsoleDroneSimulator {
     this.crashed = false;
     this.crashReason = null;
     this.variables = {};
+    this.arrays = {};
     this.totalEnergy = lvl.map.join('').split('C').length - 1;
   }
 
@@ -349,6 +350,73 @@ function _cv_change(drone, name, curVal, amount) {
   return nextVal;
 }
 
+function _cv_arr_init(drone, name, elements) {
+  if (!Array.isArray(elements)) elements = [];
+  if (elements.length > 10) {
+    const msg = \`Array "\${name}" exceeds the maximum length of 10 elements.\`;
+    drone.fail(msg);
+    throw new Error(msg);
+  }
+  for (const v of elements) {
+    if (typeof v !== 'number' || !Number.isFinite(v) || v < -10000 || v > 10000) {
+      const msg = \`Array element out of bounds (\${v}). Values must be between -10,000 and 10,000.\`;
+      drone.fail(msg);
+      throw new Error(msg);
+    }
+  }
+  if (Object.keys(drone.arrays).length >= 5 && !(name in drone.arrays)) {
+    const msg = 'Maximum limit of 5 arrays exceeded.';
+    drone.fail(msg);
+    throw new Error(msg);
+  }
+  drone.arrays[name] = elements.map(Math.trunc);
+  return drone.arrays[name];
+}
+
+function _cv_arr_get(drone, name, arr, index) {
+  if (index && typeof index === 'object' && typeof index.valueOf === 'function') {
+    index = index.valueOf();
+  }
+  if (!Array.isArray(arr) || arr.length === 0) {
+    const msg = \`Array index out of bounds: \${index}. Array "\${name}" is empty (length 0).\`;
+    drone.fail(msg);
+    throw new Error(msg);
+  }
+  if (!Number.isInteger(index) || index < 0 || index >= arr.length) {
+    const msg = \`Array index out of bounds: \${index}. Array "\${name}" has length \${arr.length}, so valid indexes are 0 to \${arr.length - 1}.\`;
+    drone.fail(msg);
+    throw new Error(msg);
+  }
+  return arr[index];
+}
+
+function _cv_arr_set(drone, name, arr, index, val) {
+  if (index && typeof index === 'object' && typeof index.valueOf === 'function') {
+    index = index.valueOf();
+  }
+  if (val && typeof val === 'object' && typeof val.valueOf === 'function') {
+    val = val.valueOf();
+  }
+  if (!Array.isArray(arr) || arr.length === 0) {
+    const msg = \`Array index out of bounds: \${index}. Array "\${name}" is empty (length 0).\`;
+    drone.fail(msg);
+    throw new Error(msg);
+  }
+  if (!Number.isInteger(index) || index < 0 || index >= arr.length) {
+    const msg = \`Array index out of bounds: \${index}. Array "\${name}" has length \${arr.length}, so valid indexes are 0 to \${arr.length - 1}.\`;
+    drone.fail(msg);
+    throw new Error(msg);
+  }
+  if (typeof val !== 'number' || !Number.isFinite(val) || val < -10000 || val > 10000) {
+    const msg = \`Array value out of bounds (\${val}). Values must be between -10,000 and 10,000.\`;
+    drone.fail(msg);
+    throw new Error(msg);
+  }
+  arr[index] = Math.trunc(val);
+  drone.arrays[name] = [...arr];
+  return arr[index];
+}
+
 // ==========================================
 // CALL STACK & RECURSION MANAGEMENT
 // ==========================================
@@ -435,7 +503,8 @@ function main() {
     bridge: drone.bridge,
     bossHP: drone.bossHP,
     passed: outcome.passed,
-    variables: drone.variables
+    variables: drone.variables,
+    arrays: drone.arrays
   }));
 }
 
@@ -498,6 +567,7 @@ class ConsoleDroneSimulator:
         self.crashed = False
         self.crash_reason = None
         self.variables = {}
+        self.arrays = {}
         self.total_energy = sum(row.count("C") for row in lvl["map"])
 
     def tile(self, x, y):
@@ -700,6 +770,60 @@ def _cv_change(drone, name, cur_val, amount):
         drone.variables[name] = next_val
     return next_val
 
+def _cv_arr_init(drone, name, elements):
+    if not isinstance(elements, list):
+        elements = list(elements)
+    if len(elements) > 10:
+        msg = f'Array "{name}" exceeds the maximum length of 10 elements.'
+        drone.fail(msg)
+        raise ValueError(msg)
+    for v in elements:
+        if isinstance(v, _CvUninit):
+            v._fail()
+        if not isinstance(v, int) or isinstance(v, bool) or v < -10000 or v > 10000:
+            msg = f'Array element out of bounds ({v}). Values must be between -10,000 and 10,000.'
+            drone.fail(msg)
+            raise ValueError(msg)
+    if len(drone.arrays) >= 5 and name not in drone.arrays:
+        msg = 'Maximum limit of 5 arrays exceeded.'
+        drone.fail(msg)
+        raise ValueError(msg)
+    drone.arrays[name] = list(elements)
+    return list(elements)
+
+def _cv_arr_get(drone, name, arr, index):
+    if isinstance(index, _CvUninit):
+        index._fail()
+    if not isinstance(arr, list) or len(arr) == 0:
+        msg = f'Array index out of bounds: {index}. Array "{name}" is empty (length 0).'
+        drone.fail(msg)
+        raise IndexError(msg)
+    if not isinstance(index, int) or isinstance(index, bool) or index < 0 or index >= len(arr):
+        msg = f'Array index out of bounds: {index}. Array "{name}" has length {len(arr)}, so valid indexes are 0 to {len(arr) - 1}.'
+        drone.fail(msg)
+        raise IndexError(msg)
+    return arr[index]
+
+def _cv_arr_set(drone, name, arr, index, val):
+    if isinstance(index, _CvUninit):
+        index._fail()
+    if isinstance(val, _CvUninit):
+        val._fail()
+    if not isinstance(arr, list) or len(arr) == 0:
+        msg = f'Array index out of bounds: {index}. Array "{name}" is empty (length 0).'
+        drone.fail(msg)
+        raise IndexError(msg)
+    if not isinstance(index, int) or isinstance(index, bool) or index < 0 or index >= len(arr):
+        msg = f'Array index out of bounds: {index}. Array "{name}" has length {len(arr)}, so valid indexes are 0 to {len(arr) - 1}.'
+        drone.fail(msg)
+        raise IndexError(msg)
+    if not isinstance(val, int) or isinstance(val, bool) or val < -10000 or val > 10000:
+        msg = f'Array value out of bounds ({val}). Values must be between -10,000 and 10,000.'
+        drone.fail(msg)
+        raise ValueError(msg)
+    arr[index] = val
+    drone.arrays[name] = list(arr)
+
 # ==========================================
 # CALL STACK & RECURSION MANAGEMENT
 # ==========================================
@@ -784,7 +908,8 @@ def main():
         "bridge": drone.bridge,
         "bossHP": drone.boss_hp,
         "passed": outcome["passed"],
-        "variables": drone.variables
+        "variables": drone.variables,
+        "arrays": drone.arrays
     }))
 
 if __name__ == "__main__":
@@ -877,6 +1002,7 @@ ${mapLines}
         }
 
         public Map<String, Integer> variables = new LinkedHashMap<>();
+        public Map<String, int[]> arrays = new LinkedHashMap<>();
 
         public int varGet(String name, Integer val) {
             if (val == null) {
@@ -1022,7 +1148,68 @@ ${mapLines}
         }
     }
 
+    public static int[] _cv_arr_init(String name, int[] values) {
+        if (values.length > 10) {
+            String msg = "Array \\"" + name + "\\" exceeds the maximum length of 10 elements.";
+            if (drone != null) drone.fail(msg);
+            throw new IllegalStateException(msg);
+        }
+        for (int v : values) {
+            if (v < -10000 || v > 10000) {
+                String msg = "Array element out of bounds (" + v + "). Values must be between -10,000 and 10,000.";
+                if (drone != null) drone.fail(msg);
+                throw new IllegalStateException(msg);
+            }
+        }
+        if (drone != null) {
+            if (drone.arrays.size() >= 5 && !drone.arrays.containsKey(name)) {
+                String msg = "Maximum limit of 5 arrays exceeded.";
+                drone.fail(msg);
+                throw new IllegalStateException(msg);
+            }
+            drone.arrays.put(name, values.clone());
+        }
+        return values.clone();
+    }
+
+    public static int _cv_arr_get(String name, int[] arr, int index) {
+        if (arr == null || arr.length == 0) {
+            String msg = "Array index out of bounds: " + index + ". Array \\"" + name + "\\" is empty (length 0).";
+            if (drone != null) drone.fail(msg);
+            throw new IllegalStateException(msg);
+        }
+        if (index < 0 || index >= arr.length) {
+            String msg = "Array index out of bounds: " + index + ". Array \\"" + name + "\\" has length " + arr.length + ", so valid indexes are 0 to " + (arr.length - 1) + ".";
+            if (drone != null) drone.fail(msg);
+            throw new IllegalStateException(msg);
+        }
+        return arr[index];
+    }
+
+    public static void _cv_arr_set(String name, int[] arr, int index, int val) {
+        if (arr == null || arr.length == 0) {
+            String msg = "Array index out of bounds: " + index + ". Array \\"" + name + "\\" is empty (length 0).";
+            if (drone != null) drone.fail(msg);
+            throw new IllegalStateException(msg);
+        }
+        if (index < 0 || index >= arr.length) {
+            String msg = "Array index out of bounds: " + index + ". Array \\"" + name + "\\" has length " + arr.length + ", so valid indexes are 0 to " + (arr.length - 1) + ".";
+            if (drone != null) drone.fail(msg);
+            throw new IllegalStateException(msg);
+        }
+        if (val < -10000 || val > 10000) {
+            String msg = "Array value out of bounds (" + val + "). Values must be between -10,000 and 10,000.";
+            if (drone != null) drone.fail(msg);
+            throw new IllegalStateException(msg);
+        }
+        arr[index] = val;
+        if (drone != null) {
+            drone.arrays.put(name, arr.clone());
+        }
+    }
+
 ${codeRes.globalVars && codeRes.globalVars.length ? codeRes.globalVars.map(v => `    public static Integer ${v} = null;`).join('\n') : ''}
+${codeRes.globalArrays && codeRes.globalArrays.length ? codeRes.globalArrays.map(a => `    public static int[] ${a} = new int[0];`).join('\n') : ''}
 
 ${codeRes.functionsCode ? codeRes.functionsCode.split('\n').map(l => '    ' + l).join('\n') : ''}
 
@@ -1030,6 +1217,7 @@ ${codeRes.functionsCode ? codeRes.functionsCode.split('\n').map(l => '    ' + l)
         drone = droneArg;
         _cv_call_stack.clear();
 ${codeRes.globalVars && codeRes.globalVars.length ? codeRes.globalVars.map(v => `        ${v} = null;`).join('\n') : ''}
+${codeRes.globalArrays && codeRes.globalArrays.length ? codeRes.globalArrays.map(a => `        ${a} = new int[0];`).join('\n') : ''}
 ${codeRes.bodyCode ? codeRes.bodyCode.split('\n').map(line => '        ' + line).join('\n') : ''}
     }
 
@@ -1053,10 +1241,23 @@ ${codeRes.bodyCode ? codeRes.bodyCode.split('\n').map(line => '        ' + line)
         }
         varsJson.append("}");
 
+        StringBuilder arrsJson = new StringBuilder("{");
+        int ai = 0;
+        for (Map.Entry<String, int[]> entry : drone.arrays.entrySet()) {
+            if (ai++ > 0) arrsJson.append(",");
+            arrsJson.append("\\"").append(entry.getKey()).append("\\":[");
+            for (int k = 0; k < entry.getValue().length; k++) {
+                if (k > 0) arrsJson.append(",");
+                arrsJson.append(entry.getValue()[k]);
+            }
+            arrsJson.append("]");
+        }
+        arrsJson.append("}");
+
         System.out.println(String.format(
             java.util.Locale.US,
-            "__CV_RESULT__={\\"x\\":%d,\\"y\\":%d,\\"dir\\":%d,\\"steps\\":%d,\\"crashed\\":%b,\\"crashReason\\":\\"%s\\",\\"collected\\":%d,\\"bridge\\":%b,\\"bossHP\\":%d,\\"passed\\":%b,\\"variables\\":%s}",
-            drone.x, drone.y, drone.dir, drone.steps, drone.crashed, (drone.crashReason == null ? "" : drone.crashReason.replace("\\"", "'")), drone.collected.size(), drone.bridge, drone.bossHP, passed, varsJson.toString()
+            "__CV_RESULT__={\\"x\\":%d,\\"y\\":%d,\\"dir\\":%d,\\"steps\\":%d,\\"crashed\\":%b,\\"crashReason\\":\\"%s\\",\\"collected\\":%d,\\"bridge\\":%b,\\"bossHP\\":%d,\\"passed\\":%b,\\"variables\\":%s,\\"arrays\\":%s}",
+            drone.x, drone.y, drone.dir, drone.steps, drone.crashed, (drone.crashReason == null ? "" : drone.crashReason.replace("\\"", "'")), drone.collected.size(), drone.bridge, drone.bossHP, passed, varsJson.toString(), arrsJson.toString()
         ));
     }
 }
@@ -1117,6 +1318,7 @@ public:
     bool bridge = false;
     int bossHP = ${meta.bossHP};
     std::map<std::string, int> variables;
+    std::map<std::string, std::vector<int>> arrays;
 
     void fail(const std::string& reason) {
         crashed = true;
@@ -1326,15 +1528,83 @@ public:
     }
 };
 
+class CvArray {
+    std::string name;
+    std::vector<int> data;
+public:
+    CvArray(const std::string& n = "") : name(n) {}
+    void init(std::initializer_list<int> list) {
+        if (list.size() > 10) {
+            std::string msg = "Array \\"" + name + "\\" exceeds the maximum length of 10 elements.";
+            drone.fail(msg);
+            throw std::runtime_error(msg);
+        }
+        data.clear();
+        for (int v : list) {
+            if (v < -10000 || v > 10000) {
+                std::string msg = "Array element out of bounds (" + std::to_string(v) + "). Values must be between -10,000 and 10,000.";
+                drone.fail(msg);
+                throw std::runtime_error(msg);
+            }
+            data.push_back(v);
+        }
+        if (drone.arrays.size() >= 5 && drone.arrays.find(name) == drone.arrays.end()) {
+            drone.fail("Maximum limit of 5 arrays exceeded.");
+            throw std::runtime_error("Maximum limit of 5 arrays exceeded.");
+        }
+        drone.arrays[name] = data;
+    }
+    int get(int index) const {
+        if (data.empty()) {
+            std::string msg = "Array index out of bounds: " + std::to_string(index) + ". Array \\"" + name + "\\" is empty (length 0).";
+            drone.fail(msg);
+            throw std::runtime_error(msg);
+        }
+        if (index < 0 || index >= (int)data.size()) {
+            std::string msg = "Array index out of bounds: " + std::to_string(index) + ". Array \\"" + name + "\\" has length " + std::to_string(data.size()) + ", so valid indexes are 0 to " + std::to_string(data.size() - 1) + ".";
+            drone.fail(msg);
+            throw std::runtime_error(msg);
+        }
+        return data[index];
+    }
+    void set(int index, int val) {
+        if (data.empty()) {
+            std::string msg = "Array index out of bounds: " + std::to_string(index) + ". Array \\"" + name + "\\" is empty (length 0).";
+            drone.fail(msg);
+            throw std::runtime_error(msg);
+        }
+        if (index < 0 || index >= (int)data.size()) {
+            std::string msg = "Array index out of bounds: " + std::to_string(index) + ". Array \\"" + name + "\\" has length " + std::to_string(data.size()) + ", so valid indexes are 0 to " + std::to_string(data.size() - 1) + ".";
+            drone.fail(msg);
+            throw std::runtime_error(msg);
+        }
+        if (val < -10000 || val > 10000) {
+            std::string msg = "Array value out of bounds (" + std::to_string(val) + "). Values must be between -10,000 and 10,000.";
+            drone.fail(msg);
+            throw std::runtime_error(msg);
+        }
+        data[index] = val;
+        drone.arrays[name] = data;
+    }
+    int size() const {
+        return (int)data.size();
+    }
+    void clear() {
+        data.clear();
+    }
+};
+
 ${codeRes.prototypesCode || ''}
 
 ${codeRes.globalVars && codeRes.globalVars.length ? codeRes.globalVars.map(v => `static CvVar ${v}("${v}", &drone);`).join('\n') : ''}
+${codeRes.globalArrays && codeRes.globalArrays.length ? codeRes.globalArrays.map(a => `static CvArray ${a}("${a}");`).join('\n') : ''}
 
 ${codeRes.functionsCode || ''}
 
 void runLearnerProgram() {
     _cv_call_stack.clear();
 ${codeRes.globalVars && codeRes.globalVars.length ? codeRes.globalVars.map(v => `    ${v}.reset();`).join('\n') : ''}
+${codeRes.globalArrays && codeRes.globalArrays.length ? codeRes.globalArrays.map(a => `    ${a}.clear();`).join('\n') : ''}
 ${codeRes.bodyCode ? codeRes.bodyCode.split('\n').map(line => '    ' + line).join('\n') : ''}
 }
 
@@ -1361,6 +1631,19 @@ int main() {
     }
     varsJson += "}";
 
+    std::string arrsJson = "{";
+    int ai = 0;
+    for (const auto& pair : drone.arrays) {
+        if (ai++ > 0) arrsJson += ",";
+        arrsJson += "\\"" + pair.first + "\\":[";
+        for (size_t k = 0; k < pair.second.size(); ++k) {
+            if (k > 0) arrsJson += ",";
+            arrsJson += std::to_string(pair.second[k]);
+        }
+        arrsJson += "]";
+    }
+    arrsJson += "}";
+
     std::string safeReason = drone.crashReason;
     for (size_t i = 0; i < safeReason.size(); ++i) {
         if (safeReason[i] == '"') safeReason[i] = 39;
@@ -1377,6 +1660,7 @@ int main() {
               << ",\\"bossHP\\":" << drone.bossHP
               << ",\\"passed\\":" << (passed ? "true" : "false")
               << ",\\"variables\\":" << varsJson
+              << ",\\"arrays\\":" << arrsJson
               << "}" << std::endl;
     return 0;
 }
@@ -1572,6 +1856,89 @@ static void _cv_var_change(CvVar* v, long long amount) {
     }
 }
 
+typedef struct {
+    char name[32];
+    int length;
+    int data[10];
+} CvArray;
+
+static CvArray g_arrays[5];
+static int g_arrays_count = 0;
+
+static void set_g_array(const char* name, const int* vals, int len) {
+    for (int i = 0; i < g_arrays_count; i++) {
+        if (strcmp(g_arrays[i].name, name) == 0) {
+            g_arrays[i].length = len;
+            for (int k = 0; k < len; k++) g_arrays[i].data[k] = vals[k];
+            return;
+        }
+    }
+    if (g_arrays_count < 5) {
+        strncpy(g_arrays[g_arrays_count].name, name, sizeof(g_arrays[g_arrays_count].name) - 1);
+        g_arrays[g_arrays_count].name[sizeof(g_arrays[g_arrays_count].name) - 1] = '\\0';
+        g_arrays[g_arrays_count].length = len;
+        for (int k = 0; k < len; k++) g_arrays[g_arrays_count].data[k] = vals[k];
+        g_arrays_count++;
+    }
+}
+
+static void _cv_arr_init(CvArray* arr, const char* name, const int* vals, int len) {
+    if (g_crashed) return;
+    strncpy(arr->name, name, sizeof(arr->name) - 1);
+    arr->name[sizeof(arr->name) - 1] = '\\0';
+    if (len > 10) {
+        g_crashed = true;
+        snprintf(g_crash_reason, sizeof(g_crash_reason), "Array \\"%s\\" exceeds the maximum length of 10 elements.", name);
+        return;
+    }
+    arr->length = len;
+    for (int i = 0; i < len; i++) {
+        if (vals[i] < -10000 || vals[i] > 10000) {
+            g_crashed = true;
+            snprintf(g_crash_reason, sizeof(g_crash_reason), "Array element out of bounds (%d). Values must be between -10,000 and 10,000.", vals[i]);
+            return;
+        }
+        arr->data[i] = vals[i];
+    }
+    set_g_array(name, arr->data, len);
+}
+
+static int _cv_arr_get(CvArray* arr, int index) {
+    if (g_crashed) return 0;
+    if (arr->length == 0) {
+        g_crashed = true;
+        snprintf(g_crash_reason, sizeof(g_crash_reason), "Array index out of bounds: %d. Array \\"%s\\" is empty (length 0).", index, arr->name);
+        return 0;
+    }
+    if (index < 0 || index >= arr->length) {
+        g_crashed = true;
+        snprintf(g_crash_reason, sizeof(g_crash_reason), "Array index out of bounds: %d. Array \\"%s\\" has length %d, so valid indexes are 0 to %d.", index, arr->name, arr->length, arr->length - 1);
+        return 0;
+    }
+    return arr->data[index];
+}
+
+static void _cv_arr_set(CvArray* arr, int index, int val) {
+    if (g_crashed) return;
+    if (arr->length == 0) {
+        g_crashed = true;
+        snprintf(g_crash_reason, sizeof(g_crash_reason), "Array index out of bounds: %d. Array \\"%s\\" is empty (length 0).", index, arr->name);
+        return;
+    }
+    if (index < 0 || index >= arr->length) {
+        g_crashed = true;
+        snprintf(g_crash_reason, sizeof(g_crash_reason), "Array index out of bounds: %d. Array \\"%s\\" has length %d, so valid indexes are 0 to %d.", index, arr->name, arr->length, arr->length - 1);
+        return;
+    }
+    if (val < -10000 || val > 10000) {
+        g_crashed = true;
+        snprintf(g_crash_reason, sizeof(g_crash_reason), "Array value out of bounds (%d). Values must be between -10,000 and 10,000.", val);
+        return;
+    }
+    arr->data[index] = val;
+    set_g_array(arr->name, arr->data, arr->length);
+}
+
 int drone_sensor(const char* name) {
     int ax = g_x + DIRS[g_dir][0];
     int ay = g_y + DIRS[g_dir][1];
@@ -1666,11 +2033,13 @@ void drone_pulse(void) {
 ${codeRes.prototypesCode || ''}
 
 ${codeRes.globalVars && codeRes.globalVars.length ? codeRes.globalVars.map(v => `static CvVar ${v};`).join('\n') : ''}
+${codeRes.globalArrays && codeRes.globalArrays.length ? codeRes.globalArrays.map(a => `static CvArray ${a};`).join('\n') : ''}
 
 ${codeRes.functionsCode || ''}
 
 void run_learner_program(void) {
     g_cv_call_depth = 0;
+    g_arrays_count = 0;
 ${codeRes.globalVars && codeRes.globalVars.length ? codeRes.globalVars.map(v => `    ${v} = _cv_var_init("${v}");`).join('\n') : ''}
 ${codeRes.bodyCode ? codeRes.bodyCode.split('\n').map(line => '    ' + line).join('\n') : ''}
 }
@@ -1694,6 +2063,21 @@ int main(void) {
     }
     strncat(vars_json, "}", sizeof(vars_json) - strlen(vars_json) - 1);
 
+    char arrs_json[512] = "{";
+    int ai = 0;
+    for (int i = 0; i < g_arrays_count; i++) {
+        char entry[128];
+        snprintf(entry, sizeof(entry), "%s\\"%s\\":[", (ai++ > 0 ? "," : ""), g_arrays[i].name);
+        for (int k = 0; k < g_arrays[i].length; k++) {
+            char num[16];
+            snprintf(num, sizeof(num), "%s%d", (k > 0 ? "," : ""), g_arrays[i].data[k]);
+            strncat(entry, num, sizeof(entry) - strlen(entry) - 1);
+        }
+        strncat(entry, "]", sizeof(entry) - strlen(entry) - 1);
+        strncat(arrs_json, entry, sizeof(arrs_json) - strlen(arrs_json) - 1);
+    }
+    strncat(arrs_json, "}", sizeof(arrs_json) - strlen(arrs_json) - 1);
+
     char safe_reason[256];
     strncpy(safe_reason, g_crash_reason, sizeof(safe_reason) - 1);
     safe_reason[sizeof(safe_reason) - 1] = 0;
@@ -1701,7 +2085,7 @@ int main(void) {
         if (safe_reason[i] == '"') safe_reason[i] = 39;
     }
 
-    printf("__CV_RESULT__={\\"x\\":%d,\\"y\\":%d,\\"dir\\":%d,\\"steps\\":%d,\\"crashed\\":%s,\\"crashReason\\":\\"%s\\",\\"collected\\":%d,\\"bridge\\":%s,\\"bossHP\\":%d,\\"passed\\":%s,\\"variables\\":%s}\\n",
+    printf("__CV_RESULT__={\\"x\\":%d,\\"y\\":%d,\\"dir\\":%d,\\"steps\\":%d,\\"crashed\\":%s,\\"crashReason\\":\\"%s\\",\\"collected\\":%d,\\"bridge\\":%s,\\"bossHP\\":%d,\\"passed\\":%s,\\"variables\\":%s,\\"arrays\\":%s}\\n",
         g_x, g_y, g_dir, g_steps,
         g_crashed ? "true" : "false",
         safe_reason,
@@ -1709,7 +2093,8 @@ int main(void) {
         g_bridge ? "true" : "false",
         g_boss_hp,
         passed ? "true" : "false",
-        vars_json
+        vars_json,
+        arrs_json
     );
     return 0;
 }

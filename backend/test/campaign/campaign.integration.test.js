@@ -726,6 +726,65 @@ describe('Real MongoDB Replica Set Integration Verification', () => {
         { type: 'fn_call', name: 'strike', args: [1] },
         { type: 'fn_call', name: 'strike', args: [2] },
         move, move, move, move, move
+      ],
+      39: [
+        { type: 'array_init', name: 'cells', values: [2, 1, 3] },
+        move, move, move, move
+      ],
+      40: [
+        { type: 'array_init', name: 'codes', values: [3, 1, 4] },
+        { type: 'var_set', variable: 'dist', value: { type: 'array_get', name: 'codes', index: 0 } },
+        { type: 'repeat', count: 3, body: [move] },
+        collect,
+        { type: 'repeat', count: 4, body: [move] }
+      ],
+      41: [
+        { type: 'array_init', name: 'bridgeBuffer', values: [0, 0, 0] },
+        { type: 'array_set', name: 'bridgeBuffer', index: 1, value: 1 },
+        move, activate, move, move, move, move, collect, move, move
+      ],
+      42: [
+        { type: 'array_init', name: 'shards', values: [1, 1, 1] },
+        { type: 'var_set', variable: 'i', value: 0 },
+        {
+          type: 'while',
+          condition: { type: 'compare', left: 'i', op: '<', right: 3 },
+          body: [
+            { type: 'var_set', variable: 'val', value: { type: 'array_get', name: 'shards', index: 'i' } },
+            move, move, collect,
+            { type: 'var_change', variable: 'i', amount: 1 }
+          ]
+        },
+        move
+      ],
+      43: [
+        {
+          type: 'fn_def',
+          name: 'inspectSector',
+          params: ['hazardFlag'],
+          body: [
+            { type: 'if', condition: { type: 'compare', left: 'hazardFlag', op: '==', right: 1 }, body: [jump], elseBody: [move] }
+          ]
+        },
+        { type: 'array_init', name: 'hazards', values: [0, 1, 0] },
+        move, move, collect, move,
+        { type: 'fn_call', name: 'inspectSector', args: [{ type: 'array_get', name: 'hazards', index: 1 }] },
+        move, collect, move, move
+      ],
+      44: [
+        { type: 'array_init', name: 'matrix', values: [3, 1, 0] },
+        { type: 'var_set', variable: 'p', value: { type: 'array_get', name: 'matrix', index: 0 } },
+        move, activate, move, move, move, move, collect, move, move,
+        {
+          type: 'while',
+          condition: { type: 'compare', left: 'p', op: '>', right: 0 },
+          body: [
+            pulse,
+            { type: 'var_change', variable: 'p', amount: -1 }
+          ]
+        },
+        { type: 'array_set', name: 'matrix', index: 2, value: 1 },
+        move, move, move, move
       ]
     };
 
@@ -799,7 +858,7 @@ describe('Real MongoDB Replica Set Integration Verification', () => {
       return compact.some((n) => n.type === 'repeat') ? compact : [repeat(1, ...compact)];
     }
 
-    test('an existing player with completed early levels retains progress, stars, and balances after 38-level expansion', async () => {
+    test('an existing player with completed early levels retains progress, stars, and balances after 44-level expansion', async () => {
       // Simulate historical player who completed sectors 1..3 before expansion
       const historicalPlayer = await User.create({
         username: `HistoricalPilot_${Date.now()}`,
@@ -827,7 +886,7 @@ describe('Real MongoDB Replica Set Integration Verification', () => {
       }
 
       const campaignView = await getCampaignLevels(historicalPlayer.id);
-      assert.equal(campaignView.length, 38, 'All 38 sectors should be visible');
+      assert.equal(campaignView.length, 44, 'All 44 sectors should be visible');
 
       // Sectors 1-3 should remain completed with 3 stars
       for (let i = 0; i < 3; i++) {
@@ -840,8 +899,8 @@ describe('Real MongoDB Replica Set Integration Verification', () => {
       assert.equal(campaignView[3].unlocked, true);
       assert.equal(campaignView[3].completed, false);
 
-      // Sectors 5-38 must remain locked
-      for (let i = 4; i < 38; i++) {
+      // Sectors 5-44 must remain locked
+      for (let i = 4; i < 44; i++) {
         assert.equal(campaignView[i].unlocked, false, `Sector ${campaignView[i].id} should be locked`);
       }
 
@@ -851,7 +910,7 @@ describe('Real MongoDB Replica Set Integration Verification', () => {
       assert.equal(refreshed.coins, 75);
     });
 
-    test('fresh pilot progresses sequentially through all 38 levels in real MongoDB replica set', async () => {
+    test('fresh pilot progresses sequentially through all 44 levels in real MongoDB replica set', async () => {
       const pilot = await User.create({
         username: `GrandMasterPilot_${Date.now()}`,
         email: `grandmaster_${Date.now()}@codeverse.io`,
@@ -869,8 +928,8 @@ describe('Real MongoDB Replica Set Integration Verification', () => {
       assert.equal(initialLevels[0].unlocked, true);
       assert.equal(initialLevels[1].unlocked, false);
 
-      // Execute each level sequentially 1 to 38
-      for (let i = 0; i < 38; i++) {
+      // Execute each level sequentially 1 to 44
+      for (let i = 0; i < 44; i++) {
         const lvl = levels[i];
         const program = solveLevel(lvl);
 
@@ -885,23 +944,23 @@ describe('Real MongoDB Replica Set Integration Verification', () => {
         assert.equal(outcome.earned.coins, 25, `Level ${lvl.id} did not award 25 coins`);
         assert.ok(outcome.stars >= 1, `Level ${lvl.id} had 0 stars`);
 
-        if (lvl.id < 38) {
+        if (lvl.id < 44) {
           assert.equal(outcome.unlockedNext, true, `Level ${lvl.id} should unlock next level`);
         } else {
           // Final level must NOT report that a nonexistent next level was unlocked
-          assert.equal(outcome.unlockedNext, false, 'Final level 38 must report unlockedNext: false');
+          assert.equal(outcome.unlockedNext, false, 'Final level 44 must report unlockedNext: false');
         }
       }
 
       // Verify cumulative progression in real MongoDB
       const finalUser = await User.findById(pilot.id);
-      assert.equal(finalUser.totalXp, 3800, '38 levels * 100 XP = 3800 XP');
-      assert.equal(finalUser.coins, 950, '38 levels * 25 coins = 950 coins');
+      assert.equal(finalUser.totalXp, 4400, '44 levels * 100 XP = 4400 XP');
+      assert.equal(finalUser.coins, 1100, '44 levels * 25 coins = 1100 coins');
 
       const allProgress = await CampaignProgress.find({ user: pilot.id });
-      assert.equal(allProgress.length, 38, '38 CampaignProgress documents should exist');
+      assert.equal(allProgress.length, 44, '44 CampaignProgress documents should exist');
 
-      // Verify replay protection on level 1 and level 38
+      // Verify replay protection on level 1 and level 44
       const replayLvl1 = await runCampaignLevel({
         userId: pilot.id,
         levelId: 1,
@@ -910,17 +969,17 @@ describe('Real MongoDB Replica Set Integration Verification', () => {
       assert.equal(replayLvl1.earned.xp, 0);
       assert.equal(replayLvl1.earned.coins, 0);
 
-      const replayLvl38 = await runCampaignLevel({
+      const replayLvl44 = await runCampaignLevel({
         userId: pilot.id,
-        levelId: 38,
-        program: solveLevel(levels[37])
+        levelId: 44,
+        program: solveLevel(levels[43])
       });
-      assert.equal(replayLvl38.earned.xp, 0);
-      assert.equal(replayLvl38.earned.coins, 0);
+      assert.equal(replayLvl44.earned.xp, 0);
+      assert.equal(replayLvl44.earned.coins, 0);
 
       const postReplayUser = await User.findById(pilot.id);
-      assert.equal(postReplayUser.totalXp, 3800);
-      assert.equal(postReplayUser.coins, 950);
+      assert.equal(postReplayUser.totalXp, 4400);
+      assert.equal(postReplayUser.coins, 1100);
     });
   });
 });

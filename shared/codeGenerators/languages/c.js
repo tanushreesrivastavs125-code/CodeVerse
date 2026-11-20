@@ -6,6 +6,7 @@ import {
   formatCondition,
   collectGlobalVariables,
   collectFunctionLocals,
+  collectProgramArrays,
   partitionAst
 } from '../helpers.js';
 
@@ -47,6 +48,7 @@ export function generateC(ast, options = {}) {
   let hasSensor = false;
   let hasWhile = false;
   let hasVariables = false;
+  let hasArrays = false;
   let hasFunctions = false;
   let loopGuardCounter = 0;
 
@@ -55,6 +57,8 @@ export function generateC(ast, options = {}) {
 
   const globalVars = collectGlobalVariables(ast);
   if (globalVars.length > 0) hasVariables = true;
+  const globalArrays = collectProgramArrays(ast);
+  if (globalArrays.length > 0) hasArrays = true;
   const isRunnable = Boolean(options.isRunnable || options.boundedLoops);
 
   const prototypesBuilder = new CodeBuilder('    ');
@@ -69,6 +73,19 @@ export function generateC(ast, options = {}) {
     } else {
       for (const v of globalVars) {
         builder.addLine(0, `int ${v};`);
+      }
+      builder.addBlank();
+    }
+  }
+
+  if (globalArrays.length > 0) {
+    if (isRunnable) {
+      for (const a of globalArrays) {
+        builder.addLine(0, `static CvArray ${a};`);
+      }
+    } else {
+      for (const a of globalArrays) {
+        builder.addLine(0, `CvArray ${a};`);
       }
       builder.addBlank();
     }
@@ -258,6 +275,28 @@ export function generateC(ast, options = {}) {
             amount: amt
           });
         }
+      } else if (node.type === 'array_init') {
+        hasArrays = true;
+        const arrName = node.name || node.array;
+        const rawVals = Array.isArray(node.values) ? node.values : (Array.isArray(node.elements) ? node.elements : []);
+        const elemsStr = rawVals.map(e => formatOperand(e, 'c', options)).join(', ');
+        targetBuilder.addLine(depth, `{ int _init_vals[] = { ${elemsStr.length ? elemsStr : '0'} }; _cv_arr_init(&${arrName}, "${arrName}", _init_vals, ${rawVals.length}); }`, node.nodeId, {
+          blockId: node.blockId,
+          type: 'array_init',
+          array: arrName
+        });
+      } else if (node.type === 'array_set') {
+        hasArrays = true;
+        const arrName = node.name || node.array;
+        const idxStr = formatOperand(node.index !== undefined ? node.index : 0, 'c', options);
+        const valStr = formatOperand(node.value !== undefined ? node.value : 0, 'c', options);
+        targetBuilder.addLine(depth, `_cv_arr_set(&${arrName}, ${idxStr}, ${valStr});`, node.nodeId, {
+          blockId: node.blockId,
+          type: 'array_set',
+          array: arrName,
+          index: idxStr,
+          value: valStr
+        });
       } else if (node.type === 'if') {
         hasSensor = true;
         const condStr = formatCondition(node.condition, node.sensor, 'c', options);
@@ -334,6 +373,14 @@ export function generateC(ast, options = {}) {
     });
   }
 
+  if (hasArrays) {
+    explanations.push({
+      id: 'arrays',
+      title: 'C Arrays and Indexing',
+      text: 'In C, arrays are contiguous blocks of memory indexed from 0 to length - 1. Safe access checks index bounds to avoid illegal memory access.'
+    });
+  }
+
   if (hasSensor) {
     explanations.push({
       id: 'sensor',
@@ -349,6 +396,7 @@ export function generateC(ast, options = {}) {
     prototypesCode: prototypesBuilder.getCode(),
     functionsCode: functionsBuilder.getCode(),
     bodyCode: bodyBuilder.getCode(),
-    globalVars
+    globalVars,
+    globalArrays
   };
 }

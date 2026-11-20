@@ -216,6 +216,38 @@ export const BLOCK_DEFINITIONS = {
     description: 'Executes a parameterized routine, supplying a specific numeric argument.',
     syntax: 'name(argument);',
     tip: 'Pass numbers or variable values into the parameter.'
+  },
+  cv_array_create: {
+    type: 'cv_array_create',
+    name: 'Create Array',
+    category: 'Arrays',
+    description: 'Creates a fixed-length integer array with initial values.',
+    syntax: 'let name = [v1, v2, ...];',
+    tip: 'Specify a name and list of initial integer values (e.g. 2, 1, 3).'
+  },
+  cv_array_get: {
+    type: 'cv_array_get',
+    name: 'Array Element',
+    category: 'Arrays',
+    description: 'Reads an element from an array at a specific zero-based index.',
+    syntax: 'name[index]',
+    tip: 'Remember that index 0 accesses the first cell, and index (length - 1) accesses the last cell.'
+  },
+  cv_array_set: {
+    type: 'cv_array_set',
+    name: 'Set Array Element',
+    category: 'Arrays',
+    description: 'Updates an array element at a specific zero-based index.',
+    syntax: 'name[index] = value;',
+    tip: 'Use an integer index between 0 and length - 1.'
+  },
+  cv_array_length: {
+    type: 'cv_array_length',
+    name: 'Array Length',
+    category: 'Arrays',
+    description: 'Returns the total number of cells in the array.',
+    syntax: 'name.length',
+    tip: 'Useful for loop limits when traversing all cells from 0 to length - 1.'
   }
 };
 
@@ -1609,10 +1641,265 @@ function generateStageE2Curriculum() {
   };
 }
 
-// Populate full 38-level curriculum
+/**
+ * Stage E3: Fixed-length integer arrays, zero-based indexing, element updates & traversal (Levels 39–44).
+ */
+export function generateStageE3Curriculum() {
+  return {
+    39: {
+      id: 39,
+      title: 'Memory Allocation',
+      zone: 'Memory Matrix',
+      objective: 'Initialize array "cells" with power levels [2, 1, 3] to calibrate the drone capacitor banks, then navigate to the extraction portal.',
+      learningObjective: 'Understand how arrays store an ordered list of items in numbered memory cells starting at index 0.',
+      newConcept: 'Arrays & Numbered Memory Cells',
+      prerequisites: ['Variables', 'Procedural Matrix'],
+      practisedSkills: ['Array creation', 'Fixed-length integer arrays', 'Memory inspection'],
+      introducedBlocks: ['cv_array_create'],
+      allowedBlocks: ['cv_move', 'cv_left', 'cv_right', 'cv_repeat', 'cv_array_create'],
+      conceptExplanation: 'An array is an ordered container that holds multiple values in numbered cells. In CodeVerse, array cells are numbered starting at 0: the first item is at index 0, the second at index 1, and so on. Inspect your array in the Array Watch panel!',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.floor, VISUAL_LEGEND.exit],
+      workedExample: {
+        title: 'Creating an Array',
+        explanation: 'Initialize an array with values [2, 1, 3] and take steps to the exit.',
+        demoLevel: { id: 'demo-39', title: 'Array Demo', map: ['######', '#S..G#', '######'], direction: 0, bossHealth: 0 },
+        demoMap: ['######', '#S..G#', '######'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [
+          { type: 'array_init', name: 'cells', values: [2, 1, 3] },
+          { type: 'repeat', count: 3, body: [{ type: 'move' }] }
+        ],
+        expectedOutcome: { passed: true, finalPosition: { x: 4, y: 1 } }
+      },
+      commonMistake: {
+        mistake: 'Thinking the first cell in an array is numbered 1.',
+        correction: 'Remember zero-based indexing: the first cell is always index 0!'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'Create array "cells" with initial values [2, 1, 3], then advance 4 steps forward.' },
+        { level: 2, label: 'Helpful Concept', text: 'Drag the "create array cells with values" block to the top of your program.' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'Create array cells with [2, 1, 3]. Use repeat 4 times: move forward.' }
+      ],
+      postSuccessExplanation: 'Welcome to Memory Matrix! You created your first array and inspected its numbered cells in memory.'
+    },
+    40: {
+      id: 40,
+      title: 'Zero-Based Reading',
+      zone: 'Memory Matrix',
+      objective: 'The passcode distance to the energy shard is stored at index 0 of array "codes" [3, 1, 4]. Read codes[0] into variable "dist" to reach the shard and extract.',
+      learningObjective: 'Read specific array elements using zero-based bracket indexing.',
+      newConcept: 'Zero-Based Array Indexing',
+      prerequisites: ['Level 39: Memory Allocation', 'Variables'],
+      practisedSkills: ['Array indexing', 'Array element reading', 'Data-driven execution'],
+      introducedBlocks: ['cv_array_get'],
+      allowedBlocks: ['cv_move', 'cv_collect', 'cv_repeat', 'cv_var_set', 'cv_var_get', 'cv_array_create', 'cv_array_get'],
+      conceptExplanation: 'To retrieve a value from an array, provide its index number in brackets: codes[0] retrieves the first element, codes[1] retrieves the second, etc. Using codes[0] lets your code dynamically read saved data!',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.energy, VISUAL_LEGEND.exit],
+      workedExample: {
+        title: 'Reading from Index 0',
+        explanation: 'Create array codes with [2, 1], read codes[0] into stepCount, and move that many times.',
+        demoLevel: { id: 'demo-40', title: 'Read Demo', map: ['#######', '#S.C.G#', '#######'], direction: 0, bossHealth: 0 },
+        demoMap: ['#######', '#S.C.G#', '#######'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [
+          { type: 'array_init', name: 'codes', values: [2, 1] },
+          { type: 'var_set', variable: 'stepCount', value: { type: 'array_get', name: 'codes', index: 0 } },
+          { type: 'repeat', count: 2, body: [{ type: 'move' }] },
+          { type: 'collect' },
+          { type: 'repeat', count: 2, body: [{ type: 'move' }] }
+        ],
+        expectedOutcome: { passed: true, finalPosition: { x: 5, y: 1 }, collectedCount: 1 }
+      },
+      commonMistake: {
+        mistake: 'Using index 1 when attempting to read the very first item in the array.',
+        correction: 'Zero-based indexing means index 0 is the first item. Index 1 is the second item.'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'Create array codes [3, 1, 4]. Read index 0 to get 3, step forward 3 times to collect the shard.' },
+        { level: 2, label: 'Helpful Concept', text: 'Set variable dist to value from array codes at index 0. Then repeat move dist (3) times.' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'Create array codes [3, 1, 4]. Set dist to codes[0]. Repeat 3: move. Collect. Repeat 4: move.' }
+      ],
+      postSuccessExplanation: 'Precision read! codes[0] gave you the exact distance needed to reach the shard.'
+    },
+    41: {
+      id: 41,
+      title: 'Element Mutation',
+      zone: 'Memory Matrix',
+      objective: 'Calibrate the bridge security buffer: update broken cell "bridgeBuffer" at index 1 from 0 to 1, activate the terminal, and cross the bridge.',
+      learningObjective: 'Update and modify individual array elements in place using index assignment.',
+      newConcept: 'Array Element Mutation',
+      prerequisites: ['Level 40: Zero-Based Reading', 'Terminals & Bridges'],
+      practisedSkills: ['In-place mutation', 'Targeted index assignment', 'System calibration'],
+      introducedBlocks: ['cv_array_set'],
+      allowedBlocks: ['cv_move', 'cv_activate', 'cv_collect', 'cv_repeat', 'cv_array_create', 'cv_array_get', 'cv_array_set'],
+      conceptExplanation: 'Arrays are mutable: you can change the value of any cell without replacing the entire array. "Set array bridgeBuffer at index 1 to 1" updates that specific cell while leaving all other cells untouched.',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.terminal, VISUAL_LEGEND.bridge, VISUAL_LEGEND.energy, VISUAL_LEGEND.exit],
+      workedExample: {
+        title: 'Updating an Array Element',
+        explanation: 'Initialize buffer with [0, 0], update buffer[1] to 1, move onto terminal, activate, and proceed.',
+        demoLevel: { id: 'demo-41', title: 'Mutation Demo', map: ['########', '#STBB.G#', '########'], direction: 0, bossHealth: 0 },
+        demoMap: ['########', '#STBB.G#', '########'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [
+          { type: 'array_init', name: 'buffer', values: [0, 0] },
+          { type: 'array_set', name: 'buffer', index: 1, value: 1 },
+          { type: 'move' },
+          { type: 'activate' },
+          { type: 'repeat', count: 4, body: [{ type: 'move' }] }
+        ],
+        expectedOutcome: { passed: true, bridgeDeployed: true, finalPosition: { x: 6, y: 1 } }
+      },
+      commonMistake: {
+        mistake: 'Attempting to update an array before it has been created.',
+        correction: 'Always initialize the array with "create array" before setting or reading its elements.'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'Initialize bridgeBuffer with [0, 0, 0], update index 1 to 1, then activate terminal and extract.' },
+        { level: 2, label: 'Helpful Concept', text: 'Use "set array bridgeBuffer at index 1 to 1" to repair the configuration.' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'Create bridgeBuffer [0, 0, 0]. Set index 1 to 1. Move, activate, repeat 4: move, collect, repeat 2: move.' }
+      ],
+      postSuccessExplanation: 'Mutation confirmed! You successfully modified a single array cell in place.'
+    },
+    42: {
+      id: 42,
+      title: 'Array Traversal',
+      zone: 'Memory Matrix',
+      objective: 'Traverse array "shards" [1, 1, 1] using while loop and counter "i". At each station, move forward, collect the shard, and advance the counter.',
+      learningObjective: 'Use a loop with an index counter to systematically visit every element in an array.',
+      newConcept: 'Array Traversal with Index Counters',
+      prerequisites: ['Level 41: Element Mutation', 'While Loops & Counters'],
+      practisedSkills: ['Loop traversal', 'Dynamic indexing', 'Counter incrementation', 'Array length'],
+      introducedBlocks: ['cv_array_length'],
+      allowedBlocks: ['cv_move', 'cv_collect', 'cv_while', 'cv_var_set', 'cv_var_change', 'cv_var_get', 'cv_compare', 'cv_array_create', 'cv_array_get', 'cv_array_set', 'cv_array_length'],
+      conceptExplanation: 'Array traversal is the process of visiting each element one by one. By using an index variable (like i = 0) and incrementing it inside a while loop (i < 3), your code accesses array[0], array[1], array[2] automatically!',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.energy, VISUAL_LEGEND.exit],
+      workedExample: {
+        title: 'Array Traversal with While Loop',
+        explanation: 'Initialize items = [1, 1], set i = 0, while i < 2: read items[i], move, collect, and increment i.',
+        demoLevel: { id: 'demo-42', title: 'Traversal Demo', map: ['########', '#S.C.CG#', '########'], direction: 0, bossHealth: 0 },
+        demoMap: ['########', '#S.C.CG#', '########'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [
+          { type: 'array_init', name: 'items', values: [1, 1] },
+          { type: 'var_set', variable: 'i', value: 0 },
+          { type: 'while', condition: { type: 'compare', left: 'i', op: '<', right: 2 }, body: [
+            { type: 'var_set', variable: 'val', value: { type: 'array_get', name: 'items', index: 'i' } },
+            { type: 'move' },
+            { type: 'move' },
+            { type: 'collect' },
+            { type: 'var_change', variable: 'i', amount: 1 }
+          ]},
+          { type: 'move' }
+        ],
+        expectedOutcome: { passed: true, finalPosition: { x: 6, y: 1 }, collectedCount: 2 }
+      },
+      commonMistake: {
+        mistake: 'Forgetting to increment the index counter (i += 1) inside the while loop body.',
+        correction: 'Always change i by 1 at the end of each loop iteration so the loop moves to the next cell and terminates.'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'Three shard stations are located along the corridor. Traverse shards [1, 1, 1] with counter i.' },
+        { level: 2, label: 'Helpful Concept', text: 'Set i to 0. Use while i < 3. Inside: read shards[i], move forward twice, collect, and change i by 1.' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'Create shards [1, 1, 1]. Set i = 0. While i < 3: move, move, collect, change i by 1. Move into portal.' }
+      ],
+      postSuccessExplanation: 'Flawless traversal! The counter visited every cell in order and guided the drone across the sector.'
+    },
+    43: {
+      id: 43,
+      title: 'Routine Processing',
+      zone: 'Memory Matrix',
+      objective: 'Define routine "inspectSector" with parameter "hazardFlag". Traverse array "hazards" [0, 1, 0] to safely jump breaches when flagged.',
+      learningObjective: 'Pass array elements as arguments into reusable routines for procedural processing.',
+      newConcept: 'Processing Arrays with Reusable Routines',
+      prerequisites: ['Level 42: Array Traversal', 'Procedural Matrix'],
+      practisedSkills: ['Array data flow', 'Routine parameters with array data', 'Conditional execution'],
+      introducedBlocks: [],
+      allowedBlocks: ['cv_move', 'cv_jump', 'cv_collect', 'cv_repeat', 'cv_while', 'cv_if', 'cv_if_else', 'cv_var_set', 'cv_var_change', 'cv_var_get', 'cv_compare', 'cv_fn_def', 'cv_fn_def_param', 'cv_fn_call', 'cv_fn_call_param', 'cv_array_create', 'cv_array_get', 'cv_array_set', 'cv_array_length'],
+      conceptExplanation: 'Arrays provide data; routines provide actions. When you read an array element (like hazards[i]) and pass it into a routine parameter, your routine can make intelligent decisions based on stored data!',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.hazard, VISUAL_LEGEND.energy, VISUAL_LEGEND.exit],
+      workedExample: {
+        title: 'Processing Array Values in a Routine',
+        explanation: 'Define handleFlag(flag): if flag == 1 jump else move. Read data[i] and pass to routine.',
+        demoLevel: { id: 'demo-43', title: 'Routine Array Demo', map: ['########', '#S.H.CG#', '########'], direction: 0, bossHealth: 0 },
+        demoMap: ['########', '#S.H.CG#', '########'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [
+          { type: 'fn_def', name: 'handleFlag', params: ['flag'], body: [
+            { type: 'if', condition: { type: 'compare', left: 'flag', op: '==', right: 1 }, body: [{ type: 'jump' }], elseBody: [{ type: 'move' }] }
+          ]},
+          { type: 'array_init', name: 'data', values: [0, 1] },
+          { type: 'var_set', variable: 'v0', value: { type: 'array_get', name: 'data', index: 0 } },
+          { type: 'fn_call', name: 'handleFlag', args: ['v0'] },
+          { type: 'var_set', variable: 'v1', value: { type: 'array_get', name: 'data', index: 1 } },
+          { type: 'fn_call', name: 'handleFlag', args: ['v1'] },
+          { type: 'move' },
+          { type: 'collect' },
+          { type: 'move' }
+        ],
+        expectedOutcome: { passed: true, finalPosition: { x: 6, y: 1 }, collectedCount: 1 }
+      },
+      commonMistake: {
+        mistake: 'Passing the whole array instead of passing the single element value.',
+        correction: 'Pass individual elements (like hazards[0] or hazards[i]) into routine parameters.'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'Hazard array is [0, 1, 0]: index 1 indicates the breach. Process each flag with routine inspectSector.' },
+        { level: 2, label: 'Helpful Concept', text: 'Define inspectSector(hazardFlag): if hazardFlag == 1 jump across breach else move forward.' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'Create hazards [0, 1, 0]. Define inspectSector(hazardFlag). Move, collect, jump breach, collect, extract.' }
+      ],
+      postSuccessExplanation: 'Procedural array processing mastered! Reusable logic combined with structured data.'
+    },
+    44: {
+      id: 44,
+      title: 'Array Architect',
+      zone: 'Memory Matrix',
+      objective: 'Final Chapter Mission: Coordinate power cells, bridge deployment, shard recovery, and guardian combat using arrays, traversal, and mutation.',
+      learningObjective: 'Integrate array creation, reading, mutation, traversal, and robotic actions in an end-to-end mission.',
+      newConcept: 'Comprehensive Array Mastery',
+      prerequisites: ['Level 43: Routine Processing', 'Terminal Activation', 'Guardian Combat'],
+      practisedSkills: ['Comprehensive array mastery', 'End-to-end data coordination', 'Multi-phase problem solving'],
+      introducedBlocks: [],
+      allowedBlocks: ['cv_move', 'cv_left', 'cv_right', 'cv_jump', 'cv_collect', 'cv_activate', 'cv_pulse', 'cv_repeat', 'cv_while', 'cv_if', 'cv_if_else', 'cv_val_num', 'cv_var_get', 'cv_var_set', 'cv_var_change', 'cv_compare', 'cv_fn_def', 'cv_fn_def_param', 'cv_fn_call', 'cv_fn_call_param', 'cv_array_create', 'cv_array_get', 'cv_array_set', 'cv_array_length'],
+      conceptExplanation: 'The ultimate array challenge! Create array matrix [3, 1, 0]. Use matrix[0] to determine pulse blasts against the guardian, deploy the bridge, collect the shard, update matrix[2] to 1 when the guardian falls, and extract.',
+      visualLegend: [VISUAL_LEGEND.robot, VISUAL_LEGEND.terminal, VISUAL_LEGEND.bridge, VISUAL_LEGEND.energy, VISUAL_LEGEND.guardian, VISUAL_LEGEND.exit],
+      workedExample: {
+        title: 'Full Array Architecture',
+        explanation: 'Initialize matrix [3, 1], deploy bridge, strike guardian 3 times, update cell, and extract.',
+        demoLevel: { id: 'demo-44', title: 'Array Climax Demo', map: ['###########', '#STB.C.X.G#', '###########'], direction: 0, bossHealth: 1 },
+        demoMap: ['###########', '#STB.C.X.G#', '###########'],
+        demoInitialState: { x: 1, y: 1, direction: 0 },
+        program: [
+          { type: 'array_init', name: 'matrix', values: [1, 1] },
+          { type: 'move' },
+          { type: 'activate' },
+          { type: 'repeat', count: 3, body: [{ type: 'move' }] },
+          { type: 'collect' },
+          { type: 'move' },
+          { type: 'pulse' },
+          { type: 'array_set', name: 'matrix', index: 0, value: 0 },
+          { type: 'repeat', count: 3, body: [{ type: 'move' }] }
+        ],
+        expectedOutcome: { passed: true, bridgeDeployed: true, bossHP: 0, finalPosition: { x: 9, y: 1 } }
+      },
+      commonMistake: {
+        mistake: 'Attempting to complete the challenge without satisfying array creation, reading, and mutation requirements.',
+        correction: 'Ensure your program creates an array, reads from it, updates a cell, and utilizes while loop traversal.'
+      },
+      hints: [
+        { level: 1, label: 'Notice the Goal', text: 'Phase 1: Create array matrix [3, 1, 0]. Phase 2: Deploy bridge and collect shard. Phase 3: Pulse guardian and update matrix[2].' },
+        { level: 2, label: 'Helpful Concept', text: 'Set p = matrix[0] (value 3). While p > 0: pulse, change p by -1. Update matrix[2] to 1.' },
+        { level: 3, label: 'Step-by-Step Suggestion', text: 'Create matrix [3, 1, 0]. Move, activate, repeat 4: move, collect. Repeat 3: pulse. Set matrix[2] to 1. Advance to portal.' }
+      ],
+      postSuccessExplanation: '🏆 MEMORY MATRIX CONQUERED! You have mastered fixed-length integer arrays, zero-based indexing, element mutation, and loop traversal. Exceptional engineering!'
+    }
+  };
+}
+
+// Populate full 44-level curriculum
 Object.assign(LEVEL_CURRICULUM, generateAdvancedCurriculum());
 Object.assign(LEVEL_CURRICULUM, generateStageECurriculum());
 Object.assign(LEVEL_CURRICULUM, generateStageE2Curriculum());
+Object.assign(LEVEL_CURRICULUM, generateStageE3Curriculum());
 
 /**
  * Returns curriculum metadata for a specific level id.
@@ -1632,7 +1919,7 @@ export function getLevelCurriculum(levelId) {
  */
 export function auditCurriculum(levelsList) {
   const errors = [];
-  const expectedCount = Array.isArray(levelsList) ? levelsList.length : 38;
+  const expectedCount = Array.isArray(levelsList) ? levelsList.length : 44;
   if (!Array.isArray(levelsList) || levelsList.length < 24) {
     errors.push(`Expected at least 24 levels in campaign list, received ${levelsList?.length}`);
   }
@@ -1680,6 +1967,54 @@ export function auditCurriculum(levelsList) {
  */
 export function diagnoseFailure(level, finalState, _program) {
   const curriculum = getLevelCurriculum(level.id);
+
+  if (finalState?.message?.includes('requires creating and initializing an array')) {
+    return {
+      diagnosis: 'Observed Mistake: The sector requires creating and initializing an array, but none was created.',
+      suggestion: 'Suggestion: Use the "Create Array" block (e.g. create array cells with [2, 1, 3]) at the start of your program.',
+      hintTier: 2
+    };
+  }
+
+  if (finalState?.message?.includes('requires reading a value from an array using an index')) {
+    return {
+      diagnosis: 'Observed Mistake: An array value was never read using an index.',
+      suggestion: 'Suggestion: Use the "Array Element" block (e.g. value from array codes at index 0) to retrieve a value.',
+      hintTier: 2
+    };
+  }
+
+  if (finalState?.message?.includes('requires updating an array element')) {
+    return {
+      diagnosis: 'Observed Mistake: An array element was required to be updated, but was never modified.',
+      suggestion: 'Suggestion: Use the "Set Array Element" block (e.g. set array bridgeBuffer at index 1 to 1) to mutate a cell.',
+      hintTier: 2
+    };
+  }
+
+  if (finalState?.message?.includes('requires traversing an array using an index counter inside a loop')) {
+    return {
+      diagnosis: 'Observed Mistake: The array was not traversed with an index counter inside a loop.',
+      suggestion: 'Suggestion: Use a while loop with an index counter (e.g. while i < 3) to access multiple array cells in sequence.',
+      hintTier: 2
+    };
+  }
+
+  if (finalState?.message?.includes('Array index out of bounds')) {
+    return {
+      diagnosis: `Observed Mistake: ${finalState.message}`,
+      suggestion: 'Suggestion: Remember that array indexing is zero-based: valid indexes range from 0 to (length - 1). Check your index variable or value.',
+      hintTier: 2
+    };
+  }
+
+  if (finalState?.message?.includes('used before being created')) {
+    return {
+      diagnosis: `Observed Mistake: ${finalState.message}`,
+      suggestion: 'Suggestion: Drag a "Create Array" block to the top of your program before reading or setting elements.',
+      hintTier: 2
+    };
+  }
 
   if (finalState?.message?.includes('requires defining and calling a routine')) {
     return {

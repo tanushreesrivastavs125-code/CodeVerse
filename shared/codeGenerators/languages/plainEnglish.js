@@ -38,6 +38,7 @@ export function generatePlainEnglish(ast, options = {}) {
   let hasLoop = false;
   let hasSensor = false;
   let hasVariable = false;
+  let hasArrays = false;
   let hasWhile = false;
 
   function formatSequence(nodes, depth = 0, stepPrefix = '') {
@@ -70,6 +71,30 @@ export function generatePlainEnglish(ast, options = {}) {
           var: varName,
           variable: varName,
           amount
+        });
+      } else if (node.type === 'array_init') {
+        hasArrays = true;
+        const arrName = node.name || node.array || 'cells';
+        const rawVals = Array.isArray(node.values) ? node.values : (Array.isArray(node.elements) ? node.elements : []);
+        const elemsStr = rawVals.map(e => formatOperand(e, 'plainEnglish')).join(', ');
+        const text = `${fullPrefix}Create list "${arrName}" with items [${elemsStr}]`;
+        builder.addLine(depth, text, node.nodeId, {
+          blockId: node.blockId,
+          type: 'array_init',
+          array: arrName
+        });
+      } else if (node.type === 'array_set') {
+        hasArrays = true;
+        const arrName = node.name || node.array || 'cells';
+        const idxStr = formatOperand(node.index !== undefined ? node.index : 0, 'plainEnglish');
+        const valStr = formatOperand(node.value !== undefined ? node.value : 0, 'plainEnglish');
+        const text = `${fullPrefix}Set item at index ${idxStr} in "${arrName}" to ${valStr}`;
+        builder.addLine(depth, text, node.nodeId, {
+          blockId: node.blockId,
+          type: 'array_set',
+          array: arrName,
+          index: idxStr,
+          value: valStr
         });
       } else if (node.type === 'repeat') {
         hasLoop = true;
@@ -189,6 +214,14 @@ export function generatePlainEnglish(ast, options = {}) {
       id: 'variables',
       title: 'Variables & Counters',
       text: 'Variables store named numeric values in memory that can be inspected, updated, and tested in conditions.'
+    });
+  }
+
+  if (hasArrays) {
+    explanations.push({
+      id: 'arrays',
+      title: 'Lists & Memory Cells',
+      text: 'Lists store a sequence of numbered items starting at index 0. You can read or update items using their index numbers.'
     });
   }
 

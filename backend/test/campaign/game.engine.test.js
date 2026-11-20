@@ -21,7 +21,7 @@ const repeat = (count, ...body) => ({ type: 'repeat', count, body });
 const ifSensor = (sensor, body, elseBody = []) => ({ type: 'if', sensor, body, elseBody });
 
 test('Level definitions and initial world state', () => {
-  assert.equal(levels.length, 38);
+  assert.equal(levels.length, 44);
   assert.equal(directions.length, 4);
   assert.deepEqual(directions[0], { x: 1, y: 0 }); // East
   assert.deepEqual(directions[1], { x: 0, y: 1 }); // South
@@ -368,12 +368,12 @@ test('Determinism: identical inputs yield identical frame snapshots', () => {
   assert.equal(run1.frames[3].x, 4);
 });
 
-test('38-level campaign structural integrity and district distribution', () => {
-  assert.equal(levels.length, 38);
+test('44-level campaign structural integrity and district distribution', () => {
+  assert.equal(levels.length, 44);
 
-  // Verify unique IDs 1..38
+  // Verify unique IDs 1..44
   const ids = levels.map((l) => l.id);
-  assert.deepEqual(ids, Array.from({ length: 38 }, (_, i) => i + 1));
+  assert.deepEqual(ids, Array.from({ length: 44 }, (_, i) => i + 1));
 
   // Verify map invariants: exactly one 'S', exactly one 'G', valid par
   for (const lvl of levels) {
@@ -385,7 +385,7 @@ test('38-level campaign structural integrity and district distribution', () => {
     assert.ok(lvl.par >= 1, `Level ${lvl.id} must have par >= 1`);
   }
 
-  // Verify districts taxonomy (8 districts)
+  // Verify districts taxonomy (9 districts)
   const districts = [
     { name: 'Neon Outskirts', slice: [0, 4], expectedCount: 4 },
     { name: 'Cipher District', slice: [4, 8], expectedCount: 4 },
@@ -394,7 +394,8 @@ test('38-level campaign structural integrity and district distribution', () => {
     { name: 'Quantum Grid', slice: [16, 20], expectedCount: 4 },
     { name: 'Singularity', slice: [20, 24], expectedCount: 4 },
     { name: 'Algorithmic Core', slice: [24, 32], expectedCount: 8 },
-    { name: 'Procedural Matrix', slice: [32, 38], expectedCount: 6 }
+    { name: 'Procedural Matrix', slice: [32, 38], expectedCount: 6 },
+    { name: 'Memory Matrix', slice: [38, 44], expectedCount: 6 }
   ];
 
   for (const d of districts) {
@@ -450,7 +451,7 @@ test('Advanced sector requirements and dead branch execution guards', () => {
   assert.match(noSensorRes.message, /requires an evaluated sensor condition/);
 });
 
-test('Playable solutions for all 38 campaign levels', () => {
+test('Playable solutions for all 44 campaign levels', () => {
   const solutions1to12 = [
     [repeat(3, m)],
     [m, c, m, m, c, m],
@@ -685,10 +686,69 @@ test('Playable solutions for all 38 campaign levels', () => {
       { type: 'fn_call', name: 'strike', args: [1] },
       { type: 'fn_call', name: 'strike', args: [2] },
       m, m, m, m, m
+    ],
+    39: [
+      { type: 'array_init', name: 'cells', values: [2, 1, 3] },
+      m, m, m, m
+    ],
+    40: [
+      { type: 'array_init', name: 'codes', values: [3, 1, 4] },
+      { type: 'var_set', variable: 'dist', value: { type: 'array_get', name: 'codes', index: 0 } },
+      { type: 'repeat', count: 3, body: [m] },
+      c,
+      { type: 'repeat', count: 4, body: [m] }
+    ],
+    41: [
+      { type: 'array_init', name: 'bridgeBuffer', values: [0, 0, 0] },
+      { type: 'array_set', name: 'bridgeBuffer', index: 1, value: 1 },
+      m, a, m, m, m, m, c, m, m
+    ],
+    42: [
+      { type: 'array_init', name: 'shards', values: [1, 1, 1] },
+      { type: 'var_set', variable: 'i', value: 0 },
+      {
+        type: 'while',
+        condition: { type: 'compare', left: 'i', op: '<', right: 3 },
+        body: [
+          { type: 'var_set', variable: 'val', value: { type: 'array_get', name: 'shards', index: 'i' } },
+          m, m, c,
+          { type: 'var_change', variable: 'i', amount: 1 }
+        ]
+      },
+      m
+    ],
+    43: [
+      {
+        type: 'fn_def',
+        name: 'inspectSector',
+        params: ['hazardFlag'],
+        body: [
+          { type: 'if', condition: { type: 'compare', left: 'hazardFlag', op: '==', right: 1 }, body: [j], elseBody: [m] }
+        ]
+      },
+      { type: 'array_init', name: 'hazards', values: [0, 1, 0] },
+      m, m, c, m,
+      { type: 'fn_call', name: 'inspectSector', args: [{ type: 'array_get', name: 'hazards', index: 1 }] },
+      m, c, m, m
+    ],
+    44: [
+      { type: 'array_init', name: 'matrix', values: [3, 1, 0] },
+      { type: 'var_set', variable: 'p', value: { type: 'array_get', name: 'matrix', index: 0 } },
+      m, a, m, m, m, m, c, m, m,
+      {
+        type: 'while',
+        condition: { type: 'compare', left: 'p', op: '>', right: 0 },
+        body: [
+          p,
+          { type: 'var_change', variable: 'p', amount: -1 }
+        ]
+      },
+      { type: 'array_set', name: 'matrix', index: 2, value: 1 },
+      m, m, m, m
     ]
   };
 
-  for (let i = 0; i < 38; i++) {
+  for (let i = 0; i < 44; i++) {
     const lvl = levels[i];
     let prog;
     if (i < 12) {
@@ -816,4 +876,113 @@ test('Stage E2: Function routine execution, parameter passing, and constraints',
   const notComposedRes = simulate(lvl37, notComposedProg);
   assert.equal(notComposedRes.passed, false);
   assert.match(notComposedRes.message, /requires composing a routine inside a loop/);
+});
+
+test('Stage E3: Fixed-length integer arrays, indexing, mutation, and constraints', () => {
+  const l1 = levels[0];
+
+  // 1. Array creation & limits
+  // Exceeding MAX_ARRAYS (limit 5)
+  const tooManyArrays = [
+    { type: 'array_init', name: 'a1', values: [1] },
+    { type: 'array_init', name: 'a2', values: [1] },
+    { type: 'array_init', name: 'a3', values: [1] },
+    { type: 'array_init', name: 'a4', values: [1] },
+    { type: 'array_init', name: 'a5', values: [1] },
+    { type: 'array_init', name: 'a6', values: [1] }
+  ];
+  assert.throws(() => validateProgram(tooManyArrays), /limit of 5 arrays/);
+
+  // Exceeding MAX_ARRAY_LENGTH (limit 10)
+  const tooLongArray = [
+    { type: 'array_init', name: 'big', values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] }
+  ];
+  assert.throws(() => validateProgram(tooLongArray), /maximum length of 10 elements/);
+
+  // Name collision: variable and array with same identifier
+  const collisionVarFirst = [
+    { type: 'var_set', variable: 'sharedName', value: 5 },
+    { type: 'array_init', name: 'sharedName', values: [1, 2] }
+  ];
+  assert.throws(() => validateProgram(collisionVarFirst), /already used as a variable/);
+
+  const collisionArrFirst = [
+    { type: 'array_init', name: 'data', values: [1, 2] },
+    { type: 'var_set', variable: 'data', value: 5 }
+  ];
+  assert.throws(() => validateProgram(collisionArrFirst), /already used as an array/);
+
+  // 2. Out of bounds index access rejection
+  // Negative index
+  const negIndexProg = [
+    { type: 'array_init', name: 'nums', values: [10, 20] },
+    { type: 'var_set', variable: 'v', value: { type: 'array_get', name: 'nums', index: -1 } }
+  ];
+  assert.throws(() => simulate(l1, negIndexProg), /Array index out of bounds: -1/);
+
+  // Index >= length
+  const oobIndexProg = [
+    { type: 'array_init', name: 'nums', values: [10, 20] },
+    { type: 'var_set', variable: 'v', value: { type: 'array_get', name: 'nums', index: 2 } }
+  ];
+  assert.throws(() => simulate(l1, oobIndexProg), /Array index out of bounds: 2. Array "nums" has length 2, so valid indexes are 0 to 1/);
+
+  // Out of bounds on array_set
+  const oobSetProg = [
+    { type: 'array_init', name: 'nums', values: [10, 20] },
+    { type: 'array_set', name: 'nums', index: 5, value: 99 }
+  ];
+  assert.throws(() => simulate(l1, oobSetProg), /Array index out of bounds: 5/);
+
+  // Empty array bounds message
+  const emptyArrProg = [
+    { type: 'array_init', name: 'empty', values: [] },
+    { type: 'var_set', variable: 'v', value: { type: 'array_get', name: 'empty', index: 0 } }
+  ];
+  assert.throws(() => simulate(l1, emptyArrProg), /Array "empty" is empty \(length 0\)/);
+
+  // 3. Level constraint checks
+  // Level 39: requireArray
+  const lvl39 = levels[38];
+  const noArrayProg = [m, m, m, m];
+  const noArrayRes = simulate(lvl39, noArrayProg);
+  assert.equal(noArrayRes.passed, false);
+  assert.match(noArrayRes.message, /requires creating and initializing an array/);
+
+  // Level 40: requireArrayRead
+  const lvl40 = levels[39];
+  const noReadProg = [
+    { type: 'array_init', name: 'codes', values: [3, 1, 4] },
+    repeat(3, m), c, repeat(4, m)
+  ];
+  const noReadRes = simulate(lvl40, noReadProg);
+  assert.equal(noReadRes.passed, false);
+  assert.match(noReadRes.message, /requires reading a value from an array using an index/);
+
+  // Level 41: requireArraySet
+  const lvl41 = levels[40];
+  const noSetProg = [
+    { type: 'array_init', name: 'bridgeBuffer', values: [0, 0, 0] },
+    m, a, repeat(4, m), c, m, m
+  ];
+  const noSetRes = simulate(lvl41, noSetProg);
+  assert.equal(noSetRes.passed, false);
+  assert.match(noSetRes.message, /requires updating an array element/);
+
+  // Level 42: requireArrayTraversal
+  const lvl42 = levels[41];
+  const noTraversalProg = [
+    { type: 'array_init', name: 'shards', values: [1, 1, 1] },
+    { type: 'var_set', variable: 'v', value: { type: 'array_get', name: 'shards', index: 0 } },
+    { type: 'var_set', variable: 'k', value: 0 },
+    {
+      type: 'while',
+      condition: { type: 'compare', left: 'k', op: '<', right: 3 },
+      body: [m, m, c, { type: 'var_change', variable: 'k', amount: 1 }]
+    },
+    m
+  ];
+  const noTraversalRes = simulate(lvl42, noTraversalProg);
+  assert.equal(noTraversalRes.passed, false);
+  assert.match(noTraversalRes.message, /requires traversing an array using an index counter inside a loop/);
 });

@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { generateRunnableExport } from '../../../shared/codeGenerators/index.js';
-import { simulate, levels, validateProgram, isValidIdentifier, getIdentifierError, MAX_VARIABLES, MAX_FUNCTIONS, MAX_PARAMS_PER_FUNCTION, MAX_CALL_DEPTH } from '../../../shared/game.js';
+import { simulate, levels, validateProgram, isValidIdentifier, getIdentifierError, MAX_VARIABLES, MAX_ARRAYS, MAX_ARRAY_LENGTH, MAX_FUNCTIONS, MAX_PARAMS_PER_FUNCTION, MAX_CALL_DEPTH } from '../../../shared/game.js';
 
 /**
  * Detect available language runtimes and compilers in the current environment.
@@ -543,6 +543,74 @@ describe('Stage D: Multi-Language Executable Exports Compilation & Semantic Veri
         },
         { type: 'fn_call', name: 'bad_fn', args: [] }
       ]
+    },
+    {
+      name: 'Array creation and reading first and last elements',
+      level: levels[0],
+      program: [
+        { type: 'array_init', name: 'items', values: [10, 20, 30] },
+        { type: 'var_set', variable: 'first', value: { type: 'array_get', name: 'items', index: 0 } },
+        { type: 'var_set', variable: 'last', value: { type: 'array_get', name: 'items', index: 2 } },
+        { type: 'move' }
+      ]
+    },
+    {
+      name: 'Array element updates and loop traversal',
+      level: levels[0],
+      program: [
+        { type: 'array_init', name: 'buf', values: [0, 0, 0] },
+        { type: 'array_set', name: 'buf', index: 1, value: 5 },
+        { type: 'var_set', variable: 'idx', value: 0 },
+        {
+          type: 'while',
+          condition: { type: 'compare', left: 'idx', op: '<', right: { type: 'array_length', name: 'buf' } },
+          body: [
+            { type: 'var_change', variable: 'idx', amount: 1 }
+          ]
+        },
+        { type: 'move' }
+      ]
+    },
+    {
+      name: 'Empty-array reading rejected with descriptive error',
+      level: levels[0],
+      expectCrash: true,
+      expectedReason: 'empty (length 0)',
+      program: [
+        { type: 'array_init', name: 'empty_arr', values: [] },
+        { type: 'var_set', variable: 'val', value: { type: 'array_get', name: 'empty_arr', index: 0 } }
+      ]
+    },
+    {
+      name: 'Out-of-bounds array access rejected',
+      level: levels[0],
+      expectCrash: true,
+      expectedReason: 'out of bounds',
+      program: [
+        { type: 'array_init', name: 'sample', values: [1, 2] },
+        { type: 'var_set', variable: 'val', value: { type: 'array_get', name: 'sample', index: 5 } }
+      ]
+    },
+    {
+      name: 'Global array access and modification inside routine',
+      level: levels[0],
+      program: [
+        {
+          type: 'fn_def',
+          name: 'modifyGlobalArr',
+          params: ['val'],
+          body: [
+            { type: 'array_set', name: 'shared_data', index: 0, value: { type: 'var_get', var: 'val' } }
+          ]
+        },
+        { type: 'array_init', name: 'shared_data', values: [100] },
+        { type: 'fn_call', name: 'modifyGlobalArr', args: [42] },
+        {
+          type: 'if',
+          condition: { type: 'compare', left: { type: 'array_get', name: 'shared_data', index: 0 }, op: '==', right: 42 },
+          body: [{ type: 'move' }]
+        }
+      ]
     }
   ];
 
@@ -645,6 +713,40 @@ describe('Stage D: Multi-Language Executable Exports Compilation & Semantic Veri
     assert.throws(() => validateProgram(indirectRec), /Recursion is not permitted/);
   });
 
+  test('enforces array constraints, sizing, and collision rejection in validateProgram', () => {
+    assert.equal(MAX_ARRAYS, 5);
+    assert.equal(MAX_ARRAY_LENGTH, 10);
+
+    // 1. Program with 5 arrays -> OK
+    const fiveArrays = [];
+    for (let i = 1; i <= MAX_ARRAYS; i++) {
+      fiveArrays.push({ type: 'array_init', name: `arr_${i}`, values: [1, 2] });
+    }
+    assert.equal(validateProgram(fiveArrays), true);
+
+    // 2. Program with 6 arrays -> rejected
+    const sixArrays = [...fiveArrays, { type: 'array_init', name: 'arr_6', values: [1] }];
+    assert.throws(() => validateProgram(sixArrays), /Program exceeds the limit of 5 arrays/);
+
+    // 3. Array length > 10 -> rejected
+    const longArr = [{ type: 'array_init', name: 'too_long', values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] }];
+    assert.throws(() => validateProgram(longArr), /exceeds the maximum length of 10 elements/);
+
+    // 4. Identifier collision: variable and array share same name -> rejected
+    const collisionProg = [
+      { type: 'var_set', variable: 'shared_ident', value: 10 },
+      { type: 'array_init', name: 'shared_ident', values: [1, 2] }
+    ];
+    assert.throws(() => validateProgram(collisionProg), /Identifier "shared_ident" is already used as a variable/);
+
+    // 5. Function collision: function and array share same name -> rejected
+    const fnCollision = [
+      { type: 'fn_def', name: 'stepRoutine', params: [], body: [] },
+      { type: 'array_init', name: 'stepRoutine', values: [1, 2] }
+    ];
+    assert.throws(() => validateProgram(fnCollision), /Identifier "stepRoutine" is already used as a function/);
+  });
+
   const EXECUTABLE_LANGS = ['javascript', 'python', 'java', 'cpp', 'c'];
 
   for (const lang of EXECUTABLE_LANGS) {
@@ -724,6 +826,13 @@ describe('Stage D: Multi-Language Executable Exports Compilation & Semantic Veri
                 result.variables,
                 simState.variables,
                 `Variables state in ${lang} must match canonical simulator`
+              );
+            }
+            if (simState.arrays && result.arrays) {
+              assert.deepEqual(
+                result.arrays,
+                simState.arrays,
+                `Arrays state in ${lang} must match canonical simulator`
               );
             }
           }

@@ -373,6 +373,84 @@ export function registerCodeVerseBlocks() {
       nextStatement: null,
       colour: 285,
       tooltip: 'Call Routine with Argument: Pass a numeric argument into a routine.\nWhen to use: To invoke a parameterized routine with different values.\nSyntax: name(value);'
+    },
+    {
+      type: 'cv_array_create',
+      message0: 'create array %1 with values %2',
+      args0: [
+        {
+          type: 'field_input',
+          name: 'NAME',
+          text: 'cells'
+        },
+        {
+          type: 'field_input',
+          name: 'VALUES',
+          text: '1, 2, 3'
+        }
+      ],
+      previousStatement: null,
+      nextStatement: null,
+      colour: 35,
+      tooltip: 'Create Array: Create a fixed-length list of integer values stored in memory cells.\nWhen to use: When storing a sequence of codes or energy values.\nSyntax: cells = [1, 2, 3];'
+    },
+    {
+      type: 'cv_array_get',
+      message0: '%1 [ %2 ]',
+      args0: [
+        {
+          type: 'field_input',
+          name: 'NAME',
+          text: 'cells'
+        },
+        {
+          type: 'input_value',
+          name: 'INDEX',
+          check: 'Number'
+        }
+      ],
+      output: 'Number',
+      colour: 35,
+      tooltip: 'Read Array Element: Read the item at zero-based index (0 to length - 1).\nWhen to use: To inspect an array cell value.\nSyntax: cells[index]'
+    },
+    {
+      type: 'cv_array_set',
+      message0: 'set %1 [ %2 ] to %3',
+      args0: [
+        {
+          type: 'field_input',
+          name: 'NAME',
+          text: 'cells'
+        },
+        {
+          type: 'input_value',
+          name: 'INDEX',
+          check: 'Number'
+        },
+        {
+          type: 'input_value',
+          name: 'VALUE',
+          check: 'Number'
+        }
+      ],
+      previousStatement: null,
+      nextStatement: null,
+      colour: 35,
+      tooltip: 'Update Array Element: Change the value stored at a zero-based index.\nWhen to use: To modify an energy cell or buffer element.\nSyntax: cells[index] = value;'
+    },
+    {
+      type: 'cv_array_length',
+      message0: 'length of %1',
+      args0: [
+        {
+          type: 'field_input',
+          name: 'NAME',
+          text: 'cells'
+        }
+      ],
+      output: 'Number',
+      colour: 35,
+      tooltip: 'Array Length: Returns the number of cells in the array.\nWhen to use: In loop conditions like i < length of cells.\nSyntax: cells.length'
     }
   ];
 
@@ -598,6 +676,45 @@ export const gameToolbox = {
           }
         }
       ]
+    },
+    {
+      kind: 'category',
+      name: 'Arrays',
+      colour: '#f59e0b',
+      contents: [
+        { kind: 'block', type: 'cv_array_create' },
+        {
+          kind: 'block',
+          type: 'cv_array_get',
+          inputs: {
+            INDEX: {
+              shadow: {
+                type: 'math_number',
+                fields: { NUM: 0 }
+              }
+            }
+          }
+        },
+        {
+          kind: 'block',
+          type: 'cv_array_set',
+          inputs: {
+            INDEX: {
+              shadow: {
+                type: 'math_number',
+                fields: { NUM: 0 }
+              }
+            },
+            VALUE: {
+              shadow: {
+                type: 'math_number',
+                fields: { NUM: 1 }
+              }
+            }
+          }
+        },
+        { kind: 'block', type: 'cv_array_length' }
+      ]
     }
   ]
 };
@@ -627,8 +744,8 @@ export function getToolboxForLevel(level, showAll = false) {
       // Allow controls_repeat_ext if cv_repeat is allowed
       if (item.type === 'controls_repeat_ext' && allowed.has('cv_repeat')) return true;
       if (item.type === 'controls_if' && (allowed.has('cv_if') || allowed.has('cv_if_else'))) return true;
-      // Allow math_number if cv_compare or cv_var_set is allowed
-      if (item.type === 'math_number' && (allowed.has('cv_compare') || allowed.has('cv_var_set') || allowed.has('cv_var_change') || allowed.has('cv_fn_call_param') || allowed.has('cv_val_num'))) return true;
+      // Allow math_number if cv_compare, cv_var_set, cv_array_get, or cv_array_set is allowed
+      if (item.type === 'math_number' && (allowed.has('cv_compare') || allowed.has('cv_var_set') || allowed.has('cv_var_change') || allowed.has('cv_fn_call_param') || allowed.has('cv_val_num') || allowed.has('cv_array_get') || allowed.has('cv_array_set'))) return true;
       return false;
     });
 
